@@ -7,7 +7,7 @@ import {
 import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
 import { useUi } from '../store/uiStore'
-import { processOutbox } from '../lib/sync'
+import { syncNow as runSync } from '../lib/sync'
 import { usePermission } from '../hooks/usePermission'
 
 const sections = [
@@ -47,10 +47,10 @@ export default function MorePage() {
     if (syncing) return
     setSyncing(true)
     try {
-      const r = await processOutbox()
+      const r = await runSync()
       await refreshPendingSync()
       if (r.failed > 0) toast(`${r.failed} item${r.failed > 1 ? 's' : ''} could not sync yet`, 'error')
-      else toast(r.synced > 0 ? `Synced ${r.synced} item${r.synced > 1 ? 's' : ''}` : 'Everything is up to date', 'success')
+      else toast(r.synced + r.pulled > 0 ? `Synced ${r.synced} sent, ${r.pulled} received` : 'Everything is up to date', 'success')
     } catch {
       toast('Sync failed. Check your connection.', 'error')
     } finally {

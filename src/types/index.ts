@@ -156,7 +156,7 @@ export interface Expense {
 
 export interface OutboxEvent {
   id: UUID
-  type: 'sale' | 'stock_movement' | 'product_upsert' | 'customer_upsert' | 'purchase' | 'expense' | 'shift'
+  type: 'sale' | 'stock_movement' | 'product_upsert' | 'customer_upsert' | 'supplier_upsert' | 'purchase' | 'expense' | 'shift'
   payload: unknown
   createdAt: string
   retries: number
