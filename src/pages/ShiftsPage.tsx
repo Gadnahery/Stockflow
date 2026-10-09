@@ -153,7 +153,7 @@ export default function ShiftsPage() {
         <div className="sheet-backdrop">
           <div className="sheet-panel p-6">
             <h2 className="text-lg font-semibold text-ink mb-4">Open Shift</h2>
-            <label className="block text-sm text-ink-secondary mb-1.5">Opening float (cash in drawer)</label>
+            <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Opening float (cash in drawer)</label>
             <input
               type="number"
               value={float}
@@ -187,7 +187,7 @@ export default function ShiftsPage() {
                 <span className="tabular-nums font-medium">{expected.toLocaleString()}</span>
               </div>
             </div>
-            <label className="block text-sm text-ink-secondary mb-1.5">Actual cash counted</label>
+            <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Actual cash counted</label>
             <input
               type="number"
               value={closing}

@@ -159,12 +159,12 @@ export default function UsersPage() {
         <div className="sheet-backdrop">
           <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white z-10">
-              <h2 className="text-lg font-semibold">{editing ? 'Edit User' : 'Add User'}</h2>
+              <h2 className="text-[20px] font-bold tracking-tight">{editing ? 'Edit User' : 'Add User'}</h2>
               <button onClick={() => setShowForm(false)} className="p-1 text-ink-muted"><X size={20} /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Name *</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Name *</label>
                 <input
                   value={form.name}
                   onChange={(e) => setForm({ ...form, name: e.target.value })}
@@ -172,7 +172,7 @@ export default function UsersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">PIN * (min 4 digits)</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">PIN * (min 4 digits)</label>
                 <input
                   type="password"
                   inputMode="numeric"
@@ -182,7 +182,7 @@ export default function UsersPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Role</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Role</label>
                 <select
                   value={form.role}
                   onChange={(e) => setRole(e.target.value as User['role'])}

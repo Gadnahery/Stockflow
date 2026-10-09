@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 
 interface SheetProps {
@@ -37,10 +38,10 @@ export default function Sheet({ open, onClose, title, children, footer, headerAc
 
   if (!mounted) return null
 
-  return (
+  return createPortal(
     <div className="sheet-backdrop" data-closing={closing} onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className="sheet-panel flex flex-col" role="dialog" aria-modal="true" aria-label={title}>
-        <div className="sticky top-0 z-10 bg-white/90 backdrop-blur-xl rounded-t-[28px]">
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-xl rounded-t-[28px]">
           <div className="mx-auto mt-2 h-1.5 w-10 rounded-full bg-black/15 md:hidden" />
           <div className="flex items-center justify-between gap-3 px-5 pt-3 pb-3">
             <h2 className="text-[20px] font-bold tracking-tight text-ink">{title}</h2>
@@ -61,6 +62,7 @@ export default function Sheet({ open, onClose, title, children, footer, headerAc
           <div className="sticky bottom-0 bg-white/90 backdrop-blur-xl border-t border-border px-5 pt-3 pb-4">{footer}</div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body
   )
 }

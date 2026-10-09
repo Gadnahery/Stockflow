@@ -1,6 +1,6 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { ShoppingCart, Package, Users, BarChart3, LayoutGrid, LogOut, Wifi, WifiOff } from 'lucide-react'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState, type UIEvent, type FocusEvent } from 'react'
 import clsx from 'clsx'
 import { usePosStore } from '../../store/posStore'
 import { useUi } from '../../store/uiStore'
@@ -28,6 +28,11 @@ export default function AppShell() {
   const location = useLocation()
   const { isOnline, pendingSyncCount, cart } = usePosStore()
   const tabCompact = useUi((s) => s.tabCompact)
+  const tabHidden = useUi((s) => s.tabHidden)
+  const setTabCompact = useUi((s) => s.setTabCompact)
+  const setTabHidden = useUi((s) => s.setTabHidden)
+  const lastTops = useRef(new WeakMap<EventTarget, number>())
+  const blurTimer = useRef<ReturnType<typeof setTimeout>>()
   const [userName, setUserName] = useState('User')
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const active = activeIndex(location.pathname)
@@ -46,13 +51,29 @@ export default function AppShell() {
     }
   }, [navigate])
 
+  // Any scrolling area inside the app collapses the bar on scroll-down and restores it on scroll-up
+  const onScrollAny = (e: UIEvent<HTMLElement>) => {
+    const el = e.target as HTMLElement
+    const top = el.scrollTop
+    const last = lastTops.current.get(el) ?? 0
+    const delta = top - last
+    if (top < 60) setTabCompact(false)
+    else if (delta > 8) setTabCompact(true)
+    else if (delta < -8) setTabCompact(false)
+    lastTops.current.set(el, top)
+  }
+  const isField = (t: EventTarget) => ['INPUT', 'SELECT', 'TEXTAREA'].includes((t as HTMLElement).tagName)
+  const onFocusIn = (e: FocusEvent) => { if (isField(e.target)) { clearTimeout(blurTimer.current); setTabHidden(true) } }
+  const onFocusOut = (e: FocusEvent) => { if (isField(e.target)) { blurTimer.current = setTimeout(() => setTabHidden(false), 150) } }
+  useEffect(() => { setTabCompact(false); setTabHidden(false) }, [location.pathname, setTabCompact, setTabHidden])
+
   const lock = () => {
     sessionStorage.removeItem('currentUser')
     navigate('/login')
   }
 
   return (
-    <div className="h-full flex flex-col md:flex-row bg-surface-secondary">
+    <div className="h-full flex flex-col md:flex-row bg-surface-secondary" onFocus={onFocusIn} onBlur={onFocusOut}>
       {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col glass border-r border-black/5 shrink-0">
         <div className="px-6 pt-7 pb-5">
@@ -99,16 +120,16 @@ export default function AppShell() {
       </aside>
 
       {/* Main content — keyed so each screen eases in */}
-      <main className="flex-1 min-h-0 min-w-0 relative">
+      <main className="flex-1 min-h-0 min-w-0 relative" onScrollCapture={onScrollAny}>
         <div key={location.pathname} className="page-enter h-full flex flex-col">
           <Outlet />
         </div>
       </main>
 
       {/* Mobile: content fades under a floating, translucent, rounded tab bar */}
-      <div className="tab-fade" aria-hidden />
+      <div className="tab-fade" data-hidden={tabHidden} aria-hidden />
       <div className="tabbar-wrap">
-        <nav className="tabbar" data-compact={tabCompact} aria-label="Main">
+        <nav className="tabbar" data-compact={tabCompact} data-hidden={tabHidden} aria-label="Main">
           <span className="tabbar-pill" style={{ transform: `translateX(${active * 100}%)` }} aria-hidden />
           {navItems.map((item, i) => (
             <NavLink

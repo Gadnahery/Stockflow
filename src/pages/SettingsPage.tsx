@@ -45,7 +45,7 @@ export default function SettingsPage() {
         </div>
         <button
           onClick={save}
-          className="flex items-center gap-2 h-10 px-4 rounded-button bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-smooth"
+          className="press flex items-center gap-2 h-10 px-4 rounded-full bg-primary text-white text-[14px] font-semibold shadow-soft"
         >
           <Save size={16} />
           {saved ? 'Saved' : 'Save'}
@@ -84,12 +84,12 @@ export default function SettingsPage() {
           <section className="bg-white rounded-card shadow-card p-5 space-y-4">
             <h2 className="font-semibold text-ink">Receipt</h2>
             <div>
-              <label className="block text-sm text-ink-secondary mb-1.5">Footer message</label>
+              <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Footer message</label>
               <textarea
                 value={form.receiptFooter}
                 onChange={(e) => setForm({ ...form, receiptFooter: e.target.value })}
                 rows={3}
-                className="w-full px-3 py-2.5 rounded-button bg-surface-secondary border border-transparent focus:border-primary focus:bg-white outline-none transition-smooth text-sm resize-none"
+                className="field !h-auto py-3 resize-none"
               />
             </div>
           </section>
@@ -109,12 +109,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm text-ink-secondary mb-1.5">{label}</label>
+      <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary focus:bg-white outline-none transition-smooth text-sm"
+        className="field"
       />
     </div>
   )

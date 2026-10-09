@@ -144,12 +144,12 @@ export default function StockAdjustmentPage() {
         <div className="sheet-backdrop">
           <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
-              <h2 className="text-lg font-semibold">Adjust Stock</h2>
+              <h2 className="text-[20px] font-bold tracking-tight">Adjust Stock</h2>
               <button onClick={() => setShowForm(false)} className="p-1 text-ink-muted"><X size={20} /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Product *</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Product *</label>
                 <div className="relative mb-2">
                   <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" size={16} />
                   <input
@@ -162,7 +162,7 @@ export default function StockAdjustmentPage() {
                 <select
                   value={form.productId}
                   onChange={(e) => setForm({ ...form, productId: e.target.value })}
-                  className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none text-sm"
+                  className="field"
                 >
                   <option value="">Select product…</option>
                   {filteredProducts.map((p) => (
@@ -174,7 +174,7 @@ export default function StockAdjustmentPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Type</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Type</label>
                 <select
                   value={form.type}
                   onChange={(e) => setForm({ ...form, type: e.target.value as typeof form.type })}
@@ -187,7 +187,7 @@ export default function StockAdjustmentPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">
                   Quantity * {form.type === 'adjustment' && <span className="text-ink-muted">(use negative to decrease)</span>}
                 </label>
                 <input
@@ -199,7 +199,7 @@ export default function StockAdjustmentPage() {
               </div>
 
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Reason / Note</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Reason / Note</label>
                 <input
                   value={form.reason}
                   onChange={(e) => setForm({ ...form, reason: e.target.value })}

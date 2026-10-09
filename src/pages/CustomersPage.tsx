@@ -82,7 +82,7 @@ export default function CustomersPage() {
           </div>
           <button
             onClick={openCreate}
-            className="flex items-center gap-2 h-10 px-4 rounded-button bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-smooth"
+            className="press flex items-center gap-2 h-10 px-4 rounded-full bg-primary text-white text-[14px] font-semibold shadow-soft"
           >
             <Plus size={16} />
             <span className="hidden sm:inline">Add Customer</span>
@@ -94,7 +94,7 @@ export default function CustomersPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search by name or phone…"
-            className="w-full h-11 pl-10 pr-4 rounded-button bg-surface-secondary border border-transparent focus:border-primary focus:bg-white outline-none transition-smooth"
+            className="field pl-10 pr-4"
           />
         </div>
       </header>
@@ -138,8 +138,8 @@ export default function CustomersPage() {
         <div className="sheet-backdrop">
           <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
-              <h2 className="text-lg font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
-              <button onClick={() => setShowForm(false)} className="p-1 text-ink-muted hover:text-ink">
+              <h2 className="text-[20px] font-bold tracking-tight">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
+              <button onClick={() => setShowForm(false)} className="press h-9 w-9 rounded-full bg-black/[0.06] text-ink-secondary flex items-center justify-center">
                 <X size={20} />
               </button>
             </div>
@@ -150,17 +150,17 @@ export default function CustomersPage() {
               <Field label="Address" value={form.address} onChange={(v) => setForm({ ...form, address: v })} />
               <Field label="Credit Limit" value={form.creditLimit} type="number" onChange={(v) => setForm({ ...form, creditLimit: v })} />
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Notes</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Notes</label>
                 <textarea
                   value={form.notes}
                   onChange={(e) => setForm({ ...form, notes: e.target.value })}
                   rows={2}
-                  className="w-full px-3 py-2.5 rounded-button bg-surface-secondary border border-transparent focus:border-primary focus:bg-white outline-none transition-smooth text-sm resize-none"
+                  className="field !h-auto py-3 resize-none"
                 />
               </div>
               <button
                 onClick={save}
-                className="w-full h-12 rounded-button bg-primary text-white font-medium hover:bg-primary-hover transition-smooth"
+                className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold shadow-soft"
               >
                 {editing ? 'Save Changes' : 'Create Customer'}
               </button>
@@ -191,12 +191,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm text-ink-secondary mb-1.5">{label}</label>
+      <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary focus:bg-white outline-none transition-smooth text-sm"
+        className="field"
       />
     </div>
   )

@@ -98,6 +98,8 @@ button { font-family: inherit; touch-action: manipulation; }
   transition: max-width 0.4s var(--spring), padding 0.4s var(--spring), transform 0.4s var(--spring);
 }
 .tabbar[data-compact='true'] { max-width: 330px; transform: translateY(4px); }
+.tabbar[data-hidden='true'] { transform: translateY(calc(100% + 40px)); opacity: 0; pointer-events: none; }
+.tabbar { transition: max-width 0.4s var(--spring), transform 0.4s var(--spring), opacity 0.25s; }
 .tabbar-pill {
   position: absolute; top: 6px; bottom: 6px; left: 6px;
   width: calc((100% - 12px) / 5);
@@ -120,7 +122,9 @@ button { font-family: inherit; touch-action: manipulation; }
 .tabbar[data-compact='true'] .tabbar-label { opacity: 0; max-height: 0; }
 
 /* content fades out as it nears the floating bar */
+.tab-fade[data-hidden='true'] { opacity: 0; }
 .tab-fade {
+  transition: opacity 0.3s;
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; pointer-events: none;
   height: calc(104px + var(--safe-bottom));
   background: linear-gradient(to bottom, rgba(242, 242, 247, 0) 0%, rgba(242, 242, 247, 0.85) 60%, #F2F2F7 100%);
@@ -165,6 +169,7 @@ button { font-family: inherit; touch-action: manipulation; }
 }
 
 /* ───────── Inputs ───────── */
+@layer components {
 .field {
   width: 100%; height: 46px; padding: 0 14px; border-radius: 14px;
   background: #F2F2F7; border: 1.5px solid transparent; outline: none;
@@ -189,7 +194,7 @@ button { font-family: inherit; touch-action: manipulation; }
 @keyframes bar-grow { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes ring-pulse { 0% { box-shadow: 0 0 0 0 rgba(52, 199, 89, 0.55); } 100% { box-shadow: 0 0 0 22px rgba(52, 199, 89, 0); } }
 
-.page-enter { animation: page-in 0.38s var(--ease-out) both; }
+.page-enter { animation: page-in 0.38s var(--ease-out) backwards; }
 .bump { animation: bump 0.32s var(--ease-out); }
 .shake { animation: shake 0.42s ease-in-out; }
 .toast-in { animation: toast-in 0.4s var(--spring) both; }
@@ -198,6 +203,8 @@ button { font-family: inherit; touch-action: manipulation; }
   background: linear-gradient(100deg, #ececf1 30%, #f7f7fa 50%, #ececf1 70%);
   background-size: 200% 100%; animation: shimmer 1.4s linear infinite; border-radius: 14px;
 }
+}
+
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
@@ -208,4 +215,11 @@ button { font-family: inherit; touch-action: manipulation; }
   #receipt-content, #receipt-content * { visibility: visible; }
   #receipt-content { position: absolute; left: 0; top: 0; width: 100%; }
   .print\:hidden { display: none !important; }
+}
+
+.sheet-head {
+  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 20px 20px 12px; background: rgba(255,255,255,0.96);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-radius: 28px 28px 0 0;
 }

@@ -86,7 +86,7 @@ export default function ExpensesPage() {
           </div>
           <button
             onClick={() => { setEditingId(null); setForm({ category: "Other", amount: "", paymentMethod: "cash", note: "" }); setShowForm(true) }}
-            className="flex items-center gap-2 h-10 px-4 rounded-button bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-smooth"
+            className="press flex items-center gap-2 h-10 px-4 rounded-full bg-primary text-white text-[14px] font-semibold shadow-soft"
           >
             <Plus size={16} />
             <span className="hidden sm:inline">Add Expense</span>
@@ -128,19 +128,19 @@ export default function ExpensesPage() {
       {showForm && (
         <div className="sheet-backdrop">
           <div className="sheet-panel">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <h2 className="text-lg font-semibold">{editingId ? "Edit Expense" : "Add Expense"}</h2>
-              <button onClick={() => { setShowForm(false); setEditingId(null) }} className="p-1 text-ink-muted hover:text-ink">
+            <div className="sheet-head">
+              <h2 className="text-[20px] font-bold tracking-tight">{editingId ? "Edit Expense" : "Add Expense"}</h2>
+              <button onClick={() => { setShowForm(false); setEditingId(null) }} className="press h-9 w-9 rounded-full bg-black/[0.06] text-ink-secondary flex items-center justify-center">
                 <X size={20} />
               </button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Category</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Category</label>
                 <select
                   value={form.category}
                   onChange={(e) => setForm({ ...form, category: e.target.value })}
-                  className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none text-sm"
+                  className="field"
                 >
                   {CATEGORIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
@@ -148,21 +148,21 @@ export default function ExpensesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Amount *</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Amount *</label>
                 <input
                   type="number"
                   value={form.amount}
                   onChange={(e) => setForm({ ...form, amount: e.target.value })}
-                  className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none text-sm tabular-nums"
+                  className="field tabular-nums"
                   autoFocus
                 />
               </div>
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Payment Method</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Payment Method</label>
                 <select
                   value={form.paymentMethod}
                   onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
-                  className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none text-sm"
+                  className="field"
                 >
                   <option value="cash">Cash</option>
                   <option value="mobile">Mobile Money</option>
@@ -171,16 +171,16 @@ export default function ExpensesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Note</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Note</label>
                 <input
                   value={form.note}
                   onChange={(e) => setForm({ ...form, note: e.target.value })}
-                  className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none text-sm"
+                  className="field"
                 />
               </div>
               <button
                 onClick={save}
-                className="w-full h-12 rounded-button bg-primary text-white font-medium hover:bg-primary-hover transition-smooth"
+                className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold shadow-soft"
               >
                 {editingId ? "Save Changes" : "Save Expense"}
               </button>

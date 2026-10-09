@@ -304,7 +304,7 @@ export default function SuppliersPage() {
         <div className="sheet-backdrop">
           <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
-              <h2 className="text-lg font-semibold">{editing ? 'Edit Supplier' : 'Add Supplier'}</h2>
+              <h2 className="text-[20px] font-bold tracking-tight">{editing ? 'Edit Supplier' : 'Add Supplier'}</h2>
               <button onClick={() => setShowSupplierForm(false)} className="p-1 text-ink-muted"><X size={20} /></button>
             </div>
             <div className="p-5 space-y-4">
@@ -335,16 +335,16 @@ export default function SuppliersPage() {
         <div className="sheet-backdrop">
           <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
-              <h2 className="text-lg font-semibold">Receive Stock</h2>
+              <h2 className="text-[20px] font-bold tracking-tight">Receive Stock</h2>
               <button onClick={() => setShowPurchaseForm(false)} className="p-1 text-ink-muted"><X size={20} /></button>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-sm text-ink-secondary mb-1.5">Supplier</label>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Supplier</label>
                 <select
                   value={purchaseSupplierId}
                   onChange={(e) => setPurchaseSupplierId(e.target.value)}
-                  className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none text-sm"
+                  className="field"
                 >
                   {suppliers.map((s) => (
                     <option key={s.id} value={s.id}>{s.name}</option>
@@ -415,12 +415,12 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-sm text-ink-secondary mb-1.5">{label}</label>
+      <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">{label}</label>
       <input
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full h-11 px-3 rounded-button bg-surface-secondary border border-transparent focus:border-primary focus:bg-white outline-none transition-smooth text-sm"
+        className="field"
       />
     </div>
   )

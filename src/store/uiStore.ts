@@ -5,6 +5,8 @@ interface Toast { id: number; message: string; tone: ToastTone }
 
 interface UiState {
   tabCompact: boolean
+  tabHidden: boolean
+  setTabHidden: (v: boolean) => void
   setTabCompact: (v: boolean) => void
   toasts: Toast[]
   toast: (message: string, tone?: ToastTone) => void
@@ -14,6 +16,8 @@ interface UiState {
 let nextId = 1
 export const useUi = create<UiState>((set, get) => ({
   tabCompact: false,
+  tabHidden: false,
+  setTabHidden: (v) => { if (get().tabHidden !== v) set({ tabHidden: v }) },
   setTabCompact: (v) => { if (get().tabCompact !== v) set({ tabCompact: v }) },
   toasts: [],
   toast: (message, tone = 'info') => {
