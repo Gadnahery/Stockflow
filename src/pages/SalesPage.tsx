@@ -33,12 +33,12 @@ export default function SalesPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 md:px-6 py-4 bg-white border-b border-border shrink-0">
-        <h1 className="text-xl font-semibold text-ink">Sales History</h1>
+      <header className="page-header">
+        <h1 className="page-title">Sales History</h1>
         <p className="text-sm text-ink-secondary">{sales.length} recent sales</p>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
         <div className="bg-white rounded-card shadow-card overflow-hidden">
           <table className="w-full text-sm">
             <thead>

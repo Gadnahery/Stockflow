@@ -114,10 +114,10 @@ export default function UsersPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 md:px-6 py-4 bg-white border-b border-border shrink-0">
+      <header className="page-header">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-ink">Users & Permissions</h1>
+            <h1 className="page-title">Users & Permissions</h1>
             <p className="text-sm text-ink-secondary">{users.length} users</p>
           </div>
           <button
@@ -130,7 +130,7 @@ export default function UsersPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
         <div className="space-y-3">
           {users.map((u) => (
             <button
@@ -156,8 +156,8 @@ export default function UsersPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
-          <div className="w-full md:max-w-lg bg-white rounded-t-2xl md:rounded-card shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="sheet-backdrop">
+          <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white z-10">
               <h2 className="text-lg font-semibold">{editing ? 'Edit User' : 'Add User'}</h2>
               <button onClick={() => setShowForm(false)} className="p-1 text-ink-muted"><X size={20} /></button>

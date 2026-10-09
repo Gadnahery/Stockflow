@@ -38,9 +38,9 @@ export default function SettingsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 md:px-6 py-4 bg-white border-b border-border shrink-0 flex items-center justify-between">
+      <header className="page-header flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-ink">Settings</h1>
+          <h1 className="page-title">Settings</h1>
           <p className="text-sm text-ink-secondary">Business & receipt configuration</p>
         </div>
         <button
@@ -52,7 +52,7 @@ export default function SettingsPage() {
         </button>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
         <div className="max-w-xl space-y-6">
           <section className="bg-white rounded-card shadow-card p-5 space-y-4">
             <h2 className="font-semibold text-ink">Business Information</h2>

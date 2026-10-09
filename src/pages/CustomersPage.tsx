@@ -74,10 +74,10 @@ export default function CustomersPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 md:px-6 py-4 bg-white border-b border-border shrink-0">
+      <header className="page-header">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-ink">Customers</h1>
+            <h1 className="page-title">Customers</h1>
             <p className="text-sm text-ink-secondary">{customers.length} customers</p>
           </div>
           <button
@@ -99,7 +99,7 @@ export default function CustomersPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {filtered.map((c) => (
             <button
@@ -135,8 +135,8 @@ export default function CustomersPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
-          <div className="w-full md:max-w-md bg-white rounded-t-2xl md:rounded-card shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="sheet-backdrop">
+          <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
               <h2 className="text-lg font-semibold">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
               <button onClick={() => setShowForm(false)} className="p-1 text-ink-muted hover:text-ink">

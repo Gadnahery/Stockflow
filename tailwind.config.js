@@ -4,39 +4,22 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          DEFAULT: '#0066CC',
-          hover: '#0071E3',
-          dark: '#004499',
-        },
-        surface: {
-          DEFAULT: '#FFFFFF',
-          elevated: '#FFFFFF',
-          secondary: '#F5F5F7',
-        },
-        ink: {
-          DEFAULT: '#1D1D1F',
-          secondary: '#6B7280',
-          muted: '#86868B',
-        },
-        border: {
-          DEFAULT: '#E5E5EA',
-          strong: '#D2D2D7',
-        },
-        success: '#10B981',
-        warning: '#F59E0B',
-        danger: '#EF4444',
+        primary: { DEFAULT: '#007AFF', hover: '#0A84FF', dark: '#0062CC' },
+        surface: { DEFAULT: '#FFFFFF', elevated: '#FFFFFF', secondary: '#F2F2F7' },
+        ink: { DEFAULT: '#1C1C1E', secondary: '#5F5F66', muted: '#76767D' },
+        border: { DEFAULT: '#E6E6EB', strong: '#D1D1D6' },
+        success: '#1E9E54',
+        warning: '#C96A00',
+        danger: '#E0333C',
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'sans-serif'],
+        sans: ['-apple-system', 'BlinkMacSystemFont', '"SF Pro Text"', '"SF Pro Display"', 'Inter', '"Segoe UI"', 'Roboto', 'sans-serif'],
       },
-      borderRadius: {
-        card: '12px',
-        button: '10px',
-      },
+      borderRadius: { card: '20px', button: '14px', sheet: '28px' },
       boxShadow: {
-        card: '0 1px 3px rgba(0,0,0,0.06), 0 4px 12px rgba(0,0,0,0.04)',
-        soft: '0 2px 8px rgba(0,0,0,0.06)',
+        card: '0 1px 2px rgba(0,0,0,0.04), 0 6px 20px rgba(0,0,0,0.045)',
+        soft: '0 2px 10px rgba(0,0,0,0.06)',
+        float: '0 12px 32px rgba(0,0,0,0.16), 0 2px 6px rgba(0,0,0,0.08)',
       },
     },
   },

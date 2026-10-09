@@ -76,10 +76,10 @@ export default function ExpensesPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 md:px-6 py-4 bg-white border-b border-border shrink-0">
+      <header className="page-header">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-ink">Expenses</h1>
+            <h1 className="page-title">Expenses</h1>
             <p className="text-sm text-ink-secondary">
               Total: <span className="tabular-nums font-medium text-ink">{total.toLocaleString()} TZS</span>
             </p>
@@ -94,7 +94,7 @@ export default function ExpensesPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
         <div className="space-y-3">
           {expenses.map((e) => (
             <div key={e.id} className="bg-white rounded-card shadow-card p-4 flex items-center gap-4 group">
@@ -126,8 +126,8 @@ export default function ExpensesPage() {
       </div>
 
       {showForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
-          <div className="w-full md:max-w-md bg-white rounded-t-2xl md:rounded-card shadow-xl">
+        <div className="sheet-backdrop">
+          <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border">
               <h2 className="text-lg font-semibold">{editingId ? "Edit Expense" : "Add Expense"}</h2>
               <button onClick={() => { setShowForm(false); setEditingId(null) }} className="p-1 text-ink-muted hover:text-ink">

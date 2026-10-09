@@ -29,6 +29,8 @@ export interface Product {
   category?: string
   brand?: string
   unit?: string
+  /** Compressed JPEG data URL (stored locally) */
+  imageUrl?: string
   active: boolean
   createdAt: string
   updatedAt: string
@@ -38,6 +40,7 @@ export interface CartItem {
   productId: UUID
   name: string
   sku: string
+  imageUrl?: string
   price: number
   quantity: number
   discount: number

@@ -17,8 +17,8 @@ export default function ReceiptModal({ sale, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
-      <div className="w-full md:max-w-sm bg-white rounded-t-2xl md:rounded-card shadow-xl max-h-[90vh] overflow-y-auto">
+    <div className="sheet-backdrop">
+      <div className="sheet-panel">
         <div className="flex items-center justify-between px-5 py-4 border-b border-border print:hidden">
           <h2 className="text-lg font-semibold">Receipt</h2>
           <div className="flex items-center gap-2">

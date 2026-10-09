@@ -79,9 +79,9 @@ export default function ShiftsPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 md:px-6 py-4 bg-white border-b border-border shrink-0 flex items-center justify-between">
+      <header className="page-header flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold text-ink">Cash Shifts</h1>
+          <h1 className="page-title">Cash Shifts</h1>
           <p className="text-sm text-ink-secondary">
             {openSession ? `Open since ${format(new Date(openSession.openedAt), 'HH:mm')}` : 'No open shift'}
           </p>
@@ -105,7 +105,7 @@ export default function ShiftsPage() {
         )}
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
         <div className="bg-white rounded-card shadow-card overflow-hidden">
           <table className="w-full text-sm">
             <thead>
@@ -150,8 +150,8 @@ export default function ShiftsPage() {
       </div>
 
       {showOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm bg-white rounded-card shadow-xl p-6">
+        <div className="sheet-backdrop">
+          <div className="sheet-panel p-6">
             <h2 className="text-lg font-semibold text-ink mb-4">Open Shift</h2>
             <label className="block text-sm text-ink-secondary mb-1.5">Opening float (cash in drawer)</label>
             <input
@@ -174,8 +174,8 @@ export default function ShiftsPage() {
       )}
 
       {showClose && openSession && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-sm bg-white rounded-card shadow-xl p-6">
+        <div className="sheet-backdrop">
+          <div className="sheet-panel p-6">
             <h2 className="text-lg font-semibold text-ink mb-4">Close Shift</h2>
             <div className="space-y-2 mb-4 text-sm">
               <div className="flex justify-between">

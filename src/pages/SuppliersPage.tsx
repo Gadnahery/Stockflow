@@ -181,10 +181,10 @@ export default function SuppliersPage() {
 
   return (
     <div className="h-full flex flex-col">
-      <header className="px-4 md:px-6 py-4 bg-white border-b border-border shrink-0">
+      <header className="page-header">
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-xl font-semibold text-ink">Suppliers & Purchases</h1>
+            <h1 className="page-title">Suppliers & Purchases</h1>
             <p className="text-sm text-ink-secondary">{suppliers.length} suppliers · {purchases.length} orders</p>
           </div>
           <div className="flex gap-2">
@@ -228,7 +228,7 @@ export default function SuppliersPage() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 pb-24 md:pb-6">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
         {tab === 'suppliers' && (
           <>
             <div className="relative mb-4">
@@ -301,8 +301,8 @@ export default function SuppliersPage() {
 
       {/* Supplier form */}
       {showSupplierForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
-          <div className="w-full md:max-w-md bg-white rounded-t-2xl md:rounded-card shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="sheet-backdrop">
+          <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
               <h2 className="text-lg font-semibold">{editing ? 'Edit Supplier' : 'Add Supplier'}</h2>
               <button onClick={() => setShowSupplierForm(false)} className="p-1 text-ink-muted"><X size={20} /></button>
@@ -332,8 +332,8 @@ export default function SuppliersPage() {
 
       {/* Purchase / Receive Stock form */}
       {showPurchaseForm && (
-        <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center bg-black/40">
-          <div className="w-full md:max-w-lg bg-white rounded-t-2xl md:rounded-card shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="sheet-backdrop">
+          <div className="sheet-panel">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
               <h2 className="text-lg font-semibold">Receive Stock</h2>
               <button onClick={() => setShowPurchaseForm(false)} className="p-1 text-ink-muted"><X size={20} /></button>

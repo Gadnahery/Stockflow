@@ -70,6 +70,7 @@ export const usePosStore = create<PosState>((set, get) => ({
             productId: product.id,
             name: product.name,
             sku: product.sku,
+            imageUrl: product.imageUrl,
             price: product.price,
             quantity: qty,
             discount: 0,
