@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, Plus, User, X, Trash2 } from 'lucide-react'
-import { db } from '../lib/db'
+import { db, audit } from '../lib/db'
 import type { Customer } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -10,6 +10,7 @@ const emptyForm = { name: '', phone: '', email: '', address: '', creditLimit: '0
 export default function CustomersPage() {
   const [query, setQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
+  const [payAmount, setPayAmount] = useState('')
   const [editing, setEditing] = useState<Customer | null>(null)
   const [form, setForm] = useState(emptyForm)
   const customers = useLiveQuery(() => db.customers.orderBy('name').toArray(), []) || []
@@ -37,6 +38,18 @@ export default function CustomersPage() {
       notes: c.notes || '',
     })
     setShowForm(true)
+  }
+
+  const receivePayment = async () => {
+    if (!editing) return
+    const amt = parseFloat(payAmount)
+    if (!(amt > 0)) return
+    const before = editing.balance
+    const applied = Math.min(amt, before)
+    await db.customers.update(editing.id, { balance: before - applied, updatedAt: new Date().toISOString() })
+    await audit('CUSTOMER_PAYMENT', 'customer', editing.id, { before: { balance: before }, after: { balance: before - applied }, reason: `Received ${applied} from ${editing.name}` })
+    setEditing({ ...editing, balance: before - applied })
+    setPayAmount('')
   }
 
   const handleDelete = async () => {
@@ -158,6 +171,15 @@ export default function CustomersPage() {
                   className="field !h-auto py-3 resize-none"
                 />
               </div>
+              {editing && editing.balance > 0 && (
+                <div className="rounded-[18px] bg-amber-50 p-4">
+                  <p className="text-[14px] font-semibold text-warning">Owes {editing.balance.toLocaleString()} TZS</p>
+                  <div className="mt-2 flex gap-2">
+                    <input type="number" inputMode="decimal" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="Amount received" className="field flex-1 tabular-nums !bg-white" />
+                    <button onClick={receivePayment} className="press h-[46px] px-4 rounded-[14px] bg-ink text-white text-[14px] font-semibold">Record</button>
+                  </div>
+                </div>
+              )}
               <button
                 onClick={save}
                 className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold shadow-soft"

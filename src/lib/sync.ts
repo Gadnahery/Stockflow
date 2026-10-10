@@ -5,7 +5,7 @@
  */
 import { db, withoutSync } from './db'
 import { supabase, supabaseConfigured, getBusinessId, setBusinessId } from './supabase'
-import type { Sale, Product, Customer, Supplier, Expense, StockMovement, PurchaseOrder, CashSession, OutboxEvent } from '../types'
+import type { AuditLog, Sale, Product, Customer, Supplier, Expense, StockMovement, PurchaseOrder, CashSession, OutboxEvent } from '../types'
 
 const DEFAULT_BUSINESS_ID = 'a0000000-0000-4000-8000-000000000001'
 const DEFAULT_BRANCH_ID = 'b0000000-0000-4000-8000-000000000001'
@@ -232,6 +232,16 @@ async function syncStockMovement(m: StockMovement, businessId: string) {
   if (error) throw error
 }
 
+async function syncAudit(a: AuditLog, businessId: string) {
+  const { error } = await supabase.from('audit_logs').upsert({
+    id: a.id, business_id: businessId, user_id: a.userId ?? null, user_name: a.userName ?? null,
+    action: a.action, entity_type: a.entityType ?? null, entity_id: a.entityId ?? null,
+    before_value: a.before ?? null, after_value: a.after ?? null, reason: a.reason ?? null,
+    device_id: a.deviceId ?? null, created_at: a.createdAt,
+  }, { onConflict: 'id', ignoreDuplicates: true })
+  if (error) throw error
+}
+
 async function processEvent(event: OutboxEvent, businessId: string) {
   const payload = event.payload as never
   switch (event.type) {
@@ -246,6 +256,7 @@ async function processEvent(event: OutboxEvent, businessId: string) {
     case 'shift': await syncShift(payload, businessId); break
     case 'expense': await syncExpense(payload, businessId); break
     case 'stock_movement': await syncStockMovement(payload, businessId); break
+    case 'audit': await syncAudit(payload, businessId); break
     default:
       console.warn('dropping unknown outbox event', event.type)
   }

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings, Users, Truck, Wallet, ClipboardList, Download, ChevronRight, LogOut, Package, Receipt,
-  RefreshCw, Wifi, WifiOff,
+  RefreshCw, Wifi, WifiOff, Upload, ShieldCheck, CloudCog,
 } from 'lucide-react'
 import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
@@ -26,7 +26,10 @@ const sections = [
     items: [
       { icon: Users, label: 'Users & permissions', desc: 'Staff accounts and roles', to: '/users', color: '#5856D6' },
       { icon: Settings, label: 'Settings', desc: 'Business, tax, receipts', to: '/settings', color: '#8E8E93' },
+      { icon: Upload, label: 'Import data', desc: 'Products and customers from CSV', to: '/import', color: '#34C759' },
       { icon: Download, label: 'Export data', desc: 'Download sales and inventory', to: '/export', color: '#30B0C7' },
+      { icon: CloudCog, label: 'Sync status', desc: 'Pending changes and errors', to: '/sync', color: '#007AFF' },
+      { icon: ShieldCheck, label: 'Audit log', desc: 'Voids, discounts, price and stock changes', to: '/audit', color: '#FF2D55' },
     ],
   },
 ]

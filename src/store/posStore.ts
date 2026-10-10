@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
-import type { CartItem, Product, Payment, Sale, StockMovement } from '../types'
-import { db } from '../lib/db'
+import type { CartItem, Product, Payment, Sale, StockMovement, HeldCart } from '../types'
+import { db, audit } from '../lib/db'
 
 interface PosState {
   cart: CartItem[]
@@ -24,7 +24,15 @@ interface PosState {
   applyCartDiscount: (discount: number) => void
   completeSale: (payments: Payment[]) => Promise<Sale>
   voidSale: (saleId: string) => Promise<void>
+  held: HeldCart[]
+  holdCart: () => boolean
+  resumeHeld: (id: string) => boolean
+  deleteHeld: (id: string) => void
 }
+
+const HELD_KEY = 'heldCarts'
+const loadHeld = (): HeldCart[] => { try { return JSON.parse(localStorage.getItem(HELD_KEY) || '[]') } catch { return [] } }
+const saveHeld = (h: HeldCart[]) => localStorage.setItem(HELD_KEY, JSON.stringify(h))
 
 function getCurrentUser() {
   try {
@@ -42,6 +50,26 @@ export const usePosStore = create<PosState>((set, get) => ({
   currentSaleId: null,
   selectedCustomerId: null,
   selectedCustomerName: null,
+  held: loadHeld(),
+
+  holdCart: () => {
+    const { cart, selectedCustomerId, selectedCustomerName, held } = get()
+    if (cart.length === 0) return false
+    const next = [...held, { id: uuidv4(), items: cart, customerId: selectedCustomerId, customerName: selectedCustomerName, createdAt: new Date().toISOString() }]
+    saveHeld(next)
+    set({ held: next, cart: [], selectedCustomerId: null, selectedCustomerName: null })
+    return true
+  },
+  resumeHeld: (id) => {
+    const { held, cart } = get()
+    const h = held.find((x) => x.id === id)
+    if (!h || cart.length > 0) return false
+    const next = held.filter((x) => x.id !== id)
+    saveHeld(next)
+    set({ held: next, cart: h.items, selectedCustomerId: h.customerId, selectedCustomerName: h.customerName })
+    return true
+  },
+  deleteHeld: (id) => { const next = get().held.filter((x) => x.id !== id); saveHeld(next); set({ held: next }) },
 
   setSearchQuery: (q) => set({ searchQuery: q }),
 
@@ -142,8 +170,13 @@ export const usePosStore = create<PosState>((set, get) => ({
     const now = new Date().toISOString()
     const user = getCurrentUser()
 
-    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, async () => {
+    const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
+    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
       await db.sales.update(saleId, { status: 'voided', synced: false })
+      if (creditAmt > 0 && sale.customerId) {
+        const c = await db.customers.get(sale.customerId)
+        if (c) await db.customers.update(c.id, { balance: Math.max(0, c.balance - creditAmt), updatedAt: now })
+      }
 
       // Restock
       for (const item of sale.items) {
@@ -176,6 +209,7 @@ export const usePosStore = create<PosState>((set, get) => ({
         retries: 0,
       })
     })
+    await audit('SALE_VOID', 'sale', saleId, { before: { status: 'completed', total: sale.total }, after: { status: 'voided' }, reason: `Receipt ${sale.receiptNumber}` })
   },
 
   completeSale: async (payments) => {
@@ -202,7 +236,17 @@ export const usePosStore = create<PosState>((set, get) => ({
     }
 
     const paid = payments.reduce((s, p) => s + p.amount, 0)
-    if (paid < total - 0.01) throw new Error('Insufficient payment')
+    if (paid < total - 0.01) throw new Error(`Short by ${Math.round(total - paid).toLocaleString()} — add another payment or use Credit`)
+
+    const creditAmt = payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
+    if (creditAmt > 0) {
+      if (!selectedCustomerId) throw new Error('Select a customer to sell on credit')
+      const c = await db.customers.get(selectedCustomerId)
+      if (!c) throw new Error('Customer not found')
+      if (c.balance + creditAmt > c.creditLimit + 0.01) {
+        throw new Error(`Credit limit exceeded: limit ${c.creditLimit.toLocaleString()}, already owes ${c.balance.toLocaleString()}`)
+      }
+    }
 
     const user = getCurrentUser()
     const now = new Date().toISOString()
@@ -232,8 +276,12 @@ export const usePosStore = create<PosState>((set, get) => ({
       synced: false,
     }
 
-    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, async () => {
+    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
       await db.sales.add(sale)
+      if (creditAmt > 0 && selectedCustomerId) {
+        const c = await db.customers.get(selectedCustomerId)
+        if (c) await db.customers.update(c.id, { balance: c.balance + creditAmt, updatedAt: now })
+      }
 
       for (const item of cart) {
         const product = await db.products.get(item.productId)
@@ -273,6 +321,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     })
 
     set({ cart: [], currentSaleId: saleId, selectedCustomerId: null, selectedCustomerName: null })
+    if (sale.discount > 0) await audit('SALE_DISCOUNT', 'sale', saleId, { after: { discount: sale.discount, total: sale.total }, reason: `Receipt ${receiptNumber}` })
     await get().refreshPendingSync()
     return sale
   },

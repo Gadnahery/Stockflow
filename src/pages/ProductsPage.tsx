@@ -2,7 +2,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, Plus, X, Trash2, ScanLine, Camera, ImagePlus, Sparkles, Package } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
-import { db } from '../lib/db'
+import { db, audit } from '../lib/db'
 import type { Product } from '../types'
 import { usePermission } from '../hooks/usePermission'
 import Screen from '../components/ui/Screen'
@@ -120,8 +120,24 @@ export default function ProductsPage() {
       updatedAt: now,
     }
     try {
-      if (editing) await db.products.update(editing.id, data)
-      else await db.products.add({ id: uuidv4(), ...data, createdAt: now })
+      let uid: string | undefined
+      try { uid = JSON.parse(sessionStorage.getItem('currentUser') || '{}').id } catch { /* none */ }
+      const movement = (productId: string, prev: number, next: number, type: 'adjustment' | 'opening', reason: string) =>
+        db.stockMovements.add({ id: uuidv4(), productId, productName: name, type, quantity: next - prev, previousStock: prev, newStock: next, reason, userId: uid ?? '', createdAt: now, synced: false })
+      if (editing) {
+        await db.products.update(editing.id, data)
+        if (editing.price !== data.price || editing.cost !== data.cost) {
+          await audit('PRICE_CHANGE', 'product', editing.id, { before: { price: editing.price, cost: editing.cost }, after: { price: data.price, cost: data.cost }, reason: name })
+        }
+        if (editing.stock !== data.stock) {
+          await movement(editing.id, editing.stock, data.stock, 'adjustment', 'Edited in product form')
+          await audit('STOCK_ADJUST', 'product', editing.id, { before: { stock: editing.stock }, after: { stock: data.stock }, reason: name })
+        }
+      } else {
+        const id = uuidv4()
+        await db.products.add({ id, ...data, createdAt: now })
+        if (data.stock > 0) await movement(id, 0, data.stock, 'opening', 'Opening stock')
+      }
       toast(editing ? 'Changes saved' : 'Product added', 'success')
       setShowForm(false)
     } catch {

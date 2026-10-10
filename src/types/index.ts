@@ -156,7 +156,7 @@ export interface Expense {
 
 export interface OutboxEvent {
   id: UUID
-  type: 'sale' | 'stock_movement' | 'product_upsert' | 'customer_upsert' | 'supplier_upsert' | 'purchase' | 'expense' | 'shift'
+  type: 'sale' | 'stock_movement' | 'product_upsert' | 'customer_upsert' | 'supplier_upsert' | 'purchase' | 'expense' | 'shift' | 'audit'
   payload: unknown
   createdAt: string
   retries: number
@@ -192,4 +192,26 @@ export interface AppSettings {
   offlineWindowHours: number
   receiptFooter?: string
   logoUrl?: string
+}
+
+export interface AuditLog {
+  id: UUID
+  action: string // e.g. SALE_VOID, PRICE_CHANGE, STOCK_ADJUST, DISCOUNT, CUSTOMER_PAYMENT, DATA_IMPORT
+  entityType?: string
+  entityId?: string
+  before?: unknown
+  after?: unknown
+  reason?: string
+  userId?: string
+  userName?: string
+  deviceId?: string
+  createdAt: string
+}
+
+export interface HeldCart {
+  id: UUID
+  items: CartItem[]
+  customerId: string | null
+  customerName: string | null
+  createdAt: string
 }

@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Search, ShoppingBag, Wifi, WifiOff, Plus, Minus, Trash2, ScanLine, ChevronRight, Check } from 'lucide-react'
+import { Search, ShoppingBag, Wifi, WifiOff, Plus, Minus, Trash2, ScanLine, ChevronRight, Check, PauseCircle, X as XIcon } from 'lucide-react'
 import { db } from '../lib/db'
 import { usePosStore } from '../store/posStore'
 import { useUi } from '../store/uiStore'
@@ -12,12 +12,15 @@ import ProductImage from '../components/ui/ProductImage'
 import { useTabCompact } from '../hooks/useTabCompact'
 import { fmt, haptic } from '../lib/util'
 import { useNavigate } from 'react-router-dom'
+import { usePermission } from '../hooks/usePermission'
+import { format } from 'date-fns'
 
 const METHODS = [
   { id: 'cash', label: 'Cash' },
   { id: 'mobile', label: 'Mobile' },
   { id: 'card', label: 'Card' },
   { id: 'bank', label: 'Bank' },
+  { id: 'credit', label: 'Credit' },
 ] as const
 
 export default function PosPage() {
@@ -27,7 +30,9 @@ export default function PosPage() {
   const {
     cart, searchQuery, setSearchQuery, addToCart, updateQuantity, removeFromCart, clearCart,
     isOnline, pendingSyncCount, completeSale, setCustomer, selectedCustomerName, applyCartDiscount,
+    held, holdCart, resumeHeld, deleteHeld,
   } = usePosStore()
+  const { can } = usePermission()
 
   const [showPay, setShowPay] = useState(false)
   const [scanning, setScanning] = useState(false)
@@ -38,6 +43,9 @@ export default function PosPage() {
   const [customerQuery, setCustomerQuery] = useState('')
   const [category, setCategory] = useState('All')
   const [paying, setPaying] = useState(false)
+  const [lines, setLines] = useState<Payment[]>([])
+  const [discMode, setDiscMode] = useState<'amount' | 'percent'>('amount')
+  const [showHeld, setShowHeld] = useState(false)
 
   const productsQ = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), [])
   const products = useMemo(() => productsQ ?? [], [productsQ])
@@ -73,6 +81,22 @@ export default function PosPage() {
   const taxInclusive = settings?.taxInclusive ?? true
   const tax = taxRate > 0 ? (taxInclusive ? subtotal - subtotal / (1 + taxRate / 100) : subtotal * (taxRate / 100)) : 0
   const payTotal = Math.round((taxInclusive ? subtotal : subtotal + tax) * 100) / 100
+
+  const paidLines = lines.reduce((t, l) => t + l.amount, 0)
+  const remaining = Math.max(0, Math.round((payTotal - paidLines) * 100) / 100)
+  const typedCash = parseFloat(cashReceived)
+  const buildFinal = (): Payment[] => {
+    if (remaining <= 0.01) return lines
+    const typed = typedCash > 0 ? typedCash : remaining
+    const amount = payMethod === 'cash' ? typed : Math.min(typed, remaining)
+    return [...lines, { method: payMethod, amount }]
+  }
+  const finalPaid = buildFinal().reduce((t, l) => t + l.amount, 0)
+  const canCharge = finalPaid >= payTotal - 0.01
+
+  useEffect(() => {
+    if (cart.length === 0) setLines([])
+  }, [cart.length])
 
   useEffect(() => {
     if (!sessionStorage.getItem('currentUser')) navigate('/login')
@@ -121,9 +145,7 @@ export default function PosPage() {
 
   const handlePay = async () => {
     if (paying) return
-    const typed = parseFloat(cashReceived)
-    const amount = payMethod === 'cash' && typed > 0 ? typed : payTotal
-    const payments: Payment[] = [{ method: payMethod, amount }]
+    const payments = buildFinal()
     setPaying(true)
     try {
       const sale = await completeSale(payments)
@@ -134,6 +156,7 @@ export default function PosPage() {
       setDiscountInput('')
       setPayMethod('cash')
       setCustomerQuery('')
+      setLines([])
       toast('Sale completed', 'success')
     } catch (err) {
       toast((err as Error).message, 'error')
@@ -142,9 +165,23 @@ export default function PosPage() {
     }
   }
 
+  const addSplit = () => {
+    if (!(typedCash > 0)) return toast('Enter the amount for this payment first', 'error')
+    if (typedCash >= remaining - 0.01 && payMethod !== 'cash') return toast('That covers the balance — tap Charge', 'info')
+    if (payMethod === 'cash' && typedCash >= remaining - 0.01) return toast('That covers the balance — tap Charge', 'info')
+    setLines((l) => [...l, { method: payMethod, amount: typedCash }])
+    setCashReceived('')
+  }
+
+  const doHold = () => {
+    if (holdCart()) { setShowPay(false); setLines([]); toast('Cart put on hold', 'info') }
+  }
+
   const applyDiscount = () => {
-    const d = parseFloat(discountInput) || 0
-    if (d > 0) applyCartDiscount(d)
+    const v = parseFloat(discountInput) || 0
+    const gross = subtotal + cartDiscount
+    const d = discMode === 'percent' ? Math.min(100, v) * gross / 100 : Math.min(v, gross)
+    if (d > 0) applyCartDiscount(Math.round(d))
   }
 
   const filteredCustomers = customerQuery.trim()
@@ -153,10 +190,9 @@ export default function PosPage() {
       ).slice(0, 5)
     : []
 
-  const typedCash = parseFloat(cashReceived)
   const quickCash = Array.from(
-    new Set([payTotal, ...[1000, 5000, 10000, 20000, 50000].map((s) => Math.ceil(payTotal / s) * s)])
-  ).filter((v) => v >= payTotal).slice(0, 4)
+    new Set([remaining, ...[1000, 5000, 10000, 20000, 50000].map((s) => Math.ceil(remaining / s) * s)])
+  ).filter((v) => v >= remaining && v > 0).slice(0, 4)
 
   return (
     <div className="h-full flex flex-col md:flex-row">
@@ -170,6 +206,9 @@ export default function PosPage() {
                 {isOnline ? <Wifi size={13} /> : <WifiOff size={13} />}
                 {isOnline ? 'Online' : 'Offline'}
               </span>
+              {held.length > 0 && (
+                <button onClick={() => setShowHeld(true)} className="press text-[12px] font-semibold bg-amber-100 text-warning px-2.5 h-7 inline-flex items-center rounded-full tabular-nums">Held {held.length}</button>
+              )}
               {pendingSyncCount > 0 && (
                 <span className="text-[12px] font-semibold bg-primary/10 text-primary px-2.5 h-7 inline-flex items-center rounded-full tabular-nums">
                   {pendingSyncCount} pending
@@ -281,7 +320,7 @@ export default function PosPage() {
           cart.length > 0 ? (
             <button
               onClick={handlePay}
-              disabled={paying || (payMethod === 'cash' && typedCash > 0 && typedCash < payTotal)}
+              disabled={paying || !canCharge}
               className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold disabled:opacity-40 shadow-soft"
             >
               {paying ? 'Processing…' : `Charge ${fmt(payTotal)} TZS`}
@@ -352,13 +391,22 @@ export default function PosPage() {
             </div>
 
             {/* Discount */}
-            <div className="mt-4 flex gap-2 items-end">
-              <div className="flex-1">
-                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Discount (TZS)</label>
-                <input type="number" inputMode="decimal" value={discountInput} onChange={(e) => setDiscountInput(e.target.value)} placeholder="0" className="field tabular-nums" />
+            {can('APPLY_DISCOUNT') && (
+              <div className="mt-4">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-[13px] font-semibold text-ink-secondary">Discount</label>
+                  <div className="inline-flex p-0.5 rounded-full bg-black/[0.06] text-[12px] font-semibold">
+                    {(['amount', 'percent'] as const).map((m2) => (
+                      <button key={m2} onClick={() => setDiscMode(m2)} className={`px-3 h-7 rounded-full ${discMode === m2 ? 'bg-white shadow-soft text-ink' : 'text-ink-secondary'}`}>{m2 === 'amount' ? 'TZS' : '%'}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2">
+                  <input type="number" inputMode="decimal" value={discountInput} onChange={(e) => setDiscountInput(e.target.value)} placeholder={discMode === 'percent' ? '10' : '0'} className="field tabular-nums flex-1" />
+                  <button onClick={applyDiscount} className="press h-[46px] px-5 rounded-[14px] bg-black/[0.06] text-[15px] font-semibold">Apply</button>
+                </div>
               </div>
-              <button onClick={applyDiscount} className="press h-[46px] px-5 rounded-[14px] bg-black/[0.06] text-[15px] font-semibold">Apply</button>
-            </div>
+            )}
 
             {/* Totals */}
             <div className="mt-5 rounded-[18px] bg-surface-secondary p-4 space-y-2">
@@ -374,12 +422,12 @@ export default function PosPage() {
             {/* Payment method — iOS segmented control */}
             <div className="mt-5">
               <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Payment</label>
-              <div className="grid grid-cols-4 p-1 rounded-[14px] bg-black/[0.06]">
+              <div className="grid grid-cols-5 p-1 rounded-[14px] bg-black/[0.06]">
                 {METHODS.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => setPayMethod(m.id)}
-                    className={`h-10 rounded-[11px] text-[14px] font-semibold transition-all duration-200 ${
+                    className={`h-10 rounded-[11px] text-[13px] font-semibold transition-all duration-200 ${
                       payMethod === m.id ? 'bg-white text-ink shadow-soft' : 'text-ink-secondary'
                     }`}
                   >
@@ -389,31 +437,69 @@ export default function PosPage() {
               </div>
             </div>
 
-            {payMethod === 'cash' && (
-              <div className="mt-4">
-                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Cash received</label>
-                <input type="number" inputMode="decimal" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} placeholder={String(payTotal)} className="field !h-14 text-[22px] font-semibold tabular-nums" />
+            {lines.length > 0 && (
+              <ul className="mt-4 space-y-1.5">
+                {lines.map((l, i) => (
+                  <li key={i} className="flex items-center gap-2 h-10 px-3 rounded-[12px] bg-emerald-50 text-[14px]">
+                    <Check size={15} className="text-success" strokeWidth={3} />
+                    <span className="capitalize font-semibold flex-1">{l.method}</span>
+                    <span className="tabular-nums font-bold">{fmt(l.amount)}</span>
+                    <button onClick={() => setLines((x) => x.filter((_, j) => j !== i))} aria-label="Remove payment" className="text-ink-muted"><XIcon size={15} /></button>
+                  </li>
+                ))}
+                <li className="flex justify-between text-[15px] font-bold px-1 pt-1"><span>Remaining</span><span className="tabular-nums">{fmt(remaining)} TZS</span></li>
+              </ul>
+            )}
+
+            <div className="mt-4">
+              <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">
+                {payMethod === 'cash' ? 'Cash received' : payMethod === 'credit' ? 'Put on customer account' : 'Amount'}
+              </label>
+              <input type="number" inputMode="decimal" value={cashReceived} onChange={(e) => setCashReceived(e.target.value)} placeholder={String(remaining)} className="field !h-14 text-[22px] font-semibold tabular-nums" />
+              {payMethod === 'cash' && (
                 <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar">
                   {quickCash.map((v) => (
                     <button key={v} onClick={() => setCashReceived(String(v))} className="press shrink-0 h-9 px-4 rounded-full bg-primary/10 text-primary text-[14px] font-semibold tabular-nums">
-                      {v === payTotal ? 'Exact' : fmt(v)}
+                      {v === remaining ? 'Exact' : fmt(v)}
                     </button>
                   ))}
                 </div>
-                {typedCash > 0 && (
-                  typedCash >= payTotal ? (
-                    <p className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold text-success">
-                      <Check size={16} strokeWidth={3} /> Change: {fmt(typedCash - payTotal)} TZS
-                    </p>
-                  ) : (
-                    <p className="mt-3 text-[14px] font-medium text-danger">{fmt(payTotal - typedCash)} TZS short</p>
-                  )
-                )}
-              </div>
-            )}
+              )}
+              {payMethod === 'credit' && !selectedCustomerName && <p className="mt-2 text-[13px] text-warning font-medium">Choose a customer above to sell on credit.</p>}
+              {payMethod === 'cash' && typedCash > 0 && (
+                typedCash >= remaining ? (
+                  <p className="mt-3 flex items-center gap-1.5 text-[15px] font-semibold text-success"><Check size={16} strokeWidth={3} /> Change: {fmt(typedCash - remaining)} TZS</p>
+                ) : (
+                  <p className="mt-3 text-[14px] font-medium text-danger">{fmt(remaining - typedCash)} TZS still to pay</p>
+                )
+              )}
+              {typedCash > 0 && typedCash < remaining && (
+                <button onClick={addSplit} className="press mt-3 h-10 px-4 rounded-full bg-black/[0.06] text-[14px] font-semibold">+ Add as split payment</button>
+              )}
+            </div>
 
-            <button onClick={clearCart} className="mt-5 w-full h-11 text-[15px] font-medium text-danger">Clear cart</button>
+            <div className="mt-5 flex gap-2">
+              <button onClick={doHold} className="press flex-1 h-11 rounded-[14px] bg-black/[0.06] text-[15px] font-semibold flex items-center justify-center gap-1.5"><PauseCircle size={17} /> Hold</button>
+              <button onClick={clearCart} className="press flex-1 h-11 rounded-[14px] bg-red-50 text-danger text-[15px] font-semibold">Clear cart</button>
+            </div>
           </>
+        )}
+      </Sheet>
+
+      <Sheet open={showHeld} onClose={() => setShowHeld(false)} title="Held carts">
+        {held.length === 0 ? <p className="py-8 text-center text-ink-secondary">Nothing on hold.</p> : (
+          <ul className="divide-y divide-border">
+            {held.map((h) => (
+              <li key={h.id} className="py-3 flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-[15px]">{h.items.reduce((t, i) => t + i.quantity, 0)} items · {fmt(h.items.reduce((t, i) => t + i.lineTotal, 0))} TZS</p>
+                  <p className="text-[13px] text-ink-muted truncate">{h.customerName ? `${h.customerName} · ` : ''}{format(new Date(h.createdAt), 'HH:mm')}</p>
+                </div>
+                <button onClick={() => { if (resumeHeld(h.id)) { setShowHeld(false); setShowPay(true) } else toast('Hold or clear the current cart first', 'error') }} className="press h-9 px-4 rounded-full bg-primary text-white text-[14px] font-semibold">Resume</button>
+                <button onClick={() => deleteHeld(h.id)} aria-label="Delete held cart" className="press h-9 w-9 rounded-full bg-red-50 text-danger flex items-center justify-center"><Trash2 size={15} /></button>
+              </li>
+            ))}
+          </ul>
         )}
       </Sheet>
 

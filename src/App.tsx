@@ -4,6 +4,9 @@ import { ensureSeedData } from './lib/db'
 import { startSyncLoop, processOutbox } from './lib/sync'
 import { usePosStore } from './store/posStore'
 import AppShell from './components/layout/AppShell'
+import ImportPage from './pages/ImportPage'
+import SyncStatusPage from './pages/SyncStatusPage'
+import AuditPage from './pages/AuditPage'
 import LoginPage from './pages/LoginPage'
 import PosPage from './pages/PosPage'
 import ProductsPage from './pages/ProductsPage'
@@ -61,6 +64,9 @@ function App() {
         <Route path="/stock" element={<StockAdjustmentPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/export" element={<ExportPage />} />
+        <Route path="/import" element={<ImportPage />} />
+        <Route path="/sync" element={<SyncStatusPage />} />
+        <Route path="/audit" element={<AuditPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

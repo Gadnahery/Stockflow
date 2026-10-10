@@ -1,8 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   Product, Sale, OutboxEvent, User, AppSettings,
-  Customer, Supplier, StockMovement, CashSession, Expense, PurchaseOrder, Branch
-} from '../types'
+  Customer, Supplier, StockMovement, CashSession, Expense, PurchaseOrder, Branch, AuditLog } from '../types'
 
 export class StockFlowDB extends Dexie {
   products!: Table<Product, string>
@@ -17,6 +16,7 @@ export class StockFlowDB extends Dexie {
   users!: Table<User, string>
   branches!: Table<Branch, string>
   settings!: Table<AppSettings, string>
+  auditLogs!: Table<AuditLog, string>
 
   constructor() {
     super('StockFlowDB')
@@ -33,6 +33,21 @@ export class StockFlowDB extends Dexie {
       users: 'id, pin, role, active',
       branches: 'id, name, active',
       settings: 'id',
+    })
+    this.version(3).stores({
+      products: 'id, sku, barcode, name, category, active',
+      sales: 'id, createdAt, synced, receiptNumber, status, cashierId, shiftId',
+      stockMovements: 'id, productId, type, createdAt, synced',
+      customers: 'id, name, phone',
+      suppliers: 'id, name, phone',
+      purchases: 'id, supplierId, status, createdAt, synced',
+      cashSessions: 'id, userId, status, openedAt',
+      expenses: 'id, category, createdAt, synced',
+      outbox: 'id, type, createdAt',
+      users: 'id, pin, role, active',
+      branches: 'id, name, active',
+      settings: 'id',
+      auditLogs: 'id, action, entityType, createdAt',
     })
   }
 }
@@ -70,6 +85,25 @@ track(db.customers, 'customer_upsert')
 track(db.suppliers, 'supplier_upsert')
 track(db.cashSessions, 'shift')
 track(db.stockMovements, 'stock_movement')
+
+/** Append-only audit trail: who / what / when / where, with before → after values. */
+export async function audit(
+  action: string,
+  entityType: string,
+  entityId: string | undefined,
+  detail: { before?: unknown; after?: unknown; reason?: string } = {}
+) {
+  let user: { id?: string; name?: string } = {}
+  try { user = JSON.parse(sessionStorage.getItem('currentUser') || '{}') } catch { /* none */ }
+  const settings = await db.settings.get('main').catch(() => undefined)
+  const row: AuditLog = {
+    id: crypto.randomUUID(), action, entityType, entityId, ...detail,
+    userId: user.id, userName: user.name, deviceId: settings?.deviceId,
+    createdAt: new Date().toISOString(),
+  }
+  await db.auditLogs.add(row)
+  queue('audit', row)
+}
 
 export async function ensureSeedData() {
   const count = await db.products.count()

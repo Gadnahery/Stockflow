@@ -1,4 +1,4 @@
-import { X, Printer } from 'lucide-react'
+import { X, Printer, Share2 } from 'lucide-react'
 import type { Sale } from '../types'
 import { format } from 'date-fns'
 import { useLiveQuery } from 'dexie-react-hooks'
@@ -12,6 +12,28 @@ interface Props {
 export default function ReceiptModal({ sale, onClose }: Props) {
   const settings = useLiveQuery(() => db.settings.get('main'), [])
 
+  const handleShare = async () => {
+    const f = (n: number) => Math.round(n).toLocaleString('en-US')
+    const text = [
+      `*${settings?.businessName || 'StockFlow Store'}*`,
+      `Receipt ${sale.receiptNumber}`,
+      format(new Date(sale.createdAt), 'dd MMM yyyy HH:mm'),
+      '',
+      ...sale.items.map((i) => `${i.quantity} x ${i.name} - ${f(i.lineTotal)}`),
+      '',
+      `*Total: ${f(sale.total)} TZS*`,
+      ...sale.payments.map((p) => `${p.method === 'credit' ? 'On credit' : p.method}: ${f(p.amount)}`),
+      '',
+      'Thank you!',
+    ].join('\n')
+    if (navigator.share) {
+      try { await navigator.share({ title: `Receipt ${sale.receiptNumber}`, text }); return } catch { /* cancelled → fall back */ }
+    }
+    const cust = sale.customerId ? await db.customers.get(sale.customerId) : undefined
+    const phone = cust?.phone?.replace(/\D/g, '')
+    window.open(`https://wa.me/${phone || ''}?text=${encodeURIComponent(text)}`, '_blank')
+  }
+
   const handlePrint = () => {
     window.print()
   }
@@ -22,6 +44,13 @@ export default function ReceiptModal({ sale, onClose }: Props) {
         <div className="flex items-center justify-between px-5 py-4 border-b border-border print:hidden">
           <h2 className="text-lg font-semibold">Receipt</h2>
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleShare}
+              className="flex items-center gap-1.5 h-9 px-3 rounded-button bg-emerald-600 text-white text-sm font-medium"
+            >
+              <Share2 size={14} />
+              Share
+            </button>
             <button
               onClick={handlePrint}
               className="flex items-center gap-1.5 h-9 px-3 rounded-button bg-primary text-white text-sm font-medium"

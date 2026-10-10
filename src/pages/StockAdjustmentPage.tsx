@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, Plus, X } from 'lucide-react'
-import { db } from '../lib/db'
+import { db, audit } from '../lib/db'
 import type { StockMovement } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 import { format } from 'date-fns'
@@ -77,6 +77,7 @@ export default function StockAdjustmentPage() {
         retries: 0,
       })
     })
+    await audit('STOCK_ADJUST', 'product', product.id, { before: { stock: previousStock }, after: { stock: newStock }, reason: `${form.type}${form.reason ? ': ' + form.reason : ''} — ${product.name}` })
 
     setShowForm(false)
     setForm({ productId: '', type: 'adjustment', quantity: '', reason: '' })
