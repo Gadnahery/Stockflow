@@ -25,7 +25,7 @@ const sections = [
       { icon: Receipt, label: 'Sales history', desc: 'View and reprint receipts', to: '/sales', color: '#007AFF' },
       { icon: ClipboardList, label: 'Cash shifts', desc: 'Open and close till sessions', to: '/shifts', color: '#34C759' },
       { icon: Truck, label: 'Suppliers & purchases', desc: 'Receive new stock', to: '/suppliers', color: '#FF9500' },
-      { icon: Package, label: 'Stock adjustments', desc: 'Corrections and stock history', to: '/stock', color: '#AF52DE' },
+      { icon: Package, label: 'Inventory', desc: 'Value, alerts, ledger & adjustments', to: '/stock', color: '#AF52DE' },
       { icon: Wallet, label: 'Expenses', desc: 'Record business costs', to: '/expenses', color: '#FF3B30' },
     ],
   },
