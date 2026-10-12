@@ -289,7 +289,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const can = useCallback(
     (permission: Permission) => {
       if (!member) return false
-      if (member.role === 'owner') return true
+      if (member.role === 'owner' || member.role === 'business_owner' || member.role === 'platform_admin') return true
       return (member.permissions || []).includes(permission)
     },
     [member],

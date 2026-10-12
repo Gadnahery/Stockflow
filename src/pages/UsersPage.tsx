@@ -29,17 +29,30 @@ const ALL_PERMISSIONS: { key: Permission; label: string }[] = [
 ]
 
 const ROLE_PRESETS: Record<string, Permission[]> = {
-  owner: ALL_PERMISSIONS.map((p) => p.key),
-  manager: [
+  business_owner: ALL_PERMISSIONS.map((p) => p.key),
+  business_manager: [
     'CREATE_SALE', 'VOID_SALE', 'REFUND_SALE', 'APPLY_DISCOUNT', 'ADJUST_STOCK',
     'VIEW_PROFIT', 'MANAGE_PRODUCTS', 'MANAGE_CUSTOMERS', 'MANAGE_SUPPLIERS',
-    'VIEW_REPORTS', 'MANAGE_SHIFTS', 'MANAGE_USERS',
+    'VIEW_REPORTS', 'MANAGE_SHIFTS', 'MANAGE_USERS', 'CHANGE_PRICE', 'MANAGE_SETTINGS',
   ],
   cashier: ['CREATE_SALE', 'APPLY_DISCOUNT'],
   storekeeper: ['ADJUST_STOCK', 'MANAGE_PRODUCTS', 'MANAGE_SUPPLIERS'],
   accountant: ['VIEW_REPORTS', 'VIEW_PROFIT', 'EXPORT_DATA'],
   waiter: ['CREATE_SALE'],
   auditor: ['VIEW_REPORTS', 'VIEW_PROFIT', 'EXPORT_DATA'],
+}
+
+const ROLE_LABELS: Record<string, string> = {
+  business_owner: 'Owner',
+  owner: 'Owner',
+  business_manager: 'Manager',
+  manager: 'Manager',
+  cashier: 'Cashier',
+  storekeeper: 'Storekeeper',
+  accountant: 'Accountant',
+  waiter: 'Waiter',
+  auditor: 'Auditor',
+  platform_admin: 'Platform admin',
 }
 
 type MemberRow = {
@@ -206,7 +219,7 @@ export default function UsersPage() {
       toast('You cannot suspend yourself', 'error')
       return
     }
-    if (row.role === 'owner') {
+    if (row.role === 'owner' || row.role === 'business_owner') {
       toast('Cannot suspend the owner', 'error')
       return
     }
@@ -338,14 +351,14 @@ export default function UsersPage() {
                       )}
                     </p>
                     <p className="text-[13px] text-ink-secondary truncate">
-                      <span className="capitalize">{m.role}</span>
+                      <span className="capitalize">{ROLE_LABELS[m.role] || m.role}</span>
                       {m.email ? ` · ${m.email}` : ''}
                       {m.status !== 'active' && (
                         <span className="ml-1 text-warning capitalize">· {m.status}</span>
                       )}
                     </p>
                   </div>
-                  {m.status === 'active' && m.role !== 'owner' && m.user_id !== me?.user_id && (
+                  {m.status === 'active' && m.role !== 'owner' && m.role !== 'business_owner' && m.user_id !== me?.user_id && (
                     <button
                       type="button"
                       onClick={() => void suspendMember(m)}
@@ -449,7 +462,7 @@ export default function UsersPage() {
                   onChange={(e) => setRole(e.target.value)}
                   className="field w-full"
                 >
-                  <option value="manager">Manager</option>
+                  <option value="business_manager">Manager</option>
                   <option value="cashier">Cashier</option>
                   <option value="storekeeper">Storekeeper</option>
                   <option value="accountant">Accountant</option>

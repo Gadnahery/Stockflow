@@ -146,7 +146,7 @@ export async function ensureSeedData() {
       id: crypto.randomUUID(),
       name: 'Owner',
       pin: '0000',
-      role: 'owner',
+      role: 'business_owner',
       permissions: [
         'CREATE_SALE', 'VOID_SALE', 'REFUND_SALE', 'CHANGE_PRICE', 'APPLY_DISCOUNT',
         'ADJUST_STOCK', 'VIEW_PROFIT', 'EXPORT_DATA', 'MANAGE_USERS', 'MANAGE_PRODUCTS',

@@ -111,7 +111,7 @@ export default function AccountPage() {
               </span>
               <ChevronRight size={18} className="text-ink-muted" />
             </Link>
-            {(can('MANAGE_USERS') || member?.role === 'owner') && (
+            {(can('MANAGE_USERS') || (member?.role === 'owner' || member?.role === 'business_owner')) && (
               <Link to="/users" className="flex items-center gap-3 px-4 py-3.5 border-b border-border">
                 <span className="h-9 w-9 rounded-[10px] bg-[#AF52DE]/10 text-[#AF52DE] flex items-center justify-center">
                   <Users size={18} />
@@ -123,7 +123,7 @@ export default function AccountPage() {
                 <ChevronRight size={18} className="text-ink-muted" />
               </Link>
             )}
-            {(can('MANAGE_SETTINGS') || member?.role === 'owner') && (
+            {(can('MANAGE_SETTINGS') || (member?.role === 'owner' || member?.role === 'business_owner')) && (
               <div className="px-4 py-3.5">
                 <div className="flex items-center gap-3 mb-2">
                   <span className="h-9 w-9 rounded-[10px] bg-[#FF9500]/15 text-[#FF9500] flex items-center justify-center">

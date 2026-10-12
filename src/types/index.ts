@@ -167,7 +167,7 @@ export interface User {
   id: UUID
   name: string
   pin: string
-  role: 'owner' | 'manager' | 'cashier' | 'storekeeper' | 'accountant'
+  role: 'owner' | 'business_owner' | 'manager' | 'business_manager' | 'cashier' | 'storekeeper' | 'accountant' | 'waiter' | 'auditor' | 'platform_admin'
   permissions: Permission[]
   active: boolean
 }

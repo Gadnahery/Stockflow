@@ -90,7 +90,7 @@ export default function BillingPage() {
           </p>
         </section>
 
-        {(member?.role === 'owner' || member?.role === 'manager') && (
+        {((member?.role === 'owner' || member?.role === 'business_owner') || (member?.role === 'manager' || member?.role === 'business_manager')) && (
           <Link
             to="/users"
             className="press flex items-center justify-center gap-2 h-12 rounded-[14px] bg-primary text-white font-semibold"
