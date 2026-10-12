@@ -18,28 +18,39 @@ const LAST_PULL_KEY = 'sf_last_pull'
 const LAST_SYNC_KEY = 'sf_last_sync'
 
 async function ensureBusiness(): Promise<string> {
-  const id = getBusinessId()
-  if (id) return id
-  // Recover from session membership if localStorage was cleared
-  if (supabaseConfigured && supabase) {
-    const { data: sess } = await supabase.auth.getSession()
-    const uid = sess.session?.user?.id
-    if (uid) {
-      const { data: members } = await supabase
-        .from('business_members')
-        .select('business_id, branch_ids')
-        .eq('user_id', uid)
-        .eq('status', 'active')
-        .limit(1)
-      if (members?.[0]?.business_id) {
-        setBusinessId(members[0].business_id)
-        const branches = members[0].branch_ids as string[] | null
-        if (branches?.[0]) localStorage.setItem('branchId', branches[0])
-        return members[0].business_id as string
-      }
-    }
+  if (!supabaseConfigured || !supabase) {
+    throw new Error('Cloud sync is not configured')
   }
-  throw new Error('No business selected. Sign in and complete onboarding first.')
+  const { data: sess } = await supabase.auth.getSession()
+  const uid = sess.session?.user?.id
+  if (!uid) {
+    throw new Error('Not signed in — open Account and sign in again')
+  }
+
+  // Always resolve from membership (ignore stale localStorage demo ids)
+  const { data: members, error } = await supabase
+    .from('business_members')
+    .select('business_id, branch_ids, role, permissions, status')
+    .eq('user_id', uid)
+    .eq('status', 'active')
+    .limit(1)
+  if (error) throw error
+  if (!members?.[0]?.business_id) {
+    clearWrongBusiness()
+    throw new Error('No business on this account — finish onboarding first')
+  }
+  const biz = members[0].business_id as string
+  setBusinessId(biz)
+  const branches = members[0].branch_ids as string[] | null
+  if (branches?.[0]) localStorage.setItem('branchId', branches[0])
+  return biz
+}
+
+function clearWrongBusiness() {
+  try {
+    localStorage.removeItem('businessId')
+    localStorage.removeItem('branchId')
+  } catch { /* ignore */ }
 }
 
 const getBranchId = (): string | null => {

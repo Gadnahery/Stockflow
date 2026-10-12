@@ -23,6 +23,13 @@ export default function SyncStatusPage() {
   const pending = events.length
   const dead = events.filter((e) => (e.retries || 0) >= 12)
 
+  const resetRetries = async () => {
+    const all = await db.outbox.toArray()
+    await Promise.all(all.map((e) => db.outbox.update(e.id, { retries: 0, lastError: undefined })))
+    await refreshPendingSync()
+    toast('Retries cleared — tap Sync now', 'info')
+  }
+
   const discard = async (id: string) => {
     const ok = await confirm({
       title: 'Discard change?',
@@ -57,15 +64,26 @@ export default function SyncStatusPage() {
       title="Sync"
       subtitle={isOnline ? 'Online' : 'Offline — changes queue locally'}
       action={
-        <button
-          type="button"
-          disabled={busy || !isOnline}
-          onClick={() => void runSync()}
-          className="press h-9 px-3.5 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center gap-1.5 disabled:opacity-50"
-        >
-          <RefreshCw size={15} className={busy ? 'animate-spin' : ''} />
-          {busy ? 'Syncing…' : 'Sync now'}
-        </button>
+        <div className="flex gap-2">
+          {pending > 0 && (
+            <button
+              type="button"
+              onClick={() => void resetRetries()}
+              className="press h-9 px-3 rounded-full bg-black/[0.06] text-[12px] font-semibold"
+            >
+              Retry all
+            </button>
+          )}
+          <button
+            type="button"
+            disabled={busy || !isOnline}
+            onClick={() => void runSync()}
+            className="press h-9 px-3.5 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center gap-1.5 disabled:opacity-50"
+          >
+            <RefreshCw size={15} className={busy ? 'animate-spin' : ''} />
+            {busy ? 'Syncing…' : 'Sync now'}
+          </button>
+        </div>
       }
     >
       <div className="space-y-4 md:max-w-2xl pb-6">
