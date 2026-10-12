@@ -88,3 +88,9 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - IndexedDB cleared when business id changes (switchToBusinessWorkspace)
 - No demo product seed; new shops start empty then pull only their cloud data
 - Branches page: list/create/set active branch per device
+
+## PWA & offline install
+- Service worker caches app shell for offline open on phone/PC
+- manifest + icons; Install banner + More → Install on this device
+- Home dashboard: today sales, low stock, credit, sync status
+- Dexie + outbox remains source of offline sales

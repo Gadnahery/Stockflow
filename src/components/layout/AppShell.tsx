@@ -11,6 +11,7 @@ import { useUi, type SidebarMode } from '../../store/uiStore'
 import { useAuth } from '../../contexts/AuthContext'
 import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
+import InstallBanner from '../InstallBanner'
 
 type NavItem = {
   to: string
@@ -29,6 +30,7 @@ const mobileNav = [
 ]
 
 const desktopNav: NavItem[] = [
+  { to: '/home', icon: LayoutGrid, label: 'Home', section: 'Sell' },
   { to: '/', icon: ShoppingCart, label: 'POS', end: true, section: 'Sell' },
   { to: '/sales', icon: Receipt, label: 'Sales', section: 'Sell' },
   { to: '/products', icon: Package, label: 'Products', section: 'Inventory' },
@@ -366,6 +368,7 @@ export default function AppShell() {
         <main className="flex-1 min-h-0 min-w-0 relative" onScrollCapture={onScrollAny}>
           <div key={location.pathname} className="page-enter h-full flex flex-col">
             <Outlet />
+      <InstallBanner />
           </div>
         </main>
       </div>

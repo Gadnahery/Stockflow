@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings, Users, Truck, Wallet, ClipboardList, Download, ChevronRight, Lock, Package, Receipt,
-  RefreshCw, Wifi, WifiOff, Upload, ShieldCheck, CloudCog, UserCircle, HelpCircle, LogOut, CreditCard, Building2,
+  RefreshCw, Wifi, WifiOff, Upload, ShieldCheck, CloudCog, UserCircle, HelpCircle, LogOut, CreditCard, Building2, LayoutDashboard,
 } from 'lucide-react'
 import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
@@ -10,6 +10,7 @@ import { useUi } from '../store/uiStore'
 import { syncNow as runSync } from '../lib/sync'
 import { usePermission } from '../hooks/usePermission'
 import { useAuth } from '../contexts/AuthContext'
+import { promptInstall, isStandalone, canInstall } from '../lib/pwa'
 
 const sections = [
   {
@@ -25,6 +26,7 @@ const sections = [
       { icon: Receipt, label: 'Sales history', desc: 'View and reprint receipts', to: '/sales', color: '#007AFF' },
       { icon: ClipboardList, label: 'Cash shifts', desc: 'Open and close till sessions', to: '/shifts', color: '#34C759' },
       { icon: Truck, label: 'Suppliers & purchases', desc: 'Receive new stock', to: '/suppliers', color: '#FF9500' },
+      { icon: LayoutDashboard, label: 'Home dashboard', desc: 'Today’s sales and alerts', to: '/home', color: '#007AFF' },
       { icon: Package, label: 'Inventory', desc: 'Value, alerts, ledger & adjustments', to: '/stock', color: '#AF52DE' },
       { icon: Wallet, label: 'Expenses', desc: 'Record business costs', to: '/expenses', color: '#FF3B30' },
     ],
@@ -141,6 +143,27 @@ export default function MorePage() {
           >
             <Lock size={18} /> Lock screen
           </button>
+          
+        {!isStandalone() && (
+          <button
+            type="button"
+            onClick={async () => {
+              const r = await promptInstall()
+              if (r === 'unavailable') {
+                toast('Use your browser menu: Install app / Add to Home Screen', 'info')
+              }
+            }}
+            className="press w-full flex items-center gap-3 rounded-[18px] bg-white shadow-card px-4 py-3.5 text-left"
+          >
+            <span className="h-10 w-10 rounded-[12px] bg-primary/10 text-primary flex items-center justify-center">
+              <Download size={18} />
+            </span>
+            <span className="flex-1">
+              <span className="block text-[15px] font-semibold">Install on this device</span>
+              <span className="block text-[12px] text-ink-muted">Works offline on phone or PC</span>
+            </span>
+          </button>
+        )}
           <button
             type="button"
             onClick={() => void signOut().then(() => navigate('/login', { replace: true }))}

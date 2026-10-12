@@ -5,6 +5,10 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ConfirmProvider } from './components/ui/ConfirmDialog'
 import App from './App'
 import './index.css'
+import { registerServiceWorker, listenForInstallPrompt } from './lib/pwa'
+
+registerServiceWorker()
+listenForInstallPrompt()
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
