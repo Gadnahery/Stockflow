@@ -69,3 +69,11 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - Customers: outstanding credit KPIs, filters (All/Owing/Has limit), detail sheet with balance, collect payment, sales history → receipt
 - Customer save/payment queues customer_upsert for sync
 - Suppliers: payable total, GRN increases balance, detail sheet with purchases, pay supplier reduces balance
+
+## Phase 8 reports (ERP-style)
+- P&L: Revenue − COGS = Gross profit − Expenses = **Net profit** (with margin %)
+- Prior-period delta on revenue and net profit
+- Payment mix, discounts, voids, credit vs collected
+- Expenses by category; best sellers with margin; category mix
+- Holdings: stock cost/retail, customer credit outstanding, low-stock link
+- Cash shift variance; Explore links to Sales, Expenses, Customers, Inventory
