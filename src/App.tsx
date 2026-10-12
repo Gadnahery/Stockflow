@@ -16,6 +16,7 @@ import OnboardingPage from './pages/auth/OnboardingPage'
 import AcceptInvitePage from './pages/auth/AcceptInvitePage'
 import AccountPage from './pages/auth/AccountPage'
 import HelpPage from './pages/HelpPage'
+import BillingPage from './pages/BillingPage'
 import PosPage from './pages/PosPage'
 import ProductsPage from './pages/ProductsPage'
 import CustomersPage from './pages/CustomersPage'
@@ -99,6 +100,7 @@ function App() {
         <Route path="/sync" element={<SyncStatusPage />} />
         <Route path="/audit" element={<AuditPage />} />
         <Route path="/account" element={<AccountPage />} />
+        <Route path="/billing" element={<BillingPage />} />
         <Route path="/help" element={<HelpPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

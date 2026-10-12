@@ -8,6 +8,8 @@ import { supabase, getBusinessId } from '../lib/supabase'
 import type { Permission } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 
+const FREE_SEATS = 10
+
 const ALL_PERMISSIONS: { key: Permission; label: string }[] = [
   { key: 'CREATE_SALE', label: 'Create sales' },
   { key: 'VOID_SALE', label: 'Void sales' },
@@ -165,6 +167,11 @@ export default function UsersPage() {
     setBusy(true)
     try {
       const token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '').slice(0, 8)
+      if (members.length >= FREE_SEATS) {
+        toast(`Free plan allows ${FREE_SEATS} team members. Remove someone or upgrade later.`, 'error')
+        setBusy(false)
+        return
+      }
       const { error: insErr } = await supabase.from('invites').insert({
         business_id: bizId,
         email,

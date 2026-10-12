@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ShoppingCart, Package, Users, BarChart3, LayoutGrid, Lock, Wifi, WifiOff,
   PanelLeft, PanelLeftClose, Search, Plus, Receipt, Wallet, Truck, ClipboardList,
-  Settings, CloudCog, ShieldCheck,
+  Settings, CloudCog, ShieldCheck, CreditCard,
 } from 'lucide-react'
 import { useEffect, useRef, type UIEvent, type FocusEvent } from 'react'
 import clsx from 'clsx'
@@ -42,6 +42,7 @@ const desktopNav: NavItem[] = [
   { to: '/sync', icon: CloudCog, label: 'Sync', section: 'Insights' },
   { to: '/audit', icon: ShieldCheck, label: 'Audit', section: 'Insights' },
   { to: '/settings', icon: Settings, label: 'Settings', section: 'Admin' },
+  { to: '/billing', icon: CreditCard, label: 'Plan', section: 'Admin' },
   { to: '/more', icon: LayoutGrid, label: 'More', section: 'Admin' },
 ]
 
@@ -59,6 +60,7 @@ function pageTitle(pathname: string): string {
   if (pathname.startsWith('/account')) return 'Account'
   if (pathname.startsWith('/help')) return 'Help'
   if (pathname.startsWith('/export')) return 'Export'
+  if (pathname.startsWith('/billing')) return 'Plan & billing'
   if (pathname.startsWith('/import')) return 'Import'
   return 'StockFlow'
 }

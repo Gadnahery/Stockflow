@@ -77,3 +77,8 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - Expenses by category; best sellers with margin; category mix
 - Holdings: stock cost/retail, customer credit outstanding, low-stock link
 - Cash shift variance; Explore links to Sales, Expenses, Customers, Inventory
+
+## Phase 9 SaaS / multi-tenant
+- Billing page: Free plan, seat usage (10), feature list, future paid notes
+- Account: workspace links (plan, team), rename business (owner/settings)
+- Soft seat cap on invites; Plan in desktop nav + More
