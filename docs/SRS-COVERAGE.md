@@ -64,3 +64,8 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - Cash touch numpad + quick amounts
 - Sale note on receipt
 - Banner when no open cash shift
+
+## Phase 7 customers & suppliers depth
+- Customers: outstanding credit KPIs, filters (All/Owing/Has limit), detail sheet with balance, collect payment, sales history → receipt
+- Customer save/payment queues customer_upsert for sync
+- Suppliers: payable total, GRN increases balance, detail sheet with purchases, pay supplier reduces balance

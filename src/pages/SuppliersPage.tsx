@@ -25,11 +25,15 @@ export default function SuppliersPage() {
     { productId: '', name: '', quantity: '1', cost: '' },
   ])
   const [purchaseNote, setPurchaseNote] = useState('')
+  const [showDetail, setShowDetail] = useState(false)
+  const [payAmount, setPayAmount] = useState('')
+  const [detailSupplier, setDetailSupplier] = useState<Supplier | null>(null)
 
   const suppliers = useLiveQuery(() => db.suppliers.orderBy('name').toArray(), [])
   const purchases = useLiveQuery(() => db.purchases.orderBy('createdAt').reverse().toArray(), [])
   const products = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), [])
   const loading = suppliers === undefined
+  const totalPayable = (suppliers || []).reduce((t, s) => t + (s.balance > 0 ? s.balance : 0), 0)
 
   const filtered = useMemo(() => {
     const list = suppliers || []
@@ -150,7 +154,7 @@ export default function SuppliersPage() {
       synced: false,
     }
 
-    await db.transaction('rw', db.purchases, db.products, db.stockMovements, db.outbox, async () => {
+    await db.transaction('rw', db.purchases, db.products, db.stockMovements, db.suppliers, db.outbox, async () => {
       await db.purchases.add(po)
       for (const item of items) {
         const product = await db.products.get(item.productId)
@@ -173,8 +177,45 @@ export default function SuppliersPage() {
         })
       }
       await db.outbox.add({ id: uuidv4(), type: 'purchase', payload: po, createdAt: now, retries: 0 })
+      // Increase amount we owe the supplier
+      const beforeBal = supplier.balance || 0
+      await db.suppliers.update(supplier.id, { balance: beforeBal + total, updatedAt: now })
+      await db.outbox.add({
+        id: uuidv4(),
+        type: 'supplier_upsert',
+        payload: { ...supplier, balance: beforeBal + total, updatedAt: now },
+        createdAt: now,
+        retries: 0,
+      })
     })
     setShowPurchaseForm(false)
+  }
+
+
+  const openDetail = (s: Supplier) => {
+    setDetailSupplier(s)
+    setPayAmount('')
+    setShowDetail(true)
+  }
+
+  const paySupplier = async () => {
+    if (!detailSupplier) return
+    const amt = parseFloat(payAmount)
+    if (!(amt > 0)) return
+    const before = detailSupplier.balance || 0
+    const applied = Math.min(amt, Math.max(0, before))
+    if (applied <= 0) return
+    const now = new Date().toISOString()
+    await db.suppliers.update(detailSupplier.id, { balance: before - applied, updatedAt: now })
+    await db.outbox.add({
+      id: uuidv4(),
+      type: 'supplier_upsert',
+      payload: { ...detailSupplier, balance: before - applied, updatedAt: now },
+      createdAt: now,
+      retries: 0,
+    })
+    setDetailSupplier({ ...detailSupplier, balance: before - applied, updatedAt: now })
+    setPayAmount('')
   }
 
   const purchaseList = purchases || []
@@ -182,7 +223,7 @@ export default function SuppliersPage() {
   return (
     <Screen
       title="Suppliers"
-      subtitle="Directory and goods received"
+      subtitle={`${fmtMoney(totalPayable)} payable`}
       action={
         <div className="flex gap-2">
           <button type="button" onClick={openPurchase} className="press h-9 px-3 rounded-full bg-ink text-white text-[13px] font-semibold flex items-center gap-1">
@@ -244,7 +285,7 @@ export default function SuppliersPage() {
                   <button
                     key={s.id}
                     type="button"
-                    onClick={() => openEditSupplier(s)}
+                    onClick={() => openDetail(s)}
                     className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${i < filtered.length - 1 ? 'border-b border-border' : ''}`}
                   >
                     <span className="h-11 w-11 rounded-[12px] bg-surface-secondary flex items-center justify-center shrink-0">
@@ -369,6 +410,77 @@ export default function SuppliersPage() {
           </div>
         </div>
       </Sheet>
+      <Sheet
+        open={showDetail && !!detailSupplier}
+        onClose={() => setShowDetail(false)}
+        title={detailSupplier?.name || 'Supplier'}
+        footer={
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (detailSupplier) openEditSupplier(detailSupplier)
+                setShowDetail(false)
+              }}
+              className="press flex-1 h-12 rounded-[14px] bg-black/[0.06] font-semibold"
+            >
+              Edit
+            </button>
+            {detailSupplier && (detailSupplier.balance || 0) > 0 && (
+              <button type="button" onClick={() => void paySupplier()} className="press flex-1 h-12 rounded-[14px] bg-primary text-white font-semibold">
+                Pay
+              </button>
+            )}
+          </div>
+        }
+      >
+        {detailSupplier && (
+          <div className="space-y-4">
+            <div className="rounded-[16px] bg-surface-secondary p-4 space-y-2 text-[14px]">
+              {detailSupplier.phone && (
+                <div className="flex justify-between"><span className="text-ink-secondary">Phone</span><span className="font-medium">{detailSupplier.phone}</span></div>
+              )}
+              {detailSupplier.email && (
+                <div className="flex justify-between"><span className="text-ink-secondary">Email</span><span className="font-medium truncate ml-4">{detailSupplier.email}</span></div>
+              )}
+              <div className="flex justify-between border-t border-border pt-2">
+                <span className="font-semibold">Balance payable</span>
+                <span className={`font-bold tabular-nums ${(detailSupplier.balance || 0) > 0 ? 'text-warning' : 'text-success'}`}>
+                  {fmtMoney(detailSupplier.balance || 0)}
+                </span>
+              </div>
+            </div>
+            {(detailSupplier.balance || 0) > 0 && (
+              <div className="rounded-[16px] bg-amber-50 p-4">
+                <p className="text-[13px] font-semibold text-warning mb-2">Record payment to supplier</p>
+                <div className="flex gap-2">
+                  <input className="field flex-1 !bg-white" inputMode="decimal" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="Amount paid" />
+                  <button type="button" onClick={() => setPayAmount(String(detailSupplier.balance))} className="press h-[46px] px-3 rounded-[14px] bg-white text-[13px] font-semibold">Full</button>
+                </div>
+              </div>
+            )}
+            <div>
+              <p className="text-[13px] font-semibold text-ink-secondary mb-2">Purchases</p>
+              {(purchaseList.filter((p) => p.supplierId === detailSupplier.id)).length === 0 ? (
+                <p className="text-[14px] text-ink-muted py-3">No purchases from this supplier yet.</p>
+              ) : (
+                <div className="rounded-[16px] border border-border divide-y divide-border overflow-hidden">
+                  {purchaseList.filter((p) => p.supplierId === detailSupplier.id).slice(0, 20).map((p) => (
+                    <div key={p.id} className="px-3 py-3 flex justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="text-[14px] font-semibold">{format(new Date(p.createdAt), 'dd MMM yyyy')}</p>
+                        <p className="text-[12px] text-ink-muted">{p.items.length} items</p>
+                      </div>
+                      <p className="text-[14px] font-semibold tabular-nums">{fmtMoney(p.total)}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+      </Sheet>
+
     </Screen>
   )
 }
