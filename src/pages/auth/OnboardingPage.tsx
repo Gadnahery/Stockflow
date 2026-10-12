@@ -4,7 +4,7 @@ import { useAuth, setDevicePin } from '../../contexts/AuthContext'
 import { haptic } from '../../lib/util'
 
 export default function OnboardingPage() {
-  const { createBusiness, member, session } = useAuth()
+  const { createBusiness, member, session, loading, signOut } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
@@ -14,11 +14,17 @@ export default function OnboardingPage() {
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
-    if (!session) navigate('/login', { replace: true })
-    else if (member) navigate('/', { replace: true })
-  }, [session, member, navigate])
+    if (loading) return
+    if (!session) {
+      navigate('/login', { replace: true })
+      return
+    }
+    if (member) {
+      navigate('/', { replace: true })
+    }
+  }, [loading, session, member, navigate])
 
-  if (!session || member) {
+  if (loading || !session || member) {
     return (
       <div className="min-h-full flex items-center justify-center bg-[#F2F2F7]">
         <div className="h-10 w-10 rounded-full border-2 border-[#007AFF] border-t-transparent animate-spin" />
@@ -34,7 +40,7 @@ export default function OnboardingPage() {
       return
     }
     if (pin.length < 4) {
-      setError('Choose a 4–6 digit PIN for quick unlock')
+      setError('Choose a 4–6 digit PIN for quick unlock on this device')
       return
     }
     setBusy(true)
@@ -56,7 +62,7 @@ export default function OnboardingPage() {
       <div className="w-full max-w-[400px] page-enter">
         <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">Set up your business</h1>
         <p className="text-[15px] text-[#5F5F66] mt-2 mb-8">
-          This creates your store, main branch, and owner account.
+          One-time setup: store name and a PIN to unlock this device after idle.
         </p>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -73,7 +79,7 @@ export default function OnboardingPage() {
             <input className="field w-full" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dar es Salaam" />
           </div>
           <div>
-            <label className="block text-[13px] font-medium text-[#5F5F66] mb-1.5 px-1">Device PIN (4–6 digits)</label>
+            <label className="block text-[13px] font-medium text-[#5F5F66] mb-1.5 px-1">Device unlock PIN (4–6 digits)</label>
             <input
               className="field w-full"
               inputMode="numeric"
@@ -82,9 +88,11 @@ export default function OnboardingPage() {
               required
               value={pin}
               onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              placeholder="Used to unlock after idle"
+              placeholder="Not your account password"
             />
-            <p className="text-[12px] text-[#76767D] mt-1 px-1">Not your account password — for quick re-entry on this device.</p>
+            <p className="text-[12px] text-[#76767D] mt-1 px-1">
+              Used only to unlock this device after you step away. Sign-in still uses email + password.
+            </p>
           </div>
 
           {error && <p className="text-[13px] text-[#E0333C]">{error}</p>}
@@ -97,6 +105,14 @@ export default function OnboardingPage() {
             {busy ? 'Creating…' : 'Create business'}
           </button>
         </form>
+
+        <button
+          type="button"
+          onClick={() => void signOut().then(() => navigate('/login', { replace: true }))}
+          className="mt-6 w-full text-center text-[15px] text-[#007AFF] font-medium"
+        >
+          Sign out and use a different account
+        </button>
       </div>
     </div>
   )

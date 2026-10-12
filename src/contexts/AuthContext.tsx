@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from 'react'
@@ -33,8 +34,8 @@ interface AuthState {
   user: User | null
   member: BusinessMember | null
   business: Business | null
+  /** True until the first session + membership check finishes */
   loading: boolean
-  /** Device is authenticated but PIN-locked */
   pinLocked: boolean
   offlineMode: boolean
 }
@@ -56,35 +57,41 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+function mirrorSessionUser(m: BusinessMember | null) {
+  if (m) {
+    sessionStorage.setItem(
+      'currentUser',
+      JSON.stringify({
+        id: m.user_id,
+        name: m.display_name || 'User',
+        role: m.role,
+        permissions: m.permissions || [],
+        active: m.status === 'active',
+      }),
+    )
+  } else {
+    sessionStorage.removeItem('currentUser')
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [user, setUser] = useState<User | null>(null)
-  const [member, setMember] = useState<BusinessMember | null>(getCachedMember())
+  const [member, setMember] = useState<BusinessMember | null>(null)
   const [business, setBusiness] = useState<Business | null>(null)
   const [loading, setLoading] = useState(true)
-  const [pinLocked, setPinLocked] = useState(() => localStorage.getItem(PIN_LOCK_KEY) === '1')
+  const [pinLocked, setPinLocked] = useState(false)
   const [offlineMode, setOfflineMode] = useState(!navigator.onLine)
+  const booted = useRef(false)
+  const userRef = useRef<User | null>(null)
 
   const applyMembership = useCallback(async (uid: string) => {
     const { member: m, business: b } = await fetchMembership(uid)
     setMember(m)
     setBusiness(b)
     cacheMember(m)
-    // Bridge for legacy pages that still read sessionStorage.currentUser
-    if (m) {
-      sessionStorage.setItem(
-        'currentUser',
-        JSON.stringify({
-          id: m.user_id,
-          name: m.display_name || 'User',
-          role: m.role,
-          permissions: m.permissions || [],
-          active: m.status === 'active',
-        }),
-      )
-    } else {
-      sessionStorage.removeItem('currentUser')
-    }
+    mirrorSessionUser(m)
+    return m
   }, [])
 
   useEffect(() => {
@@ -95,36 +102,74 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     let mounted = true
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (!mounted) return
-      setSession(data.session)
-      setUser(data.session?.user ?? null)
-      if (data.session?.user) {
-        applyMembership(data.session.user.id).finally(() => {
-          if (mounted) setLoading(false)
-        })
-      } else {
-        setLoading(false)
-      }
-    })
+    const boot = async () => {
+      try {
+        const { data } = await supabase.auth.getSession()
+        if (!mounted) return
+        const s = data.session
+        setSession(s)
+        setUser(s?.user ?? null)
+        userRef.current = s?.user ?? null
 
-    const { data: sub } = supabase.auth.onAuthStateChange(async (_event, next) => {
+        if (s?.user) {
+          await applyMembership(s.user.id)
+          // Only restore PIN lock if we have a real member session
+          if (localStorage.getItem(PIN_LOCK_KEY) === '1') {
+            setPinLocked(true)
+          }
+        } else {
+          setMember(null)
+          setBusiness(null)
+          cacheMember(null)
+          mirrorSessionUser(null)
+          localStorage.setItem(PIN_LOCK_KEY, '0')
+          setPinLocked(false)
+        }
+      } catch {
+        // ignore boot errors — show login
+      } finally {
+        if (mounted) {
+          booted.current = true
+          setLoading(false)
+        }
+      }
+    }
+
+    void boot()
+
+    const { data: sub } = supabase.auth.onAuthStateChange(async (event, next) => {
+      if (!mounted) return
+      // Ignore the duplicate INITIAL_SESSION — boot() already handled it
+      if (event === 'INITIAL_SESSION' && booted.current) return
+
       setSession(next)
       setUser(next?.user ?? null)
+      userRef.current = next?.user ?? null
+
       if (next?.user) {
         await applyMembership(next.user.id)
+        if (event === 'SIGNED_IN') {
+          localStorage.setItem(PIN_LOCK_KEY, '0')
+          setPinLocked(false)
+          localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
+        }
       } else {
         setMember(null)
         setBusiness(null)
         cacheMember(null)
         clearBusinessId()
+        mirrorSessionUser(null)
+        localStorage.setItem(PIN_LOCK_KEY, '0')
+        setPinLocked(false)
       }
-      setLoading(false)
+
+      if (booted.current) setLoading(false)
     })
 
     const onOnline = () => {
       setOfflineMode(false)
-      if (user) applyMembership(user.id)
+      const u = userRef.current
+      if (u) void applyMembership(u.id)
     }
     const onOffline = () => setOfflineMode(true)
     window.addEventListener('online', onOnline)
@@ -136,9 +181,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
     }
-  }, [applyMembership, user])
+  }, [applyMembership])
 
-  // Idle lock
+  // Idle PIN lock — only when fully in-app (session + member)
   useEffect(() => {
     if (!session || !member) return
     const tick = () => {
@@ -158,13 +203,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signIn = useCallback(async (email: string, password: string) => {
     if (!supabase) throw new Error('Auth not configured')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    if (data.user) {
+      await applyMembership(data.user.id)
+    }
     localStorage.setItem(PIN_LOCK_KEY, '0')
     setPinLocked(false)
     localStorage.setItem(PIN_FAIL_KEY, '0')
-    touchActivity()
-  }, [touchActivity])
+    localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
+  }, [applyMembership])
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
     if (!supabase) throw new Error('Auth not configured')
@@ -174,32 +222,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       options: { data: { full_name: fullName } },
     })
     if (error) throw error
-    // If email confirmation is required, session is null
     return { needsVerification: !data.session }
   }, [])
 
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut()
+    setSession(null)
+    setUser(null)
+    userRef.current = null
     setMember(null)
     setBusiness(null)
     cacheMember(null)
     clearBusinessId()
-    sessionStorage.removeItem('currentUser')
+    mirrorSessionUser(null)
     localStorage.setItem(PIN_LOCK_KEY, '0')
     setPinLocked(false)
   }, [])
 
   const createBusiness = useCallback(async (name: string, phone?: string, address?: string) => {
     const id = await rpcCreateBusiness(name, phone, address)
-    if (user) await applyMembership(user.id)
+    const u = userRef.current
+    if (u) await applyMembership(u.id)
     return id
-  }, [user, applyMembership])
+  }, [applyMembership])
 
   const acceptInvite = useCallback(async (token: string) => {
     const id = await rpcAcceptInvite(token)
-    if (user) await applyMembership(user.id)
+    const u = userRef.current
+    if (u) await applyMembership(u.id)
     return id
-  }, [user, applyMembership])
+  }, [applyMembership])
 
   const resetPassword = useCallback(async (email: string) => {
     if (!supabase) throw new Error('Auth not configured')
@@ -224,27 +276,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const lockWithPin = useCallback(() => {
+    if (!session || !member) return
     localStorage.setItem(PIN_LOCK_KEY, '1')
     setPinLocked(true)
-  }, [])
+  }, [session, member])
 
   const unlockWithPin = useCallback(
     async (pin: string) => {
-      // Offline / fast unlock: compare against cached pin if present.
-      // Production: verify via Edge Function that checks pin_hash (bcrypt).
-      // For Phase 1 we accept a stored simple hash in localStorage set during setup.
       const fails = Number(localStorage.getItem(PIN_FAIL_KEY) || '0')
       if (fails >= 5) {
         const lockedUntil = Number(localStorage.getItem('sf_pin_locked_until') || '0')
         if (Date.now() < lockedUntil) return false
       }
 
-      const expected = localStorage.getItem('sf_device_pin') || member?.pin_hash
-      // Phase 1: device PIN is stored locally after first set; fall back to last-4 of user id for demo unlock only when no pin set.
-      const ok =
-        expected
-          ? expected === pin || expected === simpleHash(pin)
-          : pin.length >= 4
+      const expected = localStorage.getItem('sf_device_pin')
+      // Must have set a device PIN; plain length check is not enough
+      const ok = expected ? expected === simpleHash(pin) : false
 
       if (!ok) {
         const next = fails + 1
@@ -261,12 +308,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       touchActivity()
       return true
     },
-    [member, touchActivity],
+    [touchActivity],
   )
 
   const refreshMembership = useCallback(async () => {
-    if (user) await applyMembership(user.id)
-  }, [user, applyMembership])
+    const u = userRef.current
+    if (u) await applyMembership(u.id)
+  }, [applyMembership])
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -275,7 +323,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       member,
       business,
       loading,
-      pinLocked,
+      pinLocked: Boolean(session && member && pinLocked),
       offlineMode,
       signIn,
       signUp,
@@ -301,7 +349,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 }
 
 function simpleHash(pin: string): string {
-  // Lightweight non-crypto marker for local device PIN only — server uses real hash.
   let h = 0
   for (let i = 0; i < pin.length; i++) h = (h * 31 + pin.charCodeAt(i)) | 0
   return `local:${h}`
@@ -313,7 +360,6 @@ export function useAuth(): AuthContextValue {
   return ctx
 }
 
-/** Set the device PIN used for lock-screen unlock (local only until Edge Function lands). */
 export function setDevicePin(pin: string) {
   localStorage.setItem('sf_device_pin', simpleHash(pin))
 }

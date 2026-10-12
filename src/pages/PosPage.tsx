@@ -11,7 +11,6 @@ import BarcodeScanner from '../components/ui/BarcodeScanner'
 import ProductImage from '../components/ui/ProductImage'
 import { useTabCompact } from '../hooks/useTabCompact'
 import { fmt, haptic } from '../lib/util'
-import { useNavigate } from 'react-router-dom'
 import { usePermission } from '../hooks/usePermission'
 import { format } from 'date-fns'
 
@@ -24,7 +23,6 @@ const METHODS = [
 ] as const
 
 export default function PosPage() {
-  const navigate = useNavigate()
   const toast = useUi((s) => s.toast)
   const onScroll = useTabCompact()
   const {
@@ -98,9 +96,6 @@ export default function PosPage() {
     if (cart.length === 0) setLines([])
   }, [cart.length])
 
-  useEffect(() => {
-    if (!sessionStorage.getItem('currentUser')) navigate('/login')
-  }, [navigate])
 
   const add = (p: Product) => {
     const inCart = qtyById.get(p.id) ?? 0

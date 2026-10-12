@@ -3,6 +3,9 @@ import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { haptic } from '../../lib/util'
 
+/**
+ * Email + password only. No PIN here — PIN is the lock screen after you are already signed in.
+ */
 export default function LoginPage() {
   const { signIn, session, member, loading } = useAuth()
   const navigate = useNavigate()
@@ -14,12 +17,12 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // Already signed in — redirect in effect (not during render)
+  // Single redirect after auth is fully resolved — no intermediate flashes
   useEffect(() => {
-    if (!loading && session) {
-      navigate(member ? from : '/onboarding', { replace: true })
-    }
-  }, [loading, session, member, from, navigate])
+    if (loading || busy) return
+    if (!session) return
+    navigate(member ? from : '/onboarding', { replace: true })
+  }, [loading, session, member, from, navigate, busy])
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -28,14 +31,31 @@ export default function LoginPage() {
     try {
       await signIn(email.trim(), password)
       haptic(20)
-      navigate(from, { replace: true })
+      // navigation happens via the effect once member is applied
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Sign in failed'
       setError(msg)
       haptic(50)
-    } finally {
       setBusy(false)
     }
+  }
+
+  // While checking existing session, show a calm spinner — not another form
+  if (loading) {
+    return (
+      <div className="min-h-full flex items-center justify-center bg-[#F2F2F7]">
+        <div className="h-10 w-10 rounded-full border-2 border-[#007AFF] border-t-transparent animate-spin" />
+      </div>
+    )
+  }
+
+  // Already signed in — effect will redirect; keep spinner
+  if (session) {
+    return (
+      <div className="min-h-full flex items-center justify-center bg-[#F2F2F7]">
+        <div className="h-10 w-10 rounded-full border-2 border-[#007AFF] border-t-transparent animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -53,7 +73,7 @@ export default function LoginPage() {
             </svg>
           </div>
           <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">StockFlow</h1>
-          <p className="text-[15px] text-[#5F5F66] mt-1">Sign in to your business</p>
+          <p className="text-[15px] text-[#5F5F66] mt-1">Sign in with your email</p>
         </div>
 
         <form onSubmit={onSubmit} className="space-y-4">
@@ -84,9 +104,7 @@ export default function LoginPage() {
             />
           </div>
 
-          {error && (
-            <p className="text-[13px] text-[#E0333C] px-1">{error}</p>
-          )}
+          {error && <p className="text-[13px] text-[#E0333C] px-1">{error}</p>}
 
           <button
             type="submit"
