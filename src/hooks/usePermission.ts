@@ -1,20 +1,23 @@
-import { useMemo } from 'react'
+import { useAuth } from '../contexts/AuthContext'
 import type { Permission } from '../types'
 
+/**
+ * Permission checks from the authenticated business member.
+ * Falls back to empty permissions when signed out.
+ */
 export function usePermission() {
-  const user = useMemo(() => {
-    try {
-      return JSON.parse(sessionStorage.getItem('currentUser') || '{}')
-    } catch {
-      return { permissions: [] as Permission[] }
-    }
-  }, [])
+  const { member, can, user } = useAuth()
 
-  const can = (permission: Permission) => {
-    if (!user?.permissions) return false
-    if (user.role === 'owner') return true
-    return user.permissions.includes(permission)
+  return {
+    user: member
+      ? {
+          id: member.user_id,
+          name: member.display_name || user?.email || 'User',
+          role: member.role,
+          permissions: member.permissions || [],
+          active: member.status === 'active',
+        }
+      : null,
+    can: (permission: Permission) => can(permission),
   }
-
-  return { user, can }
 }

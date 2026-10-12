@@ -12,7 +12,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | Customers + suppliers | ✅ | **Credit limit enforced, balance tracked, record payments** |
 | Offline sales | ✅ | Local DB + outbox |
 | Synchronization | ✅ | Idempotent upserts, retry, **Sync status screen** (errors/retries), pull from other devices |
-| Users / permissions | 🟡 | Granular permissions + PIN; Supabase Auth + server-side enforcement pending |
+| Users / permissions | 🟡 | Supabase Auth + RLS live; PIN lock layer; invite/onboarding; email reset; permission matrix UI still pending |
 | Basic reports | ✅ | Period compare, profit, payments, best sellers, categories, stock |
 | Subscription basics | ⬜ | Plans/entitlements/billing — Phase 6 |
 
@@ -36,4 +36,4 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - Restaurant / pharmacy / manufacturing modules (§8–10)
 
 ## Known security gap
-RLS still has permissive `dev_all_*` policies because login is a local PIN. Move to Supabase Auth and drop them before production (§13, §32).
+~~RLS still has permissive `dev_all_*` policies~~ **Resolved (Phase 1):** `dev_all_*` policies dropped; member-scoped RLS + `has_permission` / `create_business` / `accept_invite` RPCs applied. Remaining: PIN hash via Edge Function, email SMTP branding, manager-approval PIN override UI.

@@ -17,15 +17,8 @@ const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.tes
 async function ensureBusiness(): Promise<string> {
   const id = getBusinessId()
   if (id) return id
-  if (!supabaseConfigured || !supabase) throw new Error('Supabase not configured')
-
-  const { data: existing } = await supabase.from('businesses').select('id').limit(1)
-  if (existing && existing.length > 0) {
-    setBusinessId(existing[0].id)
-    return existing[0].id
-  }
-  setBusinessId(DEFAULT_BUSINESS_ID)
-  return DEFAULT_BUSINESS_ID
+  // No hard-coded default — business id comes from authenticated membership only.
+  throw new Error('No business selected. Sign in and complete onboarding first.')
 }
 
 const getBranchId = () => localStorage.getItem('branchId') || DEFAULT_BRANCH_ID

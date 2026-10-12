@@ -3,11 +3,17 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { ensureSeedData } from './lib/db'
 import { startSyncLoop, processOutbox } from './lib/sync'
 import { usePosStore } from './store/posStore'
+import { RequireAuth } from './components/RequireAuth'
 import AppShell from './components/layout/AppShell'
 import ImportPage from './pages/ImportPage'
 import SyncStatusPage from './pages/SyncStatusPage'
 import AuditPage from './pages/AuditPage'
-import LoginPage from './pages/LoginPage'
+import LoginPage from './pages/auth/LoginPage'
+import SignupPage from './pages/auth/SignupPage'
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
+import ResetPasswordPage from './pages/auth/ResetPasswordPage'
+import OnboardingPage from './pages/auth/OnboardingPage'
+import AcceptInvitePage from './pages/auth/AcceptInvitePage'
 import PosPage from './pages/PosPage'
 import ProductsPage from './pages/ProductsPage'
 import CustomersPage from './pages/CustomersPage'
@@ -50,7 +56,25 @@ function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
-      <Route element={<AppShell />}>
+      <Route path="/signup" element={<SignupPage />} />
+      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/reset-password" element={<ResetPasswordPage />} />
+      <Route path="/accept-invite" element={<AcceptInvitePage />} />
+      <Route
+        path="/onboarding"
+        element={
+          <RequireAuth>
+            <OnboardingPage />
+          </RequireAuth>
+        }
+      />
+      <Route
+        element={
+          <RequireAuth>
+            <AppShell />
+          </RequireAuth>
+        }
+      >
         <Route path="/" element={<PosPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
