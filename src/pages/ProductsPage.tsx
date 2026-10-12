@@ -26,6 +26,7 @@ export default function ProductsPage() {
   const toast = useUi((s) => s.toast)
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
+  const [stockStatus, setStockStatus] = useState<'all' | 'low' | 'out'>('all')
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -50,7 +51,11 @@ export default function ProductsPage() {
   const filtered = products.filter((p) => {
     const q = query.trim().toLowerCase()
     const matches = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q))
-    return matches && (category === 'All' || p.category === category)
+    if (!matches) return false
+    if (category !== 'All' && p.category !== category) return false
+    if (stockStatus === 'out' && p.stock > 0) return false
+    if (stockStatus === 'low' && !(p.stock > 0 && p.stock <= (p.minStock ?? 0))) return false
+    return true
   })
 
   const set = (patch: Partial<typeof emptyForm>) => setForm((f) => ({ ...f, ...patch }))
@@ -185,6 +190,24 @@ export default function ProductsPage() {
             {categories.map((c) => (
               <button key={c} onClick={() => setCategory(c)} className={`press shrink-0 h-9 px-4 rounded-full text-[14px] font-semibold ${category === c ? 'bg-ink text-white' : 'bg-black/[0.06] text-ink-secondary'}`}>
                 {c}
+              </button>
+            ))}
+          </div>
+          <div className="mt-2 flex gap-2">
+            {([
+              ['all', 'All stock'],
+              ['low', 'Low'],
+              ['out', 'Out'],
+            ] as const).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setStockStatus(id)}
+                className={`press h-8 px-3 rounded-full text-[12px] font-semibold ${
+                  stockStatus === id ? 'bg-primary text-white' : 'bg-black/[0.05] text-ink-secondary'
+                }`}
+              >
+                {label}
               </button>
             ))}
           </div>
