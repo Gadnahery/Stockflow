@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { format } from 'date-fns'
 import { Cloud, CloudOff, RefreshCw, Trash2 } from 'lucide-react'
-import { db } from '../lib/db'
+import { db, clearLocalBusinessData } from '../lib/db'
 import Screen from '../components/ui/Screen'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { processOutbox, pullMissing, syncNow, getLastSyncAt, getLastPullAt } from '../lib/sync'
@@ -22,6 +22,27 @@ export default function SyncStatusPage() {
   const events = useLiveQuery(() => db.outbox.orderBy('createdAt').reverse().toArray(), []) || []
   const pending = events.length
   const dead = events.filter((e) => (e.retries || 0) >= 12)
+
+  const clearLocal = async () => {
+    const ok = await confirm({
+      title: 'Clear local data?',
+      message:
+        'Removes products, sales, and customers stored on this device only. Cloud data for your business is kept. Sign in and Sync to load only your shop.',
+      confirmLabel: 'Clear',
+      tone: 'danger',
+    })
+    if (!ok) return
+    await clearLocalBusinessData()
+    try {
+      localStorage.removeItem('sf_workspace_id')
+      localStorage.removeItem('businessId')
+      localStorage.removeItem('branchId')
+      localStorage.removeItem('lastPullAt')
+      localStorage.removeItem('lastSyncAt')
+    } catch { /* ignore */ }
+    await refreshPendingSync()
+    toast('Local shop data cleared. Sign in again or Sync to load your business only.', 'info')
+  }
 
   const resetRetries = async () => {
     const all = await db.outbox.toArray()
@@ -74,6 +95,13 @@ export default function SyncStatusPage() {
               Retry all
             </button>
           )}
+          <button
+            type="button"
+            onClick={() => void clearLocal()}
+            className="press h-9 px-3 rounded-full bg-red-50 text-danger text-[12px] font-semibold"
+          >
+            Clear local data
+          </button>
           <button
             type="button"
             disabled={busy || !isOnline}
