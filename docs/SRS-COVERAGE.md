@@ -43,3 +43,9 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - iOS ConfirmDialog replaces browser confirm/alert
 - Rebuilt on Screen + cards + sheets: Sales, Expenses, Shifts, Suppliers, Stock, Customers, Settings, Export
 - Receipt modal restyled (print/share); empty/loading states on lists
+
+## Phase 3 desktop
+- Collapsible sidebar (expanded / rail / hidden), ⌘B
+- Top bar: title, command palette ⌘K, New sale, lock, account
+- Grouped desktop nav (Sell, Inventory, People, Money, Insights, Admin)
+- POS cart panel denser widths; F2/F4 shortcuts

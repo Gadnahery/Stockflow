@@ -341,3 +341,13 @@ button { font-family: inherit; touch-action: manipulation; }
   height: 1px;
   background: rgba(60, 60, 67, 0.12);
 }
+
+
+/* ───────── Desktop shell ───────── */
+@media (min-width: 768px) {
+  .desktop-dense .page-title { font-size: 28px; }
+  /* Slightly calmer cards on wide screens */
+  .md\:max-w-2xl, .md\:max-w-3xl, .md\:max-w-lg {
+    max-width: 56rem;
+  }
+}

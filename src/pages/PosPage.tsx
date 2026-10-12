@@ -96,6 +96,27 @@ export default function PosPage() {
     if (cart.length === 0) setLines([])
   }, [cart.length])
 
+  // Desktop shortcuts: F2 search, F4 pay, Esc close sheets
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName
+      if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') {
+        if (e.key === 'Escape') (e.target as HTMLElement).blur()
+        return
+      }
+      if (e.key === 'F2') {
+        e.preventDefault()
+        document.querySelector<HTMLInputElement>('input[placeholder*="Search"]')?.focus()
+      }
+      if (e.key === 'F4' && cart.length > 0) {
+        e.preventDefault()
+        setShowPay(true)
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [cart.length])
+
 
   const add = (p: Product) => {
     const inCart = qtyById.get(p.id) ?? 0
@@ -271,7 +292,7 @@ export default function PosPage() {
       </div>
 
       {/* Cart (desktop) */}
-      <aside className="hidden md:flex w-[380px] flex-col glass border-l border-black/5 shrink-0">
+      <aside className="hidden md:flex w-[360px] lg:w-[400px] xl:w-[420px] flex-col glass border-l border-black/5 shrink-0">
         <CartPanel
           cart={cart}
           total={payTotal}
