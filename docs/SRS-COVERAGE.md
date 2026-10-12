@@ -55,3 +55,12 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - Full pull: products (merge by updated_at), customers, suppliers, sales+items, expenses, stock_movements
 - Sale completion queues product_upsert + stock_movement with the sale
 - Realtime on products/customers/sales; Sync page force sync + diagnostics
+
+## Phase 5 POS depth
+- Stock-capped add-to-cart (cannot exceed available stock)
+- USB wedge scanner improved (SKU/barcode, toast feedback)
+- Shortcuts: F2 search, F3 hold, F4 pay, Esc close
+- Desktop cart: Hold + held count
+- Cash touch numpad + quick amounts
+- Sale note on receipt
+- Banner when no open cash shift

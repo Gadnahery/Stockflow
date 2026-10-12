@@ -23,7 +23,7 @@ interface PosState {
   setCustomer: (id: string | null, name: string | null) => void
   applyLineDiscount: (productId: string, discount: number) => void
   applyCartDiscount: (discount: number) => void
-  completeSale: (payments: Payment[]) => Promise<Sale>
+  completeSale: (payments: Payment[], note?: string) => Promise<Sale>
   voidSale: (saleId: string) => Promise<void>
   held: HeldCart[]
   holdCart: () => boolean
@@ -79,19 +79,26 @@ export const usePosStore = create<PosState>((set, get) => ({
   addToCart: (product, qty = 1) => {
     set((state) => {
       const existing = state.cart.find((i) => i.productId === product.id)
+      const inCart = existing?.quantity ?? 0
+      const max = Math.max(0, product.stock)
+      // Cap at available stock (0 stock → still allow 1 for count-correction workflows only if stock > 0)
+      if (max <= 0) return state
+      const nextQty = Math.min(inCart + qty, max)
+      if (nextQty <= inCart && existing) return state
       if (existing) {
         return {
           cart: state.cart.map((i) =>
             i.productId === product.id
               ? {
                   ...i,
-                  quantity: i.quantity + qty,
-                  lineTotal: (i.quantity + qty) * i.price - i.discount,
+                  quantity: nextQty,
+                  lineTotal: nextQty * i.price - i.discount,
                 }
               : i
           ),
         }
       }
+      const q = Math.min(qty, max)
       return {
         cart: [
           ...state.cart,
@@ -101,9 +108,9 @@ export const usePosStore = create<PosState>((set, get) => ({
             sku: product.sku,
             imageUrl: product.imageUrl,
             price: product.price,
-            quantity: qty,
+            quantity: q,
             discount: 0,
-            lineTotal: product.price * qty,
+            lineTotal: product.price * q,
           },
         ],
       }
@@ -213,7 +220,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     await audit('SALE_VOID', 'sale', saleId, { before: { status: 'completed', total: sale.total }, after: { status: 'voided' }, reason: `Receipt ${sale.receiptNumber}` })
   },
 
-  completeSale: async (payments) => {
+  completeSale: async (payments, note) => {
     const { cart, selectedCustomerId, selectedCustomerName } = get()
     if (cart.length === 0) throw new Error('Cart is empty')
 
@@ -273,6 +280,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       shiftId: openShift?.id,
       status: 'completed',
       receiptNumber,
+      note: note?.trim() || undefined,
       createdAt: now,
       synced: false,
     }

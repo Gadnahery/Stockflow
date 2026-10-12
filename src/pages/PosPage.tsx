@@ -35,6 +35,7 @@ export default function PosPage() {
   const [showPay, setShowPay] = useState(false)
   const [scanning, setScanning] = useState(false)
   const [cashReceived, setCashReceived] = useState('')
+  const [saleNote, setSaleNote] = useState('')
   const [lastSale, setLastSale] = useState<Sale | null>(null)
   const [payMethod, setPayMethod] = useState<(typeof METHODS)[number]['id']>('cash')
   const [discountInput, setDiscountInput] = useState('')
@@ -49,6 +50,7 @@ export default function PosPage() {
   const products = useMemo(() => productsQ ?? [], [productsQ])
   const loading = productsQ === undefined
   const customers = useLiveQuery(() => db.customers.orderBy('name').toArray(), []) || []
+  const openShift = useLiveQuery(() => db.cashSessions.filter((s) => s.status === 'open').first(), [])
   const settings = useLiveQuery(() => db.settings.get('main'), [])
 
   const categories = useMemo(
@@ -96,7 +98,7 @@ export default function PosPage() {
     if (cart.length === 0) setLines([])
   }, [cart.length])
 
-  // Desktop shortcuts: F2 search, F4 pay, Esc close sheets
+  // Desktop shortcuts: F2 search, F3 hold, F4 pay, Esc close sheets
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const tag = (e.target as HTMLElement)?.tagName
@@ -108,21 +110,41 @@ export default function PosPage() {
         e.preventDefault()
         document.querySelector<HTMLInputElement>('input[placeholder*="Search"]')?.focus()
       }
+      if (e.key === 'F3' && cart.length > 0) {
+        e.preventDefault()
+        if (holdCart()) {
+          setShowPay(false)
+          setLines([])
+          toast('Cart put on hold', 'info')
+        }
+      }
       if (e.key === 'F4' && cart.length > 0) {
         e.preventDefault()
         setShowPay(true)
       }
+      if (e.key === 'Escape') {
+        setShowPay(false)
+        setShowHeld(false)
+        setScanning(false)
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [cart.length])
+  }, [cart.length, holdCart, toast])
 
 
   const add = (p: Product) => {
+    if (p.stock <= 0) {
+      toast(`${p.name} is out of stock`, 'error')
+      return
+    }
     const inCart = qtyById.get(p.id) ?? 0
+    if (inCart >= p.stock) {
+      toast(`Only ${fmt(p.stock)} of ${p.name} in stock`, 'error')
+      return
+    }
     addToCart(p)
     haptic(10)
-    if (inCart + 1 > p.stock) toast(`Only ${fmt(p.stock)} of ${p.name} in stock`, 'error')
   }
 
   const handleScan = (raw: string) => {
@@ -136,39 +158,58 @@ export default function PosPage() {
     toast(`${p.name} added`, 'success')
   }
 
-  // Hardware (keyboard-wedge) scanners
+  // Hardware (keyboard-wedge) USB barcode scanners
   useEffect(() => {
     let buffer = ''
     let timeout: ReturnType<typeof setTimeout>
     const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Enter' && buffer.length > 3) {
-        const product = products.find((p) => p.barcode === buffer)
-        if (product) {
-          addToCart(product)
-          setSearchQuery('')
-          haptic(10)
+      const tag = (e.target as HTMLElement)?.tagName
+      // Allow scanning even from search field; skip textarea/select only
+      if (tag === 'TEXTAREA' || tag === 'SELECT') return
+      if (e.key === 'Enter') {
+        if (buffer.length >= 3) {
+          e.preventDefault()
+          const code = buffer
+          buffer = ''
+          const product = products.find(
+            (p) => p.barcode === code || p.sku.toLowerCase() === code.toLowerCase(),
+          )
+          if (product) {
+            if (product.stock <= 0) {
+              toast(`${product.name} is out of stock`, 'error')
+            } else {
+              addToCart(product)
+              setSearchQuery('')
+              haptic(10)
+              toast(product.name, 'success')
+            }
+          } else {
+            toast(`No product for ${code}`, 'error')
+          }
         }
-        buffer = ''
-      } else if (e.key.length === 1) {
+        return
+      }
+      if (e.key.length === 1 && !e.ctrlKey && !e.metaKey && !e.altKey) {
         buffer += e.key
         clearTimeout(timeout)
-        timeout = setTimeout(() => (buffer = ''), 100)
+        timeout = setTimeout(() => { buffer = '' }, 80)
       }
     }
-    window.addEventListener('keypress', handler)
-    return () => window.removeEventListener('keypress', handler)
-  }, [products, addToCart, setSearchQuery])
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [products, addToCart, setSearchQuery, toast])
 
   const handlePay = async () => {
     if (paying) return
     const payments = buildFinal()
     setPaying(true)
     try {
-      const sale = await completeSale(payments)
+      const sale = await completeSale(payments, saleNote)
       haptic(30)
       setLastSale(sale)
       setShowPay(false)
       setCashReceived('')
+      setSaleNote('')
       setDiscountInput('')
       setPayMethod('cash')
       setCustomerQuery('')
@@ -271,6 +312,11 @@ export default function PosPage() {
           )}
         </header>
 
+        {openShift === null && (
+          <div className="mx-4 md:mx-6 mt-3 rounded-[14px] bg-amber-50 text-warning px-4 py-2.5 text-[13px] font-medium flex items-center justify-between gap-2">
+            <span>No open cash shift — open a till before taking cash (Shifts).</span>
+          </div>
+        )}
         <div className="p-4 md:p-6 scroll-pad">
           {loading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -299,6 +345,9 @@ export default function PosPage() {
           onUpdateQty={updateQuantity}
           onClear={clearCart}
           onPay={() => setShowPay(true)}
+          onHold={doHold}
+          heldCount={held.length}
+          onShowHeld={() => setShowHeld(true)}
         />
       </aside>
 
@@ -435,6 +484,17 @@ export default function PosPage() {
               </div>
             </div>
 
+            {/* Optional note */}
+            <div className="mt-4">
+              <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Note (optional)</label>
+              <input
+                className="field"
+                value={saleNote}
+                onChange={(e) => setSaleNote(e.target.value)}
+                placeholder="e.g. Table 4, delivery…"
+              />
+            </div>
+
             {/* Payment method — iOS segmented control */}
             <div className="mt-5">
               <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Payment</label>
@@ -475,12 +535,29 @@ export default function PosPage() {
               {payMethod === 'cash' && (
                 <div className="mt-2 flex gap-2 overflow-x-auto no-scrollbar">
                   {quickCash.map((v) => (
-                    <button key={v} onClick={() => setCashReceived(String(v))} className="press shrink-0 h-9 px-4 rounded-full bg-primary/10 text-primary text-[14px] font-semibold tabular-nums">
+                    <button key={v} type="button" onClick={() => setCashReceived(String(v))} className="press shrink-0 h-9 px-4 rounded-full bg-primary/10 text-primary text-[14px] font-semibold tabular-nums">
                       {v === remaining ? 'Exact' : fmt(v)}
                     </button>
                   ))}
                 </div>
               )}
+              {/* Touch numpad for cash / amount */}
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {['1','2','3','4','5','6','7','8','9','.','0','⌫'].map((k) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => {
+                      if (k === '⌫') setCashReceived((s) => s.slice(0, -1))
+                      else if (k === '.' && cashReceived.includes('.')) return
+                      else setCashReceived((s) => (s === '0' && k !== '.' ? k : s + k))
+                    }}
+                    className="press h-12 rounded-[14px] bg-black/[0.05] text-[18px] font-semibold tabular-nums"
+                  >
+                    {k}
+                  </button>
+                ))}
+              </div>
               {payMethod === 'credit' && !selectedCustomerName && <p className="mt-2 text-[13px] text-warning font-medium">Choose a customer above to sell on credit.</p>}
               {payMethod === 'cash' && typedCash > 0 && (
                 typedCash >= remaining ? (
@@ -566,22 +643,39 @@ function ProductCard({ product, qty, onAdd }: { product: Product; qty: number; o
 }
 
 function CartPanel({
-  cart, total, onUpdateQty, onClear, onPay,
+  cart, total, onUpdateQty, onClear, onPay, onHold, heldCount, onShowHeld,
 }: {
   cart: ReturnType<typeof usePosStore.getState>['cart']
   total: number
   onUpdateQty: (id: string, qty: number) => void
   onClear: () => void
   onPay: () => void
+  onHold?: () => void
+  heldCount?: number
+  onShowHeld?: () => void
 }) {
   return (
     <>
-      <div className="px-6 pt-7 pb-4 flex items-end justify-between">
-        <div>
+      <div className="px-6 pt-7 pb-4 flex items-end justify-between gap-2">
+        <div className="min-w-0">
           <h2 className="text-[24px] font-bold tracking-tight text-ink">Current sale</h2>
-          <p className="text-[14px] text-ink-secondary">{cart.length} {cart.length === 1 ? 'item' : 'items'}</p>
+          <p className="text-[14px] text-ink-secondary">
+            {cart.length} {cart.length === 1 ? 'item' : 'items'}
+            {(heldCount ?? 0) > 0 && (
+              <button type="button" onClick={onShowHeld} className="ml-2 text-primary font-semibold">
+                · {heldCount} held
+              </button>
+            )}
+          </p>
         </div>
-        {cart.length > 0 && <button onClick={onClear} className="text-[14px] font-semibold text-danger pb-0.5">Clear</button>}
+        {cart.length > 0 && (
+          <div className="flex items-center gap-3 shrink-0">
+            {onHold && (
+              <button type="button" onClick={onHold} className="text-[14px] font-semibold text-ink-secondary">Hold</button>
+            )}
+            <button type="button" onClick={onClear} className="text-[14px] font-semibold text-danger">Clear</button>
+          </div>
+        )}
       </div>
       <div className="flex-1 overflow-y-auto px-4 space-y-1">
         {cart.length === 0 && (
