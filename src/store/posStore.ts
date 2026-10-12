@@ -264,9 +264,14 @@ export const usePosStore = create<PosState>((set, get) => ({
     // Find open shift if any
     const openShift = await db.cashSessions.filter((s) => s.status === 'open').first()
 
+    const branchId =
+      settings?.branchId ||
+      (typeof localStorage !== 'undefined' ? localStorage.getItem('branchId') || undefined : undefined)
+
     const sale: Sale = {
       id: saleId,
       deviceId,
+      branchId: branchId || undefined,
       items: [...cart],
       subtotal,
       discount: cart.reduce((s, i) => s + i.discount, 0),
