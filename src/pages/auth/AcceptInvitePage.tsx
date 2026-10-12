@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
+import AuthShell from '../../components/auth/AuthShell'
 
 export default function AcceptInvitePage() {
   const { acceptInvite, session } = useAuth()
@@ -30,28 +31,37 @@ export default function AcceptInvitePage() {
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center px-6 bg-[#F2F2F7]">
-      <div className="w-full max-w-[380px] page-enter">
-        <h1 className="text-[28px] font-bold text-[#1C1C1E] text-center">Accept invite</h1>
-        <p className="text-[15px] text-[#5F5F66] mt-2 text-center mb-8">
-          Join the business you were invited to.
-        </p>
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[13px] font-medium text-[#5F5F66] mb-1.5 px-1">Invite token</label>
-            <input className="field w-full" required value={token} onChange={(e) => setToken(e.target.value)} placeholder="Paste invite code" />
-          </div>
-          {error && <p className="text-[13px] text-[#E0333C]">{error}</p>}
-          <button type="submit" disabled={busy} className="press w-full h-12 rounded-[14px] bg-[#007AFF] text-white font-semibold disabled:opacity-60">
-            {busy ? 'Joining…' : session ? 'Join business' : 'Sign in to continue'}
-          </button>
-          {!session && (
-            <p className="text-center text-[15px]">
-              <Link to="/signup" className="text-[#007AFF] font-medium">Create an account first</Link>
-            </p>
-          )}
-        </form>
-      </div>
-    </div>
+    <AuthShell
+      title="Join a business"
+      subtitle="Accept your invite to start working"
+      footer={
+        !session ? (
+          <p>
+            Need an account?{' '}
+            <Link to="/signup" className="auth-link">
+              Sign up first
+            </Link>
+          </p>
+        ) : null
+      }
+    >
+      <form onSubmit={onSubmit} className="space-y-4">
+        <div>
+          <label className="auth-label" htmlFor="inv-token">Invite code</label>
+          <input
+            id="inv-token"
+            className="field font-mono text-[14px]"
+            required
+            value={token}
+            onChange={(e) => setToken(e.target.value)}
+            placeholder="Paste invite token"
+          />
+        </div>
+        {error && <p className="auth-error" role="alert">{error}</p>}
+        <button type="submit" disabled={busy} className="press auth-btn-primary">
+          {busy ? 'Joining…' : session ? 'Join business' : 'Sign in to continue'}
+        </button>
+      </form>
+    </AuthShell>
   )
 }

@@ -20,7 +20,7 @@ export default function PinLockScreen() {
       setError('')
     } else {
       haptic(60)
-      setError('Incorrect PIN. Try again.')
+      setError('Incorrect PIN')
       setShake((s) => s + 1)
       setPin('')
     }
@@ -35,43 +35,37 @@ export default function PinLockScreen() {
     if (next.length >= 4) void attempt(next)
   }
 
-  const backspace = () => {
-    setPin((p) => p.slice(0, -1))
-    setError('')
-  }
-
   const name = member?.display_name || business?.name || 'StockFlow'
 
   return (
-    <div
-      className="min-h-full flex flex-col items-center justify-center px-6 pb-8"
-      style={{ background: 'radial-gradient(120% 80% at 50% 0%, #E3EEFF 0%, #F2F2F7 60%)' }}
-    >
-      <div className="w-full max-w-[320px] page-enter">
+    <div className="auth-canvas min-h-full flex flex-col items-center justify-center px-6 pb-10">
+      <div className="auth-blob auth-blob-a" aria-hidden />
+      <div className="auth-blob auth-blob-b" aria-hidden />
+
+      <div className="relative w-full max-w-[320px] page-enter">
         <div className="text-center mb-8">
-          <div className="mx-auto mb-4 h-16 w-16 rounded-[20px] bg-gradient-to-br from-[#3395FF] to-[#0062CC] shadow-float flex items-center justify-center text-white text-2xl font-semibold">
+          <div className="auth-logo mx-auto mb-4 text-white text-[26px] font-semibold tracking-tight">
             {name.charAt(0).toUpperCase()}
           </div>
           <h1 className="text-[22px] font-semibold text-[#1C1C1E] tracking-tight">{name}</h1>
-          <p className="text-[15px] text-[#5F5F66] mt-1">Enter PIN to unlock</p>
+          <p className="text-[15px] text-[#636366] mt-1">Enter PIN to unlock</p>
         </div>
 
-        <div
-          key={shake}
-          className={`flex justify-center gap-3 mb-6 ${shake ? 'shake' : ''}`}
-        >
+        <div key={shake} className={`flex justify-center gap-3.5 mb-5 ${shake ? 'shake' : ''}`}>
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className={`h-3.5 w-3.5 rounded-full transition-colors ${
-                i < pin.length ? 'bg-[#007AFF]' : 'bg-[#E6E6EB]'
+              className={`h-3.5 w-3.5 rounded-full transition-all duration-200 ${
+                i < pin.length
+                  ? 'bg-[#007AFF] scale-110 shadow-[0_0_0_4px_rgba(0,122,255,0.2)]'
+                  : 'bg-[#D1D1D6]'
               }`}
             />
           ))}
         </div>
 
         {error && (
-          <p className="text-center text-[13px] text-[#E0333C] mb-4">{error}</p>
+          <p className="text-center text-[13px] text-[#E0333C] font-medium mb-4">{error}</p>
         )}
 
         <div className="grid grid-cols-3 gap-3">
@@ -82,8 +76,11 @@ export default function PinLockScreen() {
                 <button
                   key="del"
                   type="button"
-                  onClick={backspace}
-                  className="press h-14 rounded-2xl flex items-center justify-center text-[#1C1C1E]"
+                  onClick={() => {
+                    setPin((p) => p.slice(0, -1))
+                    setError('')
+                  }}
+                  className="press h-[62px] rounded-[18px] flex items-center justify-center text-[#1C1C1E] bg-white/50"
                   aria-label="Delete"
                 >
                   <Delete size={22} strokeWidth={1.8} />
@@ -95,7 +92,7 @@ export default function PinLockScreen() {
                 key={key}
                 type="button"
                 onClick={() => press(key)}
-                className="press h-14 rounded-2xl bg-white/80 shadow-soft text-[24px] font-medium text-[#1C1C1E] tabular-nums"
+                className="press h-[62px] rounded-[18px] bg-white/85 shadow-soft text-[26px] font-medium text-[#1C1C1E] tabular-nums"
               >
                 {key}
               </button>
@@ -106,7 +103,7 @@ export default function PinLockScreen() {
         <button
           type="button"
           onClick={() => void signOut()}
-          className="mt-8 w-full text-center text-[15px] text-[#007AFF] font-medium"
+          className="mt-9 w-full text-center text-[15px] text-[#007AFF] font-semibold"
         >
           Sign out
         </button>

@@ -1,6 +1,7 @@
 import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, setDevicePin } from '../../contexts/AuthContext'
+import AuthShell from '../../components/auth/AuthShell'
 import { haptic } from '../../lib/util'
 
 export default function OnboardingPage() {
@@ -19,14 +20,12 @@ export default function OnboardingPage() {
       navigate('/login', { replace: true })
       return
     }
-    if (member) {
-      navigate('/', { replace: true })
-    }
+    if (member) navigate('/', { replace: true })
   }, [loading, session, member, navigate])
 
   if (loading || !session || member) {
     return (
-      <div className="min-h-full flex items-center justify-center bg-[#F2F2F7]">
+      <div className="auth-canvas min-h-full flex items-center justify-center">
         <div className="h-10 w-10 rounded-full border-2 border-[#007AFF] border-t-transparent animate-spin" />
       </div>
     )
@@ -40,7 +39,7 @@ export default function OnboardingPage() {
       return
     }
     if (pin.length < 4) {
-      setError('Choose a 4–6 digit PIN for quick unlock on this device')
+      setError('Choose a 4–6 digit PIN for this device')
       return
     }
     setBusy(true)
@@ -58,62 +57,56 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-full flex items-center justify-center px-6 bg-[#F2F2F7]">
-      <div className="w-full max-w-[400px] page-enter">
-        <h1 className="text-[28px] font-bold text-[#1C1C1E] tracking-tight">Set up your business</h1>
-        <p className="text-[15px] text-[#5F5F66] mt-2 mb-8">
-          One-time setup: store name and a PIN to unlock this device after idle.
-        </p>
-
-        <form onSubmit={onSubmit} className="space-y-4">
-          <div>
-            <label className="block text-[13px] font-medium text-[#5F5F66] mb-1.5 px-1">Business name</label>
-            <input className="field w-full" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Demo Store" />
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-[#5F5F66] mb-1.5 px-1">Phone (optional)</label>
-            <input className="field w-full" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+255 …" />
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-[#5F5F66] mb-1.5 px-1">Address (optional)</label>
-            <input className="field w-full" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dar es Salaam" />
-          </div>
-          <div>
-            <label className="block text-[13px] font-medium text-[#5F5F66] mb-1.5 px-1">Device unlock PIN (4–6 digits)</label>
-            <input
-              className="field w-full"
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              required
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              placeholder="Not your account password"
-            />
-            <p className="text-[12px] text-[#76767D] mt-1 px-1">
-              Used only to unlock this device after you step away. Sign-in still uses email + password.
-            </p>
-          </div>
-
-          {error && <p className="text-[13px] text-[#E0333C]">{error}</p>}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="press w-full h-12 rounded-[14px] bg-[#007AFF] text-white font-semibold disabled:opacity-60"
-          >
-            {busy ? 'Creating…' : 'Create business'}
-          </button>
-        </form>
-
+    <AuthShell
+      title="Set up your store"
+      subtitle="Takes less than a minute — then you’re ready to sell"
+      footer={
         <button
           type="button"
           onClick={() => void signOut().then(() => navigate('/login', { replace: true }))}
-          className="mt-6 w-full text-center text-[15px] text-[#007AFF] font-medium"
+          className="auth-link bg-transparent border-0 cursor-pointer text-[15px]"
         >
-          Sign out and use a different account
+          Sign out
         </button>
-      </div>
-    </div>
+      }
+    >
+      <form onSubmit={onSubmit} className="space-y-3.5">
+        <div>
+          <label className="auth-label" htmlFor="ob-name">Business name</label>
+          <input id="ob-name" className="field" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Demo Store" />
+        </div>
+        <div>
+          <label className="auth-label" htmlFor="ob-phone">Phone <span className="font-normal text-[#8E8E93]">(optional)</span></label>
+          <input id="ob-phone" className="field" inputMode="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+255 …" />
+        </div>
+        <div>
+          <label className="auth-label" htmlFor="ob-addr">Address <span className="font-normal text-[#8E8E93]">(optional)</span></label>
+          <input id="ob-addr" className="field" value={address} onChange={(e) => setAddress(e.target.value)} placeholder="Dar es Salaam" />
+        </div>
+        <div>
+          <label className="auth-label" htmlFor="ob-pin">Device unlock PIN</label>
+          <input
+            id="ob-pin"
+            className="field tracking-[0.35em]"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={6}
+            required
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+            placeholder="••••"
+          />
+          <p className="text-[12px] text-[#8E8E93] mt-1.5 leading-snug px-0.5">
+            4–6 digits to unlock this device after idle. Your account still uses email &amp; password.
+          </p>
+        </div>
+
+        {error && <p className="auth-error" role="alert">{error}</p>}
+
+        <button type="submit" disabled={busy} className="press auth-btn-primary">
+          {busy ? 'Creating…' : 'Create business & continue'}
+        </button>
+      </form>
+    </AuthShell>
   )
 }
