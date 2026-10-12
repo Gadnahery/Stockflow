@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { haptic } from '../../lib/util'
@@ -14,10 +14,12 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  // Already signed in
-  if (!loading && session) {
-    navigate(member ? from : '/onboarding', { replace: true })
-  }
+  // Already signed in — redirect in effect (not during render)
+  useEffect(() => {
+    if (!loading && session) {
+      navigate(member ? from : '/onboarding', { replace: true })
+    }
+  }, [loading, session, member, from, navigate])
 
   const onSubmit = async (e: FormEvent) => {
     e.preventDefault()

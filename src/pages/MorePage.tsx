@@ -1,16 +1,24 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  Settings, Users, Truck, Wallet, ClipboardList, Download, ChevronRight, LogOut, Package, Receipt,
-  RefreshCw, Wifi, WifiOff, Upload, ShieldCheck, CloudCog,
+  Settings, Users, Truck, Wallet, ClipboardList, Download, ChevronRight, Lock, Package, Receipt,
+  RefreshCw, Wifi, WifiOff, Upload, ShieldCheck, CloudCog, UserCircle, HelpCircle, LogOut,
 } from 'lucide-react'
 import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
 import { useUi } from '../store/uiStore'
 import { syncNow as runSync } from '../lib/sync'
 import { usePermission } from '../hooks/usePermission'
+import { useAuth } from '../contexts/AuthContext'
 
 const sections = [
+  {
+    title: 'Account',
+    items: [
+      { icon: UserCircle, label: 'Profile & account', desc: 'Password, PIN, sign out', to: '/account', color: '#007AFF' },
+      { icon: HelpCircle, label: 'Help & support', desc: 'Guides and contact', to: '/help', color: '#5856D6' },
+    ],
+  },
   {
     title: 'Operations',
     items: [
@@ -37,14 +45,10 @@ const sections = [
 export default function MorePage() {
   const navigate = useNavigate()
   const { user } = usePermission()
+  const { lockWithPin, signOut, business } = useAuth()
   const { isOnline, pendingSyncCount, refreshPendingSync } = usePosStore()
   const toast = useUi((s) => s.toast)
   const [syncing, setSyncing] = useState(false)
-
-  const lock = () => {
-    sessionStorage.removeItem('currentUser')
-    navigate('/login')
-  }
 
   const syncNow = async () => {
     if (syncing) return
@@ -66,7 +70,6 @@ export default function MorePage() {
   return (
     <Screen title="More" subtitle="Operations and settings">
       <div className="space-y-6 md:max-w-2xl">
-        {/* Account + sync */}
         <div className="bg-white rounded-[22px] shadow-card p-4">
           <div className="flex items-center gap-3.5">
             <div className="h-14 w-14 rounded-full bg-gradient-to-br from-[#3395FF] to-[#0062CC] text-white flex items-center justify-center text-[22px] font-bold">
@@ -75,6 +78,9 @@ export default function MorePage() {
             <div className="flex-1 min-w-0">
               <p className="text-[18px] font-bold truncate">{name}</p>
               <p className="text-[14px] text-ink-secondary capitalize">{user?.role || 'staff'}</p>
+              {business?.name && (
+                <p className="text-[13px] text-ink-muted truncate">{business.name}</p>
+              )}
             </div>
           </div>
           <div className="mt-4 flex items-center gap-3 rounded-[16px] bg-surface-secondary p-3">
@@ -86,6 +92,7 @@ export default function MorePage() {
               <p className="text-[13px] text-ink-secondary">{pendingSyncCount > 0 ? `${pendingSyncCount} waiting to sync` : 'All changes synced'}</p>
             </div>
             <button
+              type="button"
               onClick={syncNow}
               disabled={!isOnline || syncing}
               className="press h-10 px-4 rounded-full bg-primary text-white text-[14px] font-semibold flex items-center gap-1.5 disabled:opacity-40"
@@ -102,6 +109,7 @@ export default function MorePage() {
               {section.items.map((item, i) => (
                 <button
                   key={item.label}
+                  type="button"
                   onClick={() => navigate(item.to)}
                   className="w-full flex items-center gap-3.5 pl-4 pr-3 text-left active:bg-black/[0.04] transition-colors"
                 >
@@ -123,9 +131,22 @@ export default function MorePage() {
           </div>
         ))}
 
-        <button onClick={lock} className="press w-full h-[52px] rounded-[18px] bg-white shadow-card text-danger text-[16px] font-semibold flex items-center justify-center gap-2">
-          <LogOut size={18} /> Lock screen
-        </button>
+        <div className="space-y-3 pb-4">
+          <button
+            type="button"
+            onClick={() => lockWithPin()}
+            className="press w-full h-[52px] rounded-[18px] bg-white shadow-card text-ink text-[16px] font-semibold flex items-center justify-center gap-2"
+          >
+            <Lock size={18} /> Lock screen
+          </button>
+          <button
+            type="button"
+            onClick={() => void signOut().then(() => navigate('/login', { replace: true }))}
+            className="press w-full h-[52px] rounded-[18px] bg-white shadow-card text-danger text-[16px] font-semibold flex items-center justify-center gap-2"
+          >
+            <LogOut size={18} /> Sign out
+          </button>
+        </div>
       </div>
     </Screen>
   )

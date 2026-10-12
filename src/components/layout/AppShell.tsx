@@ -1,9 +1,10 @@
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
-import { ShoppingCart, Package, Users, BarChart3, LayoutGrid, LogOut, Wifi, WifiOff } from 'lucide-react'
-import { useEffect, useRef, useState, type UIEvent, type FocusEvent } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { ShoppingCart, Package, Users, BarChart3, LayoutGrid, Lock, Wifi, WifiOff } from 'lucide-react'
+import { useEffect, useRef, type UIEvent, type FocusEvent } from 'react'
 import clsx from 'clsx'
 import { usePosStore } from '../../store/posStore'
 import { useUi } from '../../store/uiStore'
+import { useAuth } from '../../contexts/AuthContext'
 import Toasts from '../ui/Toasts'
 
 const navItems = [
@@ -14,7 +15,6 @@ const navItems = [
   { to: '/more', icon: LayoutGrid, label: 'More' },
 ]
 
-/** "More" owns every secondary screen (sales, shifts, settings…) */
 function activeIndex(pathname: string) {
   if (pathname === '/') return 0
   if (pathname.startsWith('/products')) return 1
@@ -24,34 +24,30 @@ function activeIndex(pathname: string) {
 }
 
 export default function AppShell() {
-  const navigate = useNavigate()
   const location = useLocation()
   const { isOnline, pendingSyncCount, cart } = usePosStore()
   const tabCompact = useUi((s) => s.tabCompact)
   const tabHidden = useUi((s) => s.tabHidden)
   const setTabCompact = useUi((s) => s.setTabCompact)
   const setTabHidden = useUi((s) => s.setTabHidden)
+  const { member, business, lockWithPin, touchActivity } = useAuth()
   const lastTops = useRef(new WeakMap<EventTarget, number>())
   const blurTimer = useRef<ReturnType<typeof setTimeout>>()
-  const [userName, setUserName] = useState('User')
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const active = activeIndex(location.pathname)
+  const userName = member?.display_name || business?.name || 'User'
 
+  // Track activity for idle PIN lock
   useEffect(() => {
-    const raw = sessionStorage.getItem('currentUser')
-    if (!raw) {
-      navigate('/login')
-      return
+    const onAct = () => touchActivity()
+    window.addEventListener('pointerdown', onAct)
+    window.addEventListener('keydown', onAct)
+    return () => {
+      window.removeEventListener('pointerdown', onAct)
+      window.removeEventListener('keydown', onAct)
     }
-    try {
-      const u = JSON.parse(raw)
-      setUserName(u.name || 'User')
-    } catch {
-      navigate('/login')
-    }
-  }, [navigate])
+  }, [touchActivity])
 
-  // Any scrolling area inside the app collapses the bar on scroll-down and restores it on scroll-up
   const onScrollAny = (e: UIEvent<HTMLElement>) => {
     const el = e.target as HTMLElement
     const top = el.scrollTop
@@ -63,22 +59,31 @@ export default function AppShell() {
     lastTops.current.set(el, top)
   }
   const isField = (t: EventTarget) => ['INPUT', 'SELECT', 'TEXTAREA'].includes((t as HTMLElement).tagName)
-  const onFocusIn = (e: FocusEvent) => { if (isField(e.target)) { clearTimeout(blurTimer.current); setTabHidden(true) } }
-  const onFocusOut = (e: FocusEvent) => { if (isField(e.target)) { blurTimer.current = setTimeout(() => setTabHidden(false), 150) } }
-  useEffect(() => { setTabCompact(false); setTabHidden(false) }, [location.pathname, setTabCompact, setTabHidden])
-
-  const lock = () => {
-    sessionStorage.removeItem('currentUser')
-    navigate('/login')
+  const onFocusIn = (e: FocusEvent) => {
+    if (isField(e.target)) {
+      clearTimeout(blurTimer.current)
+      setTabHidden(true)
+    }
   }
+  const onFocusOut = (e: FocusEvent) => {
+    if (isField(e.target)) {
+      blurTimer.current = setTimeout(() => setTabHidden(false), 150)
+    }
+  }
+  useEffect(() => {
+    setTabCompact(false)
+    setTabHidden(false)
+  }, [location.pathname, setTabCompact, setTabHidden])
 
   return (
     <div className="h-full flex flex-col md:flex-row bg-surface-secondary" onFocus={onFocusIn} onBlur={onFocusOut}>
-      {/* Desktop sidebar */}
       <aside className="hidden md:flex w-64 flex-col glass border-r border-black/5 shrink-0">
         <div className="px-6 pt-7 pb-5">
           <h1 className="text-[22px] font-bold tracking-tight text-ink">StockFlow</h1>
-          <p className="text-[13px] text-ink-muted mt-0.5">{userName}</p>
+          <p className="text-[13px] text-ink-muted mt-0.5 truncate">{userName}</p>
+          {business?.name && (
+            <p className="text-[12px] text-ink-muted truncate">{business.name}</p>
+          )}
         </div>
 
         <nav className="flex-1 px-3 space-y-1">
@@ -110,23 +115,22 @@ export default function AppShell() {
             {pendingSyncCount > 0 && <span className="ml-auto tabular-nums">{pendingSyncCount} pending</span>}
           </div>
           <button
-            onClick={lock}
+            type="button"
+            onClick={() => lockWithPin()}
             className="w-full flex items-center gap-3 px-3.5 h-11 rounded-[14px] text-[15px] text-ink-secondary hover:bg-black/[0.04] hover:text-ink transition-smooth"
           >
-            <LogOut size={19} />
+            <Lock size={19} />
             Lock screen
           </button>
         </div>
       </aside>
 
-      {/* Main content — keyed so each screen eases in */}
       <main className="flex-1 min-h-0 min-w-0 relative" onScrollCapture={onScrollAny}>
         <div key={location.pathname} className="page-enter h-full flex flex-col">
           <Outlet />
         </div>
       </main>
 
-      {/* Mobile: content fades under a floating, translucent, rounded tab bar */}
       <div className="tab-fade" data-hidden={tabHidden} aria-hidden />
       <div className="tabbar-wrap">
         <nav className="tabbar" data-compact={tabCompact} data-hidden={tabHidden} aria-label="Main">

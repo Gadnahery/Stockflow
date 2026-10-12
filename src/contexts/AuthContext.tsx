@@ -70,6 +70,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setMember(m)
     setBusiness(b)
     cacheMember(m)
+    // Bridge for legacy pages that still read sessionStorage.currentUser
+    if (m) {
+      sessionStorage.setItem(
+        'currentUser',
+        JSON.stringify({
+          id: m.user_id,
+          name: m.display_name || 'User',
+          role: m.role,
+          permissions: m.permissions || [],
+          active: m.status === 'active',
+        }),
+      )
+    } else {
+      sessionStorage.removeItem('currentUser')
+    }
   }, [])
 
   useEffect(() => {
@@ -169,6 +184,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setBusiness(null)
     cacheMember(null)
     clearBusinessId()
+    sessionStorage.removeItem('currentUser')
     localStorage.setItem(PIN_LOCK_KEY, '0')
     setPinLocked(false)
   }, [])

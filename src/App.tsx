@@ -14,6 +14,8 @@ import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
 import ResetPasswordPage from './pages/auth/ResetPasswordPage'
 import OnboardingPage from './pages/auth/OnboardingPage'
 import AcceptInvitePage from './pages/auth/AcceptInvitePage'
+import AccountPage from './pages/auth/AccountPage'
+import HelpPage from './pages/HelpPage'
 import PosPage from './pages/PosPage'
 import ProductsPage from './pages/ProductsPage'
 import CustomersPage from './pages/CustomersPage'
@@ -91,6 +93,8 @@ function App() {
         <Route path="/import" element={<ImportPage />} />
         <Route path="/sync" element={<SyncStatusPage />} />
         <Route path="/audit" element={<AuditPage />} />
+        <Route path="/account" element={<AccountPage />} />
+        <Route path="/help" element={<HelpPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

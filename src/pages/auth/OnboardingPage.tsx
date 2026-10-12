@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, setDevicePin } from '../../contexts/AuthContext'
 import { haptic } from '../../lib/util'
@@ -13,13 +13,17 @@ export default function OnboardingPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  if (!session) {
-    navigate('/login', { replace: true })
-    return null
-  }
-  if (member) {
-    navigate('/', { replace: true })
-    return null
+  useEffect(() => {
+    if (!session) navigate('/login', { replace: true })
+    else if (member) navigate('/', { replace: true })
+  }, [session, member, navigate])
+
+  if (!session || member) {
+    return (
+      <div className="min-h-full flex items-center justify-center bg-[#F2F2F7]">
+        <div className="h-10 w-10 rounded-full border-2 border-[#007AFF] border-t-transparent animate-spin" />
+      </div>
+    )
   }
 
   const onSubmit = async (e: FormEvent) => {
