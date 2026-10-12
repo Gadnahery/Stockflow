@@ -130,7 +130,7 @@ export async function ensureSeedData() {
 
 const WORKSPACE_KEY = 'sf_workspace_id'
 
-/** Wipe local catalogue/sales so one shop never sees another shop\'s data. */
+/** Wipe local catalogue/sales so one shop never sees another shop's data. */
 export async function clearLocalBusinessData() {
   await withoutSync(async () => {
     await Promise.all([

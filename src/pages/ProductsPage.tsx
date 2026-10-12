@@ -193,25 +193,25 @@ export default function ProductsPage() {
               </button>
             ))}
           </div>
-          <div className="mt-2 flex gap-2">
-            {([
-              ['all', 'All stock'],
-              ['low', 'Low'],
-              ['out', 'Out'],
-            ] as const).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                onClick={() => setStockStatus(id)}
-                className={`press h-8 px-3 rounded-full text-[12px] font-semibold ${
-                  stockStatus === id ? 'bg-primary text-white' : 'bg-black/[0.05] text-ink-secondary'
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
         )}
+        <div className="mt-2 flex gap-2">
+          {([
+            ['all', 'All stock'],
+            ['low', 'Low'],
+            ['out', 'Out'],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setStockStatus(id)}
+              className={`press h-8 px-3 rounded-full text-[12px] font-semibold ${
+                stockStatus === id ? 'bg-primary text-white' : 'bg-black/[0.05] text-ink-secondary'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         <div className="mt-4">
           {loading ? (
