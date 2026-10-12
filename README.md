@@ -66,3 +66,23 @@ Env (never commit `.env`):
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_ANON_KEY=...
 ```
+
+## Windows desktop installer (.exe)
+
+### Build on a Windows PC (or CI)
+
+```bash
+npm install
+# set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env
+npm run dist:win
+```
+
+Installer appears in `release/StockFlow-POS-Setup-1.0.0.exe`.
+
+### GitHub Actions
+
+1. Repo **Settings → Secrets**: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`
+2. **Actions → Windows installer → Run workflow**, or push a tag: `git tag v1.0.0 && git push --tags`
+3. Download the **StockFlow-Windows-Setup** artifact (or the Release asset)
+
+The desktop app is offline-capable for sales (IndexedDB); sync needs internet when available.

@@ -2,12 +2,18 @@
   "name": "stockflow-pos",
   "private": true,
   "version": "1.0.0",
+  "description": "StockFlow \u2014 offline-first Point of Sale",
+  "author": "StockFlow",
+  "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
     "dev": "vite --host",
     "build": "vite build",
     "preview": "vite preview",
-    "typecheck": "tsc -p tsconfig.app.json --noEmit"
+    "typecheck": "tsc -p tsconfig.app.json --noEmit",
+    "electron:dev": "concurrently -k \"vite --host\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
+    "dist:win": "cross-env ELECTRON=1 vite build && electron-builder --win nsis --x64",
+    "dist:win:dir": "cross-env ELECTRON=1 vite build && electron-builder --win dir --x64"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.0",
@@ -31,12 +37,56 @@
     "@types/uuid": "^9.0.8",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^9.1.0",
+    "cross-env": "^7.0.3",
+    "electron": "^33.2.0",
+    "electron-builder": "^25.1.8",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.6.3",
-    "vite": "^5.4.10"
+    "vite": "^5.4.10",
+    "wait-on": "^8.0.1"
   },
   "engines": {
     "node": ">=18"
+  },
+  "build": {
+    "appId": "app.stockflow.pos",
+    "productName": "StockFlow POS",
+    "copyright": "Copyright \u00a9 StockFlow",
+    "directories": {
+      "output": "release",
+      "buildResources": "electron/resources"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "electron/main.cjs"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "StockFlow-POS-Setup-${version}.${ext}",
+      "icon": "public/icon-512.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "StockFlow POS",
+      "installerIcon": "public/icon-512.png",
+      "uninstallerIcon": "public/icon-512.png"
+    },
+    "publish": null
   }
 }
