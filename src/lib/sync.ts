@@ -17,11 +17,33 @@ const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.tes
 async function ensureBusiness(): Promise<string> {
   const id = getBusinessId()
   if (id) return id
-  // No hard-coded default — business id comes from authenticated membership only.
+  // Recover from session membership if localStorage was cleared
+  if (supabaseConfigured && supabase) {
+    const { data: sess } = await supabase.auth.getSession()
+    const uid = sess.session?.user?.id
+    if (uid) {
+      const { data: members } = await supabase
+        .from('business_members')
+        .select('business_id, branch_ids')
+        .eq('user_id', uid)
+        .eq('status', 'active')
+        .limit(1)
+      if (members?.[0]?.business_id) {
+        setBusinessId(members[0].business_id)
+        const branches = members[0].branch_ids as string[] | null
+        if (branches?.[0]) localStorage.setItem('branchId', branches[0])
+        return members[0].business_id as string
+      }
+    }
+  }
   throw new Error('No business selected. Sign in and complete onboarding first.')
 }
 
-const getBranchId = () => localStorage.getItem('branchId') || DEFAULT_BRANCH_ID
+const getBranchId = (): string | null => {
+  const id = localStorage.getItem('branchId')
+  if (id && isUuid(id)) return id
+  return null
+}
 
 /* ───────── push ───────── */
 

@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { v4 as uuidv4 } from 'uuid'
 import type { CartItem, Product, Payment, Sale, StockMovement, HeldCart } from '../types'
 import { db, audit } from '../lib/db'
+import { processOutbox } from '../lib/sync'
 
 interface PosState {
   cart: CartItem[]
@@ -323,6 +324,10 @@ export const usePosStore = create<PosState>((set, get) => ({
     set({ cart: [], currentSaleId: saleId, selectedCustomerId: null, selectedCustomerName: null })
     if (sale.discount > 0) await audit('SALE_DISCOUNT', 'sale', saleId, { after: { discount: sale.discount, total: sale.total }, reason: `Receipt ${receiptNumber}` })
     await get().refreshPendingSync()
+    // Push immediately when online so sales appear in cloud without waiting for the poll loop
+    if (navigator.onLine) {
+      void processOutbox().then(() => get().refreshPendingSync()).catch(() => {})
+    }
     return sale
   },
 }))

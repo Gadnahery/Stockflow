@@ -17,6 +17,7 @@ import {
   cacheMember,
   getCachedMember,
   clearBusinessId,
+  setBusinessId,
   type BusinessMember,
   type Business,
   type Session,
@@ -41,7 +42,7 @@ interface AuthState {
 }
 
 interface AuthContextValue extends AuthState {
-  signIn: (email: string, password: string) => Promise<void>
+  signIn: (email: string, password: string) => Promise<{ hasBusiness: boolean }>
   signUp: (email: string, password: string, fullName: string) => Promise<{ needsVerification: boolean }>
   signOut: () => Promise<void>
   createBusiness: (name: string, phone?: string, address?: string) => Promise<string>
@@ -86,12 +87,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const userRef = useRef<User | null>(null)
 
   const applyMembership = useCallback(async (uid: string) => {
-    const { member: m, business: b } = await fetchMembership(uid)
-    setMember(m)
-    setBusiness(b)
-    cacheMember(m)
-    mirrorSessionUser(m)
-    return m
+    try {
+      const { member: m, business: b } = await fetchMembership(uid)
+      setMember(m)
+      setBusiness(b)
+      cacheMember(m)
+      mirrorSessionUser(m)
+      return m
+    } catch (e) {
+      console.warn('fetchMembership failed', e)
+      setMember(null)
+      setBusiness(null)
+      return null
+    }
   }, [])
 
   useEffect(() => {
@@ -205,13 +213,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) throw new Error('Auth not configured')
     const { data, error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) throw error
+    let hasBusiness = false
+    if (data.session) {
+      setSession(data.session)
+      setUser(data.session.user)
+      userRef.current = data.session.user
+    }
     if (data.user) {
-      await applyMembership(data.user.id)
+      const m = await applyMembership(data.user.id)
+      hasBusiness = Boolean(m)
     }
     localStorage.setItem(PIN_LOCK_KEY, '0')
     setPinLocked(false)
     localStorage.setItem(PIN_FAIL_KEY, '0')
     localStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()))
+    setLoading(false)
+    return { hasBusiness }
   }, [applyMembership])
 
   const signUp = useCallback(async (email: string, password: string, fullName: string) => {
@@ -241,8 +258,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const createBusiness = useCallback(async (name: string, phone?: string, address?: string) => {
     const id = await rpcCreateBusiness(name, phone, address)
+    // Ensure local business id is set before membership re-fetch
+    setBusinessId(id)
     const u = userRef.current
     if (u) await applyMembership(u.id)
+    setLoading(false)
     return id
   }, [applyMembership])
 

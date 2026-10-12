@@ -59,7 +59,7 @@ export default function OnboardingPage() {
   return (
     <AuthShell
       title="Set up your store"
-      subtitle="Takes less than a minute — then you’re ready to sell"
+      subtitle="You become the owner (admin). You can invite cashiers later from Team."
       footer={
         <button
           type="button"

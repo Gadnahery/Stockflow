@@ -23,10 +23,11 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
+  // Existing session → leave login
   useEffect(() => {
     if (loading || busy) return
     if (!session) return
-    navigate(member ? from : '/onboarding', { replace: true })
+    navigate(member ? (from.startsWith('/login') ? '/' : from) : '/onboarding', { replace: true })
   }, [loading, session, member, from, navigate, busy])
 
   const onSubmit = async (e: FormEvent) => {
@@ -34,16 +35,25 @@ export default function LoginPage() {
     setError('')
     setBusy(true)
     try {
-      await signIn(email.trim(), password)
+      const { hasBusiness } = await signIn(email.trim(), password)
       haptic(20)
+      if (hasBusiness) {
+        const dest = from.startsWith('/login') ? '/' : from
+        navigate(dest, { replace: true })
+      } else {
+        navigate('/onboarding', { replace: true })
+      }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Sign in failed')
+      const raw = err instanceof Error ? err.message : 'Sign in failed'
+      setError(/invalid login/i.test(raw) ? 'Wrong email or password' : raw)
       haptic(50)
+    } finally {
       setBusy(false)
     }
   }
 
-  if (loading || session) return <Spinner />
+  if (loading) return <Spinner />
+  if (session && !busy) return <Spinner />
 
   return (
     <AuthShell
@@ -52,15 +62,11 @@ export default function LoginPage() {
       footer={
         <>
           <p>
-            <Link to="/forgot-password" className="auth-link">
-              Forgot password?
-            </Link>
+            <Link to="/forgot-password" className="auth-link">Forgot password?</Link>
           </p>
           <p>
             New here?{' '}
-            <Link to="/signup" className="auth-link">
-              Create an account
-            </Link>
+            <Link to="/signup" className="auth-link">Create an account</Link>
           </p>
         </>
       }
@@ -68,35 +74,13 @@ export default function LoginPage() {
       <form onSubmit={onSubmit} className="space-y-4">
         <div>
           <label className="auth-label" htmlFor="login-email">Email</label>
-          <input
-            id="login-email"
-            className="field"
-            type="email"
-            autoComplete="email"
-            inputMode="email"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@business.com"
-          />
+          <input id="login-email" className="field" type="email" autoComplete="email" inputMode="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@business.com" />
         </div>
         <div>
           <label className="auth-label" htmlFor="login-password">Password</label>
-          <input
-            id="login-password"
-            className="field"
-            type="password"
-            autoComplete="current-password"
-            required
-            minLength={8}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
-          />
+          <input id="login-password" className="field" type="password" autoComplete="current-password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
         </div>
-
         {error && <p className="auth-error" role="alert">{error}</p>}
-
         <button type="submit" disabled={busy} className="press auth-btn-primary">
           {busy ? 'Signing in…' : 'Sign in'}
         </button>
