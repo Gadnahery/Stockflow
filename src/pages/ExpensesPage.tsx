@@ -5,10 +5,12 @@ import { db } from '../lib/db'
 import type { Expense } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 import { format } from 'date-fns'
+import { useConfirm } from '../components/ui/ConfirmDialog'
 
 const CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Transport', 'Supplies', 'Marketing', 'Maintenance', 'Other']
 
 export default function ExpensesPage() {
+  const confirm = useConfirm()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ category: 'Other', amount: '', paymentMethod: 'cash', note: '' })
@@ -31,7 +33,8 @@ export default function ExpensesPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Delete this expense?')) return
+    const ok = await confirm({ title: 'Delete expense?', message: 'This cannot be undone.', confirmLabel: 'Delete', tone: 'danger' })
+    if (!ok) return
     await db.expenses.delete(id)
   }
 

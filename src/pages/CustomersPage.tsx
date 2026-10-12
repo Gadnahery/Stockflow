@@ -4,10 +4,12 @@ import { Search, Plus, User, X, Trash2 } from 'lucide-react'
 import { db, audit } from '../lib/db'
 import type { Customer } from '../types'
 import { v4 as uuidv4 } from 'uuid'
+import { useConfirm } from '../components/ui/ConfirmDialog'
 
 const emptyForm = { name: '', phone: '', email: '', address: '', creditLimit: '0', notes: '' }
 
 export default function CustomersPage() {
+  const confirm = useConfirm()
   const [query, setQuery] = useState('')
   const [showForm, setShowForm] = useState(false)
   const [payAmount, setPayAmount] = useState('')
@@ -54,7 +56,8 @@ export default function CustomersPage() {
 
   const handleDelete = async () => {
     if (!editing) return
-    if (!confirm(`Delete customer "${editing.name}"?`)) return
+    const ok = await confirm({ title: 'Delete customer?', message: `"${editing.name}" will be removed.`, confirmLabel: 'Delete', tone: 'danger' })
+    if (!ok) return
     await db.customers.delete(editing.id)
     setShowForm(false)
   }

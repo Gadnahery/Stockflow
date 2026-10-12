@@ -7,8 +7,10 @@ import { syncNow } from '../lib/sync'
 import { usePosStore } from '../store/posStore'
 import { useUi } from '../store/uiStore'
 import Screen from '../components/ui/Screen'
+import { useConfirm } from '../components/ui/ConfirmDialog'
 
 export default function SyncStatusPage() {
+  const confirm = useConfirm()
   const events = useLiveQuery(() => db.outbox.orderBy('createdAt').toArray(), []) ?? []
   const { isOnline, refreshPendingSync } = usePosStore()
   const toast = useUi((s) => s.toast)
@@ -25,7 +27,8 @@ export default function SyncStatusPage() {
   }
 
   const discard = async (id: string) => {
-    if (!confirm('Discard this change? It will NOT reach the cloud.')) return
+    const ok = await confirm({ title: 'Discard change?', message: 'It will not reach the cloud.', confirmLabel: 'Discard', tone: 'danger' })
+    if (!ok) return
     await db.outbox.delete(id)
     await refreshPendingSync()
   }

@@ -5,10 +5,12 @@ import { db } from '../lib/db'
 import type { Supplier, PurchaseOrder } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 import { format } from 'date-fns'
+import { useConfirm } from '../components/ui/ConfirmDialog'
 
 const emptySupplier = { name: '', phone: '', email: '', address: '', notes: '' }
 
 export default function SuppliersPage() {
+  const confirm = useConfirm()
   const [tab, setTab] = useState<'suppliers' | 'purchases'>('suppliers')
   const [query, setQuery] = useState('')
   const [showSupplierForm, setShowSupplierForm] = useState(false)
@@ -51,7 +53,8 @@ export default function SuppliersPage() {
 
   const handleDeleteSupplier = async () => {
     if (!editing) return
-    if (!confirm(`Delete supplier "${editing.name}"?`)) return
+    const ok = await confirm({ title: 'Delete supplier?', message: `"${editing.name}" will be removed.`, confirmLabel: 'Delete', tone: 'danger' })
+    if (!ok) return
     await db.suppliers.delete(editing.id)
     setShowSupplierForm(false)
   }

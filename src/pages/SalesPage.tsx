@@ -1,116 +1,251 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Search, Receipt, Ban, ShoppingBag } from 'lucide-react'
+import { format, isToday, isYesterday, startOfDay, subDays } from 'date-fns'
 import { db } from '../lib/db'
 import type { Sale } from '../types'
-import { format } from 'date-fns'
 import ReceiptModal from '../components/ReceiptModal'
-import { Receipt, Ban } from 'lucide-react'
+import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
 import { usePermission } from '../hooks/usePermission'
+import { useConfirm } from '../components/ui/ConfirmDialog'
+import { useUi } from '../store/uiStore'
+import { fmtMoney } from '../lib/util'
+
+type Period = 'today' | '7d' | '30d' | 'all'
+type StatusFilter = 'all' | 'completed' | 'voided' | 'refunded'
 
 export default function SalesPage() {
   const [selected, setSelected] = useState<Sale | null>(null)
+  const [query, setQuery] = useState('')
+  const [period, setPeriod] = useState<Period>('7d')
+  const [status, setStatus] = useState<StatusFilter>('all')
   const voidSale = usePosStore((s) => s.voidSale)
   const { can } = usePermission()
+  const confirm = useConfirm()
+  const toast = useUi((s) => s.toast)
+
   const sales = useLiveQuery(
-    () => db.sales.orderBy('createdAt').reverse().limit(100).toArray(),
-    []
-  ) || []
+    () => db.sales.orderBy('createdAt').reverse().limit(300).toArray(),
+    [],
+  )
+
+  const loading = sales === undefined
+
+  const filtered = useMemo(() => {
+    if (!sales) return []
+    const q = query.trim().toLowerCase()
+    const now = new Date()
+    let from: Date | null = null
+    if (period === 'today') from = startOfDay(now)
+    else if (period === '7d') from = subDays(now, 7)
+    else if (period === '30d') from = subDays(now, 30)
+
+    return sales.filter((s) => {
+      if (status !== 'all' && s.status !== status) return false
+      if (from && new Date(s.createdAt) < from) return false
+      if (!q) return true
+      return (
+        s.receiptNumber.toLowerCase().includes(q) ||
+        (s.cashierName || '').toLowerCase().includes(q) ||
+        (s.customerName || '').toLowerCase().includes(q)
+      )
+    })
+  }, [sales, query, period, status])
+
+  const totals = useMemo(() => {
+    const completed = filtered.filter((s) => s.status === 'completed')
+    const revenue = completed.reduce((a, s) => a + s.total, 0)
+    return { count: completed.length, revenue }
+  }, [filtered])
 
   const handleVoid = async (sale: Sale) => {
     if (!can('VOID_SALE')) {
-      alert('You do not have permission to void sales')
+      toast('You do not have permission to void sales', 'error')
       return
     }
     if (sale.status !== 'completed') return
-    if (!confirm(`Void receipt ${sale.receiptNumber}? Stock will be restored.`)) return
+    const ok = await confirm({
+      title: 'Void this sale?',
+      message: `Receipt ${sale.receiptNumber} · ${fmtMoney(sale.total)}. Stock will be restored.`,
+      confirmLabel: 'Void',
+      tone: 'danger',
+    })
+    if (!ok) return
     try {
       await voidSale(sale.id)
+      toast('Sale voided', 'success')
+      if (selected?.id === sale.id) setSelected(null)
     } catch (e) {
-      alert((e as Error).message)
+      toast((e as Error).message || 'Could not void sale', 'error')
     }
   }
 
-  return (
-    <div className="h-full flex flex-col">
-      <header className="page-header">
-        <h1 className="page-title">Sales History</h1>
-        <p className="text-sm text-ink-secondary">{sales.length} recent sales</p>
-      </header>
+  const dateLabel = (iso: string) => {
+    const d = new Date(iso)
+    if (isToday(d)) return `Today · ${format(d, 'HH:mm')}`
+    if (isYesterday(d)) return `Yesterday · ${format(d, 'HH:mm')}`
+    return format(d, 'dd MMM yyyy · HH:mm')
+  }
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
-        <div className="bg-white rounded-card shadow-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-ink-secondary">
-                <th className="px-4 py-3 font-medium">Receipt</th>
-                <th className="px-4 py-3 font-medium hidden sm:table-cell">Cashier</th>
-                <th className="px-4 py-3 font-medium hidden md:table-cell">Date</th>
-                <th className="px-4 py-3 font-medium text-right">Total</th>
-                <th className="px-4 py-3 font-medium text-right">Status</th>
-                <th className="px-4 py-3 font-medium text-right"> </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sales.map((s) => (
-                <tr key={s.id} className="border-b border-border/60 hover:bg-surface-secondary/40 transition-smooth">
-                  <td className="px-4 py-3">
-                    <p className="font-medium text-ink">{s.receiptNumber}</p>
-                    <p className="text-xs text-ink-muted sm:hidden">
-                      {format(new Date(s.createdAt), 'dd MMM HH:mm')}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3 text-ink-secondary hidden sm:table-cell">
-                    {s.cashierName || '—'}
-                  </td>
-                  <td className="px-4 py-3 text-ink-secondary hidden md:table-cell">
-                    {format(new Date(s.createdAt), 'dd MMM yyyy HH:mm')}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums font-medium">
-                    {s.total.toLocaleString()}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full capitalize ${
-                      s.status === 'completed' ? 'bg-emerald-50 text-success' :
-                      s.status === 'voided' ? 'bg-red-50 text-danger' :
-                      'bg-surface-secondary text-ink-muted'
-                    }`}>
+  const statusChip = (st: Sale['status']) => {
+    const map: Record<string, string> = {
+      completed: 'bg-emerald-50 text-success',
+      voided: 'bg-red-50 text-danger',
+      refunded: 'bg-amber-50 text-warning',
+      held: 'bg-surface-secondary text-ink-muted',
+    }
+    return map[st] || 'bg-surface-secondary text-ink-muted'
+  }
+
+  return (
+    <Screen
+      title="Sales"
+      subtitle={
+        loading
+          ? 'Loading…'
+          : `${totals.count} sale${totals.count === 1 ? '' : 's'} · ${fmtMoney(totals.revenue)}`
+      }
+    >
+      <div className="space-y-4 md:max-w-3xl pb-6">
+        {/* Search */}
+        <div className="relative">
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
+          <input
+            className="field w-full !pl-10"
+            placeholder="Search receipt, cashier, customer…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+
+        {/* Period chips */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar pb-0.5">
+          {(
+            [
+              ['today', 'Today'],
+              ['7d', '7 days'],
+              ['30d', '30 days'],
+              ['all', 'All'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setPeriod(id)}
+              className={`press shrink-0 h-9 px-3.5 rounded-full text-[13px] font-semibold ${
+                period === id ? 'bg-primary text-white' : 'bg-white text-ink-secondary shadow-card'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Status chips */}
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {(
+            [
+              ['all', 'All status'],
+              ['completed', 'Completed'],
+              ['voided', 'Voided'],
+              ['refunded', 'Refunded'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              onClick={() => setStatus(id)}
+              className={`press shrink-0 h-8 px-3 rounded-full text-[12px] font-semibold ${
+                status === id ? 'bg-ink text-white' : 'bg-black/[0.05] text-ink-secondary'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Loading */}
+        {loading && (
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-[76px] rounded-[18px] bg-white shadow-card skeleton" />
+            ))}
+          </div>
+        )}
+
+        {/* Empty */}
+        {!loading && filtered.length === 0 && (
+          <div className="rounded-[22px] bg-white shadow-card px-6 py-12 text-center">
+            <div className="mx-auto mb-3 h-14 w-14 rounded-full bg-[#E8F0FE] text-primary flex items-center justify-center">
+              <ShoppingBag size={26} />
+            </div>
+            <p className="text-[16px] font-semibold text-ink">No sales found</p>
+            <p className="text-[14px] text-ink-secondary mt-1">
+              {query || period !== 'all' || status !== 'all'
+                ? 'Try a different filter or search.'
+                : 'Completed sales will show up here.'}
+            </p>
+          </div>
+        )}
+
+        {/* List */}
+        {!loading && filtered.length > 0 && (
+          <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
+            {filtered.map((s, i) => (
+              <div
+                key={s.id}
+                className={`flex items-center gap-3 px-4 py-3.5 ${
+                  i < filtered.length - 1 ? 'border-b border-border' : ''
+                }`}
+              >
+                <button
+                  type="button"
+                  onClick={() => setSelected(s)}
+                  className="flex-1 min-w-0 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <p className="text-[15px] font-semibold text-ink truncate">{s.receiptNumber}</p>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize shrink-0 ${statusChip(s.status)}`}>
                       {s.status}
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-2">
+                  </div>
+                  <p className="text-[13px] text-ink-secondary mt-0.5 truncate">
+                    {dateLabel(s.createdAt)}
+                    {s.cashierName ? ` · ${s.cashierName}` : ''}
+                    {s.customerName ? ` · ${s.customerName}` : ''}
+                  </p>
+                </button>
+                <div className="text-right shrink-0">
+                  <p className="text-[15px] font-semibold tabular-nums text-ink">{fmtMoney(s.total)}</p>
+                  <div className="flex items-center justify-end gap-2 mt-1">
+                    <button
+                      type="button"
+                      onClick={() => setSelected(s)}
+                      className="press h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center"
+                      aria-label="View receipt"
+                    >
+                      <Receipt size={15} />
+                    </button>
+                    {s.status === 'completed' && can('VOID_SALE') && (
                       <button
-                        onClick={() => setSelected(s)}
-                        className="inline-flex items-center gap-1 text-primary text-xs font-medium hover:underline"
+                        type="button"
+                        onClick={() => void handleVoid(s)}
+                        className="press h-8 w-8 rounded-full bg-red-50 text-danger flex items-center justify-center"
+                        aria-label="Void sale"
                       >
-                        <Receipt size={14} />
-                        View
+                        <Ban size={15} />
                       </button>
-                      {s.status === 'completed' && can('VOID_SALE') && (
-                        <button
-                          onClick={() => handleVoid(s)}
-                          className="inline-flex items-center gap-1 text-danger text-xs font-medium hover:underline"
-                        >
-                          <Ban size={14} />
-                          Void
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {sales.length === 0 && (
-            <p className="text-center text-ink-muted py-12">No sales yet</p>
-          )}
-        </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      {selected && (
-        <ReceiptModal sale={selected} onClose={() => setSelected(null)} />
-      )}
-    </div>
+      {selected && <ReceiptModal sale={selected} onClose={() => setSelected(null)} />}
+    </Screen>
   )
 }

@@ -12,6 +12,7 @@ import ProductImage from '../components/ui/ProductImage'
 import { useUi } from '../store/uiStore'
 import { fileToDataUrl } from '../lib/image'
 import { fmt, generateBarcode, makeSku } from '../lib/util'
+import { useConfirm } from '../components/ui/ConfirmDialog'
 
 const UNITS = ['piece', 'kg', 'g', 'litre', 'bottle', 'packet', 'bag', 'box', 'dozen']
 
@@ -20,6 +21,7 @@ const emptyForm = {
 }
 
 export default function ProductsPage() {
+  const confirm = useConfirm()
   const { can } = usePermission()
   const toast = useUi((s) => s.toast)
   const [query, setQuery] = useState('')
@@ -89,7 +91,8 @@ export default function ProductsPage() {
 
   const handleDelete = async () => {
     if (!editing) return
-    if (!confirm(`Deactivate "${editing.name}"? It will be hidden from POS.`)) return
+    const ok = await confirm({ title: 'Deactivate product?', message: `"${editing.name}" will be hidden from POS.`, confirmLabel: 'Deactivate', tone: 'danger' })
+    if (!ok) return
     await db.products.update(editing.id, { active: false, updatedAt: new Date().toISOString() })
     setShowForm(false)
     toast('Product deactivated', 'info')
