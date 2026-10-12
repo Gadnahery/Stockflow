@@ -1,121 +1,138 @@
+import { useEffect, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { db } from '../lib/db'
-import { useState, useEffect } from 'react'
-import { Save } from 'lucide-react'
+import Screen from '../components/ui/Screen'
+import { useUi } from '../store/uiStore'
+import { fmt } from '../lib/util'
 
 export default function SettingsPage() {
   const settings = useLiveQuery(() => db.settings.get('main'), [])
+  const toast = useUi((s) => s.toast)
   const [form, setForm] = useState({
     businessName: '',
     businessPhone: '',
     businessAddress: '',
     currency: 'TZS',
-    taxRate: 18,
+    taxRate: '18',
     taxInclusive: true,
     receiptFooter: '',
+    offlineWindowHours: '72',
   })
-  const [saved, setSaved] = useState(false)
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
-    if (settings) {
-      setForm({
-        businessName: settings.businessName || '',
-        businessPhone: settings.businessPhone || '',
-        businessAddress: settings.businessAddress || '',
-        currency: settings.currency || 'TZS',
-        taxRate: settings.taxRate ?? 18,
-        taxInclusive: settings.taxInclusive ?? true,
-        receiptFooter: settings.receiptFooter || '',
-      })
-    }
+    if (!settings) return
+    setForm({
+      businessName: settings.businessName || '',
+      businessPhone: settings.businessPhone || '',
+      businessAddress: settings.businessAddress || '',
+      currency: settings.currency || 'TZS',
+      taxRate: String(settings.taxRate ?? 18),
+      taxInclusive: settings.taxInclusive !== false,
+      receiptFooter: settings.receiptFooter || '',
+      offlineWindowHours: String(settings.offlineWindowHours ?? 72),
+    })
   }, [settings])
 
   const save = async () => {
-    await db.settings.update('main', form)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2000)
+    setSaving(true)
+    try {
+      await db.settings.put({
+        id: 'main',
+        businessName: form.businessName.trim() || 'My Store',
+        businessPhone: form.businessPhone.trim() || undefined,
+        businessAddress: form.businessAddress.trim() || undefined,
+        currency: form.currency.trim() || 'TZS',
+        taxRate: parseFloat(form.taxRate) || 0,
+        taxInclusive: form.taxInclusive,
+        receiptFooter: form.receiptFooter.trim() || undefined,
+        offlineWindowHours: parseInt(form.offlineWindowHours, 10) || 72,
+        deviceId: settings?.deviceId || crypto.randomUUID(),
+        branchId: settings?.branchId,
+        logoUrl: settings?.logoUrl,
+      })
+      toast('Settings saved', 'success')
+    } catch {
+      toast('Could not save settings', 'error')
+    } finally {
+      setSaving(false)
+    }
   }
 
+  const set = (patch: Partial<typeof form>) => setForm((f) => ({ ...f, ...patch }))
+
   return (
-    <div className="h-full flex flex-col">
-      <header className="page-header flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Settings</h1>
-          <p className="text-sm text-ink-secondary">Business & receipt configuration</p>
-        </div>
-        <button
-          onClick={save}
-          className="press flex items-center gap-2 h-10 px-4 rounded-full bg-primary text-white text-[14px] font-semibold shadow-soft"
-        >
-          <Save size={16} />
-          {saved ? 'Saved' : 'Save'}
-        </button>
-      </header>
-
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
-        <div className="max-w-xl space-y-6">
-          <section className="bg-white rounded-card shadow-card p-5 space-y-4">
-            <h2 className="font-semibold text-ink">Business Information</h2>
-            <Field label="Business Name" value={form.businessName} onChange={(v) => setForm({ ...form, businessName: v })} />
-            <Field label="Phone" value={form.businessPhone} onChange={(v) => setForm({ ...form, businessPhone: v })} />
-            <Field label="Address" value={form.businessAddress} onChange={(v) => setForm({ ...form, businessAddress: v })} />
-          </section>
-
-          <section className="bg-white rounded-card shadow-card p-5 space-y-4">
-            <h2 className="font-semibold text-ink">Tax & Currency</h2>
-            <Field label="Currency" value={form.currency} onChange={(v) => setForm({ ...form, currency: v })} />
-            <Field
-              label="Tax Rate (%)"
-              value={String(form.taxRate)}
-              type="number"
-              onChange={(v) => setForm({ ...form, taxRate: parseFloat(v) || 0 })}
-            />
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={form.taxInclusive}
-                onChange={(e) => setForm({ ...form, taxInclusive: e.target.checked })}
-                className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
-              />
-              <span className="text-sm text-ink">Prices are tax-inclusive</span>
-            </label>
-          </section>
-
-          <section className="bg-white rounded-card shadow-card p-5 space-y-4">
-            <h2 className="font-semibold text-ink">Receipt</h2>
+    <Screen title="Settings" subtitle="Business, tax, and receipts">
+      <div className="space-y-6 md:max-w-lg pb-8">
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">Business</h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
             <div>
-              <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Footer message</label>
-              <textarea
-                value={form.receiptFooter}
-                onChange={(e) => setForm({ ...form, receiptFooter: e.target.value })}
-                rows={3}
-                className="field !h-auto py-3 resize-none"
-              />
+              <label className="auth-label">Business name</label>
+              <input className="field w-full" value={form.businessName} onChange={(e) => set({ businessName: e.target.value })} />
             </div>
-          </section>
-        </div>
-      </div>
-    </div>
-  )
-}
+            <div>
+              <label className="auth-label">Phone</label>
+              <input className="field w-full" inputMode="tel" value={form.businessPhone} onChange={(e) => set({ businessPhone: e.target.value })} />
+            </div>
+            <div>
+              <label className="auth-label">Address</label>
+              <input className="field w-full" value={form.businessAddress} onChange={(e) => set({ businessAddress: e.target.value })} />
+            </div>
+          </div>
+        </section>
 
-function Field({
-  label, value, onChange, type = 'text',
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  type?: string
-}) {
-  return (
-    <div>
-      <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="field"
-      />
-    </div>
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">Tax</h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
+            <div>
+              <label className="auth-label">Tax rate (%)</label>
+              <input className="field w-full" inputMode="decimal" value={form.taxRate} onChange={(e) => set({ taxRate: e.target.value })} />
+            </div>
+            <label className="flex items-center justify-between gap-3 py-1 cursor-pointer">
+              <span className="text-[15px] font-medium">Prices include tax</span>
+              <input type="checkbox" checked={form.taxInclusive} onChange={(e) => set({ taxInclusive: e.target.checked })} className="h-5 w-5 rounded accent-primary" />
+            </label>
+            <div>
+              <label className="auth-label">Currency</label>
+              <input className="field w-full" value={form.currency} onChange={(e) => set({ currency: e.target.value })} />
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">Receipt</h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
+            <div>
+              <label className="auth-label">Footer message</label>
+              <input className="field w-full" value={form.receiptFooter} onChange={(e) => set({ receiptFooter: e.target.value })} placeholder="Thank you for shopping!" />
+            </div>
+            <div className="rounded-[16px] bg-surface-secondary p-4 text-[13px] text-ink-secondary">
+              <p className="font-semibold text-ink mb-1">{form.businessName || 'Your store'}</p>
+              <p>Sample total · {fmt(12500)} {form.currency}</p>
+              <p className="mt-2 italic">{form.receiptFooter || '—'}</p>
+            </div>
+          </div>
+        </section>
+
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">Data</h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
+            <div>
+              <label className="auth-label">Offline window (hours)</label>
+              <input className="field w-full" inputMode="numeric" value={form.offlineWindowHours} onChange={(e) => set({ offlineWindowHours: e.target.value })} />
+              <p className="text-[12px] text-ink-muted mt-1">How long PIN unlock may work without the server.</p>
+            </div>
+            {settings?.deviceId && (
+              <p className="text-[12px] text-ink-muted break-all">Device ID: {settings.deviceId}</p>
+            )}
+          </div>
+        </section>
+
+        <button type="button" disabled={saving} onClick={() => void save()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold disabled:opacity-60">
+          {saving ? 'Saving…' : 'Save settings'}
+        </button>
+      </div>
+    </Screen>
   )
 }

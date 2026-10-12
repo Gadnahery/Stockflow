@@ -1,10 +1,13 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Search, Plus, User, X, Trash2 } from 'lucide-react'
+import { Search, Plus, User, Trash2 } from 'lucide-react'
+import { v4 as uuidv4 } from 'uuid'
 import { db, audit } from '../lib/db'
 import type { Customer } from '../types'
-import { v4 as uuidv4 } from 'uuid'
+import Screen from '../components/ui/Screen'
+import Sheet from '../components/ui/Sheet'
 import { useConfirm } from '../components/ui/ConfirmDialog'
+import { fmtMoney } from '../lib/util'
 
 const emptyForm = { name: '', phone: '', email: '', address: '', creditLimit: '0', notes: '' }
 
@@ -15,17 +18,26 @@ export default function CustomersPage() {
   const [payAmount, setPayAmount] = useState('')
   const [editing, setEditing] = useState<Customer | null>(null)
   const [form, setForm] = useState(emptyForm)
-  const customers = useLiveQuery(() => db.customers.orderBy('name').toArray(), []) || []
 
-  const filtered = customers.filter(
-    (c) =>
-      c.name.toLowerCase().includes(query.toLowerCase()) ||
-      (c.phone && c.phone.includes(query))
-  )
+  const customers = useLiveQuery(() => db.customers.orderBy('name').toArray(), [])
+  const loading = customers === undefined
+
+  const filtered = useMemo(() => {
+    const list = customers || []
+    const q = query.trim().toLowerCase()
+    if (!q) return list
+    return list.filter(
+      (c) =>
+        c.name.toLowerCase().includes(q) ||
+        (c.phone && c.phone.includes(q)) ||
+        (c.email && c.email.toLowerCase().includes(q)),
+    )
+  }, [customers, query])
 
   const openCreate = () => {
     setEditing(null)
     setForm(emptyForm)
+    setPayAmount('')
     setShowForm(true)
   }
 
@@ -39,6 +51,7 @@ export default function CustomersPage() {
       creditLimit: String(c.creditLimit || 0),
       notes: c.notes || '',
     })
+    setPayAmount('')
     setShowForm(true)
   }
 
@@ -48,15 +61,27 @@ export default function CustomersPage() {
     if (!(amt > 0)) return
     const before = editing.balance
     const applied = Math.min(amt, before)
-    await db.customers.update(editing.id, { balance: before - applied, updatedAt: new Date().toISOString() })
-    await audit('CUSTOMER_PAYMENT', 'customer', editing.id, { before: { balance: before }, after: { balance: before - applied }, reason: `Received ${applied} from ${editing.name}` })
+    await db.customers.update(editing.id, {
+      balance: before - applied,
+      updatedAt: new Date().toISOString(),
+    })
+    await audit('CUSTOMER_PAYMENT', 'customer', editing.id, {
+      before: { balance: before },
+      after: { balance: before - applied },
+      reason: `Received ${applied} from ${editing.name}`,
+    })
     setEditing({ ...editing, balance: before - applied })
     setPayAmount('')
   }
 
   const handleDelete = async () => {
     if (!editing) return
-    const ok = await confirm({ title: 'Delete customer?', message: `"${editing.name}" will be removed.`, confirmLabel: 'Delete', tone: 'danger' })
+    const ok = await confirm({
+      title: 'Delete customer?',
+      message: `"${editing.name}" will be removed.`,
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
     if (!ok) return
     await db.customers.delete(editing.id)
     setShowForm(false)
@@ -74,7 +99,6 @@ export default function CustomersPage() {
       notes: form.notes.trim() || undefined,
       updatedAt: now,
     }
-
     if (editing) {
       await db.customers.update(editing.id, data)
     } else {
@@ -89,140 +113,145 @@ export default function CustomersPage() {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <header className="page-header">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="page-title">Customers</h1>
-            <p className="text-sm text-ink-secondary">{customers.length} customers</p>
-          </div>
-          <button
-            onClick={openCreate}
-            className="press flex items-center gap-2 h-10 px-4 rounded-full bg-primary text-white text-[14px] font-semibold shadow-soft"
-          >
-            <Plus size={16} />
-            <span className="hidden sm:inline">Add Customer</span>
-          </button>
-        </div>
-        <div className="mt-3 relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" size={18} />
+    <Screen
+      title="Customers"
+      subtitle={loading ? 'Loading…' : `${(customers || []).length} customer${(customers || []).length === 1 ? '' : 's'}`}
+      action={
+        <button type="button" onClick={openCreate} className="press h-9 px-3.5 rounded-full bg-primary text-white text-[14px] font-semibold flex items-center gap-1.5">
+          <Plus size={16} /> Add
+        </button>
+      }
+    >
+      <div className="space-y-4 md:max-w-2xl pb-6">
+        <div className="relative">
+          <Search size={18} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input
+            className="field w-full !pl-10"
+            placeholder="Search name or phone…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search by name or phone…"
-            className="field pl-10 pr-4"
           />
         </div>
-      </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {filtered.map((c) => (
-            <button
-              key={c.id}
-              onClick={() => openEdit(c)}
-              className="bg-white rounded-card shadow-card p-4 hover:shadow-soft transition-smooth text-left"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <User size={18} className="text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="font-medium text-ink truncate">{c.name}</p>
-                  {c.phone && <p className="text-sm text-ink-secondary">{c.phone}</p>}
-                  <div className="mt-2 flex gap-4 text-xs">
-                    <span className="text-ink-muted">
-                      Balance: <span className="tabular-nums font-medium text-ink">{c.balance.toLocaleString()}</span>
-                    </span>
-                    {c.creditLimit > 0 && (
-                      <span className="text-ink-muted">
-                        Limit: <span className="tabular-nums">{c.creditLimit.toLocaleString()}</span>
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
-        {filtered.length === 0 && (
-          <p className="text-center text-ink-muted py-12">No customers found</p>
+        {loading && (
+          <div className="space-y-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="h-16 rounded-[18px] bg-white shadow-card skeleton" />
+            ))}
+          </div>
+        )}
+
+        {!loading && filtered.length === 0 && (
+          <div className="rounded-[22px] bg-white shadow-card px-6 py-12 text-center">
+            <div className="mx-auto mb-3 h-14 w-14 rounded-full bg-[#E8F0FE] text-primary flex items-center justify-center">
+              <User size={26} />
+            </div>
+            <p className="text-[16px] font-semibold">No customers</p>
+            <p className="text-[14px] text-ink-secondary mt-1 mb-4">
+              {query ? 'Try a different search.' : 'Add customers for credit sales and history.'}
+            </p>
+            {!query && (
+              <button type="button" onClick={openCreate} className="press h-11 px-5 rounded-[14px] bg-primary text-white font-semibold">
+                Add customer
+              </button>
+            )}
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
+            {filtered.map((c, i) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => openEdit(c)}
+                className={`w-full flex items-center gap-3 px-4 py-3.5 text-left ${
+                  i < filtered.length - 1 ? 'border-b border-border' : ''
+                }`}
+              >
+                <span className="h-11 w-11 rounded-full bg-gradient-to-br from-[#3395FF] to-[#0062CC] text-white flex items-center justify-center text-[15px] font-bold shrink-0">
+                  {c.name.charAt(0).toUpperCase()}
+                </span>
+                <span className="flex-1 min-w-0">
+                  <span className="block text-[15px] font-semibold truncate">{c.name}</span>
+                  <span className="block text-[13px] text-ink-secondary truncate">
+                    {c.phone || c.email || 'No contact'}
+                  </span>
+                </span>
+                <span className="text-right shrink-0">
+                  {c.balance > 0 ? (
+                    <span className="text-[14px] font-semibold text-warning tabular-nums">{fmtMoney(c.balance)}</span>
+                  ) : (
+                    <span className="text-[12px] text-ink-muted">Limit {fmtMoney(c.creditLimit)}</span>
+                  )}
+                </span>
+              </button>
+            ))}
+          </div>
         )}
       </div>
 
-      {showForm && (
-        <div className="sheet-backdrop">
-          <div className="sheet-panel">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white">
-              <h2 className="text-[20px] font-bold tracking-tight">{editing ? 'Edit Customer' : 'Add Customer'}</h2>
-              <button onClick={() => setShowForm(false)} className="press h-9 w-9 rounded-full bg-black/[0.06] text-ink-secondary flex items-center justify-center">
-                <X size={20} />
+      <Sheet
+        open={showForm}
+        onClose={() => setShowForm(false)}
+        title={editing ? 'Edit customer' : 'New customer'}
+        footer={
+          <div className="space-y-2">
+            <button type="button" onClick={() => void save()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">
+              {editing ? 'Save changes' : 'Create customer'}
+            </button>
+            {editing && (
+              <button type="button" onClick={() => void handleDelete()} className="press w-full h-11 rounded-[14px] text-danger font-semibold bg-red-50 flex items-center justify-center gap-2">
+                <Trash2 size={15} /> Delete
               </button>
-            </div>
-            <div className="p-5 space-y-4">
-              <Field label="Name *" value={form.name} onChange={(v) => setForm({ ...form, name: v })} />
-              <Field label="Phone" value={form.phone} onChange={(v) => setForm({ ...form, phone: v })} />
-              <Field label="Email" value={form.email} onChange={(v) => setForm({ ...form, email: v })} />
-              <Field label="Address" value={form.address} onChange={(v) => setForm({ ...form, address: v })} />
-              <Field label="Credit Limit" value={form.creditLimit} type="number" onChange={(v) => setForm({ ...form, creditLimit: v })} />
-              <div>
-                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Notes</label>
-                <textarea
-                  value={form.notes}
-                  onChange={(e) => setForm({ ...form, notes: e.target.value })}
-                  rows={2}
-                  className="field !h-auto py-3 resize-none"
-                />
-              </div>
-              {editing && editing.balance > 0 && (
-                <div className="rounded-[18px] bg-amber-50 p-4">
-                  <p className="text-[14px] font-semibold text-warning">Owes {editing.balance.toLocaleString()} TZS</p>
-                  <div className="mt-2 flex gap-2">
-                    <input type="number" inputMode="decimal" value={payAmount} onChange={(e) => setPayAmount(e.target.value)} placeholder="Amount received" className="field flex-1 tabular-nums !bg-white" />
-                    <button onClick={receivePayment} className="press h-[46px] px-4 rounded-[14px] bg-ink text-white text-[14px] font-semibold">Record</button>
-                  </div>
-                </div>
-              )}
-              <button
-                onClick={save}
-                className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold shadow-soft"
-              >
-                {editing ? 'Save Changes' : 'Create Customer'}
-              </button>
-              {editing && (
-                <button
-                  onClick={handleDelete}
-                  className="w-full h-11 rounded-button border border-danger/30 text-danger text-sm font-medium hover:bg-danger/5 transition-smooth flex items-center justify-center gap-2"
-                >
-                  <Trash2 size={14} />
-                  Delete Customer
-                </button>
-              )}
-            </div>
+            )}
           </div>
+        }
+      >
+        <div className="space-y-3.5">
+          <div>
+            <label className="auth-label">Name</label>
+            <input className="field w-full" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+          </div>
+          <div>
+            <label className="auth-label">Phone</label>
+            <input className="field w-full" inputMode="tel" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+          </div>
+          <div>
+            <label className="auth-label">Email</label>
+            <input className="field w-full" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+          </div>
+          <div>
+            <label className="auth-label">Address</label>
+            <input className="field w-full" value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
+          </div>
+          <div>
+            <label className="auth-label">Credit limit (TZS)</label>
+            <input className="field w-full" inputMode="decimal" value={form.creditLimit} onChange={(e) => setForm({ ...form, creditLimit: e.target.value })} />
+          </div>
+          <div>
+            <label className="auth-label">Notes</label>
+            <textarea className="field w-full !h-auto py-3" rows={2} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+          </div>
+          {editing && editing.balance > 0 && (
+            <div className="rounded-[16px] bg-amber-50 p-4">
+              <p className="text-[14px] font-semibold text-warning">Owes {fmtMoney(editing.balance)}</p>
+              <div className="mt-2 flex gap-2">
+                <input
+                  className="field flex-1 !bg-white"
+                  inputMode="decimal"
+                  value={payAmount}
+                  onChange={(e) => setPayAmount(e.target.value)}
+                  placeholder="Amount received"
+                />
+                <button type="button" onClick={() => void receivePayment()} className="press h-[46px] px-4 rounded-[14px] bg-ink text-white text-[14px] font-semibold">
+                  Record
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-      )}
-    </div>
-  )
-}
-
-function Field({
-  label, value, onChange, type = 'text',
-}: {
-  label: string
-  value: string
-  onChange: (v: string) => void
-  type?: string
-}) {
-  return (
-    <div>
-      <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">{label}</label>
-      <input
-        type={type}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="field"
-      />
-    </div>
+      </Sheet>
+    </Screen>
   )
 }

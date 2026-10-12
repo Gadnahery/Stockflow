@@ -39,6 +39,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 ~~RLS still has permissive `dev_all_*` policies~~ **Resolved (Phase 1):** `dev_all_*` policies dropped; member-scoped RLS + `has_permission` / `create_business` / `accept_invite` RPCs applied. Remaining: PIN hash via Edge Function, email SMTP branding, manager-approval PIN override UI.
 
 
-## Phase 2 design (in progress)
-- iOS ConfirmDialog replaces `confirm()` / `alert()` on Sales, Products, Customers, Expenses, Suppliers, Sync
-- Sales history rebuilt on Screen: search, period/status filters, empty/loading states, receipt + void
+## Phase 2 design
+- iOS ConfirmDialog replaces browser confirm/alert
+- Rebuilt on Screen + cards + sheets: Sales, Expenses, Shifts, Suppliers, Stock, Customers, Settings, Export
+- Receipt modal restyled (print/share); empty/loading states on lists

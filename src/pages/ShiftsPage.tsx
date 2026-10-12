@@ -1,26 +1,30 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
+import { Play, Square, Clock } from 'lucide-react'
+import { format } from 'date-fns'
 import { db } from '../lib/db'
 import type { CashSession } from '../types'
-import { format } from 'date-fns'
-import { Play, Square } from 'lucide-react'
+import Screen from '../components/ui/Screen'
+import Sheet from '../components/ui/Sheet'
+import { fmtMoney } from '../lib/util'
 
 export default function ShiftsPage() {
-  const sessions = useLiveQuery(
-    () => db.cashSessions.orderBy('openedAt').reverse().toArray(),
-    []
-  ) || []
+  const sessions = useLiveQuery(() => db.cashSessions.orderBy('openedAt').reverse().toArray(), [])
+  const loading = sessions === undefined
+  const list = sessions || []
+  const openSession = list.find((s) => s.status === 'open')
+  const history = list.filter((s) => s.status === 'closed').slice(0, 40)
 
-  const openSession = sessions.find((s) => s.status === 'open')
   const [float, setFloat] = useState('0')
   const [closing, setClosing] = useState('')
   const [showOpen, setShowOpen] = useState(false)
   const [showClose, setShowClose] = useState(false)
   const [expected, setExpected] = useState(0)
+  const [cashSales, setCashSales] = useState(0)
 
   const currentUser = (() => {
     try {
-      return JSON.parse(sessionStorage.getItem('currentUser') || '{}')
+      return JSON.parse(sessionStorage.getItem('currentUser') || '{}') as { id?: string; name?: string }
     } catch {
       return {}
     }
@@ -43,20 +47,20 @@ export default function ShiftsPage() {
 
   const prepareClose = async () => {
     if (!openSession) return
-    // Sum cash payments from sales during this shift
     const sales = await db.sales
       .where('status')
       .equals('completed')
       .filter((s) => s.shiftId === openSession.id || (!s.shiftId && s.createdAt >= openSession.openedAt))
       .toArray()
 
-    let cashSales = 0
+    let cash = 0
     for (const sale of sales) {
       for (const p of sale.payments) {
-        if (p.method === 'cash') cashSales += p.amount
+        if (p.method === 'cash') cash += p.amount
       }
     }
-    const exp = openSession.openingFloat + cashSales
+    const exp = openSession.openingFloat + cash
+    setCashSales(cash)
     setExpected(exp)
     setClosing(String(exp))
     setShowClose(true)
@@ -77,143 +81,134 @@ export default function ShiftsPage() {
     setClosing('')
   }
 
+  const variance = closing ? parseFloat(closing) - expected : 0
+
   return (
-    <div className="h-full flex flex-col">
-      <header className="page-header flex items-center justify-between">
-        <div>
-          <h1 className="page-title">Cash Shifts</h1>
-          <p className="text-sm text-ink-secondary">
-            {openSession ? `Open since ${format(new Date(openSession.openedAt), 'HH:mm')}` : 'No open shift'}
-          </p>
-        </div>
-        {openSession ? (
-          <button
-            onClick={prepareClose}
-            className="flex items-center gap-2 h-10 px-4 rounded-button bg-danger text-white text-sm font-medium"
-          >
-            <Square size={14} />
-            Close Shift
+    <Screen
+      title="Cash shifts"
+      subtitle={openSession ? `Open since ${format(new Date(openSession.openedAt), 'HH:mm')}` : 'No open shift'}
+      action={
+        openSession ? (
+          <button type="button" onClick={() => void prepareClose()} className="press h-9 px-3.5 rounded-full bg-danger text-white text-[14px] font-semibold flex items-center gap-1.5">
+            <Square size={14} /> Close
           </button>
         ) : (
-          <button
-            onClick={() => setShowOpen(true)}
-            className="flex items-center gap-2 h-10 px-4 rounded-button bg-primary text-white text-sm font-medium hover:bg-primary-hover"
-          >
-            <Play size={14} />
-            Open Shift
+          <button type="button" onClick={() => setShowOpen(true)} className="press h-9 px-3.5 rounded-full bg-primary text-white text-[14px] font-semibold flex items-center gap-1.5">
+            <Play size={14} /> Open
           </button>
+        )
+      }
+    >
+      <div className="space-y-5 md:max-w-2xl pb-6">
+        {/* Till dashboard */}
+        {openSession ? (
+          <div className="bg-white rounded-[22px] shadow-card p-5 space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="h-11 w-11 rounded-full bg-emerald-50 text-success flex items-center justify-center">
+                <Clock size={20} />
+              </span>
+              <div>
+                <p className="text-[16px] font-semibold">Till open</p>
+                <p className="text-[13px] text-ink-secondary">{openSession.userName}</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-[16px] bg-surface-secondary p-3">
+                <p className="text-[12px] text-ink-muted font-medium">Opening float</p>
+                <p className="text-[18px] font-bold tabular-nums mt-0.5">{fmtMoney(openSession.openingFloat)}</p>
+              </div>
+              <div className="rounded-[16px] bg-surface-secondary p-3">
+                <p className="text-[12px] text-ink-muted font-medium">Opened</p>
+                <p className="text-[18px] font-bold mt-0.5">{format(new Date(openSession.openedAt), 'HH:mm')}</p>
+              </div>
+            </div>
+            <button type="button" onClick={() => void prepareClose()} className="press w-full h-12 rounded-[14px] bg-danger text-white font-semibold">
+              Count cash & close shift
+            </button>
+          </div>
+        ) : (
+          <div className="rounded-[22px] bg-white shadow-card px-6 py-10 text-center">
+            <p className="text-[16px] font-semibold">No open shift</p>
+            <p className="text-[14px] text-ink-secondary mt-1 mb-4">Open a till with an opening float before taking cash sales.</p>
+            <button type="button" onClick={() => setShowOpen(true)} className="press h-11 px-5 rounded-[14px] bg-primary text-white font-semibold inline-flex items-center gap-2">
+              <Play size={16} /> Open shift
+            </button>
+          </div>
         )}
-      </header>
 
-      <div className="flex-1 overflow-y-auto p-4 md:p-6 scroll-pad">
-        <div className="bg-white rounded-card shadow-card overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border text-left text-ink-secondary">
-                <th className="px-4 py-3 font-medium">Cashier</th>
-                <th className="px-4 py-3 font-medium">Opened</th>
-                <th className="px-4 py-3 font-medium text-right">Float</th>
-                <th className="px-4 py-3 font-medium text-right hidden sm:table-cell">Variance</th>
-                <th className="px-4 py-3 font-medium text-right">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sessions.map((s) => (
-                <tr key={s.id} className="border-b border-border/60">
-                  <td className="px-4 py-3 font-medium text-ink">{s.userName}</td>
-                  <td className="px-4 py-3 text-ink-secondary">
-                    {format(new Date(s.openedAt), 'dd MMM HH:mm')}
-                  </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{s.openingFloat.toLocaleString()}</td>
-                  <td className="px-4 py-3 text-right tabular-nums hidden sm:table-cell">
-                    {s.variance !== undefined ? (
-                      <span className={s.variance === 0 ? 'text-success' : s.variance > 0 ? 'text-primary' : 'text-danger'}>
-                        {s.variance > 0 ? '+' : ''}{s.variance.toLocaleString()}
-                      </span>
-                    ) : '—'}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                      s.status === 'open' ? 'bg-emerald-50 text-success' : 'bg-surface-secondary text-ink-muted'
-                    }`}>
-                      {s.status}
-                    </span>
-                  </td>
-                </tr>
+        <div>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">History</h2>
+          {loading && (
+            <div className="space-y-2">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="h-14 rounded-[16px] bg-white shadow-card skeleton" />
               ))}
-            </tbody>
-          </table>
-          {sessions.length === 0 && (
-            <p className="text-center text-ink-muted py-12">No shifts yet</p>
+            </div>
+          )}
+          {!loading && history.length === 0 && (
+            <p className="text-[14px] text-ink-muted px-1 py-4">Closed shifts will appear here.</p>
+          )}
+          {!loading && history.length > 0 && (
+            <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
+              {history.map((s, i) => (
+                <div key={s.id} className={`px-4 py-3.5 ${i < history.length - 1 ? 'border-b border-border' : ''}`}>
+                  <div className="flex justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[15px] font-semibold truncate">{s.userName}</p>
+                      <p className="text-[13px] text-ink-secondary">
+                        {format(new Date(s.openedAt), 'dd MMM HH:mm')}
+                        {s.closedAt ? ` → ${format(new Date(s.closedAt), 'HH:mm')}` : ''}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-[14px] tabular-nums font-medium">{fmtMoney(s.closingCash ?? 0)}</p>
+                      {typeof s.variance === 'number' && (
+                        <p className={`text-[12px] font-semibold tabular-nums ${
+                          s.variance === 0 ? 'text-success' : s.variance > 0 ? 'text-primary' : 'text-danger'
+                        }`}>
+                          {s.variance > 0 ? '+' : ''}{fmtMoney(s.variance)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           )}
         </div>
       </div>
 
-      {showOpen && (
-        <div className="sheet-backdrop">
-          <div className="sheet-panel p-6">
-            <h2 className="text-lg font-semibold text-ink mb-4">Open Shift</h2>
-            <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Opening float (cash in drawer)</label>
-            <input
-              type="number"
-              value={float}
-              onChange={(e) => setFloat(e.target.value)}
-              className="w-full h-12 px-4 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none tabular-nums text-lg"
-              autoFocus
-            />
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowOpen(false)} className="flex-1 h-11 rounded-button border border-border text-ink-secondary">
-                Cancel
-              </button>
-              <button onClick={openShift} className="flex-1 h-11 rounded-button bg-primary text-white font-medium">
-                Open
-              </button>
-            </div>
-          </div>
+      <Sheet open={showOpen} onClose={() => setShowOpen(false)} title="Open shift" footer={
+        <button type="button" onClick={() => void openShift()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">Open till</button>
+      }>
+        <div>
+          <label className="auth-label">Opening float (TZS)</label>
+          <input className="field w-full text-lg tabular-nums" inputMode="decimal" value={float} onChange={(e) => setFloat(e.target.value)} autoFocus />
         </div>
-      )}
+      </Sheet>
 
-      {showClose && openSession && (
-        <div className="sheet-backdrop">
-          <div className="sheet-panel p-6">
-            <h2 className="text-lg font-semibold text-ink mb-4">Close Shift</h2>
-            <div className="space-y-2 mb-4 text-sm">
-              <div className="flex justify-between">
-                <span className="text-ink-secondary">Opening float</span>
-                <span className="tabular-nums font-medium">{openSession.openingFloat.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-ink-secondary">Expected cash</span>
-                <span className="tabular-nums font-medium">{expected.toLocaleString()}</span>
-              </div>
+      <Sheet open={showClose && !!openSession} onClose={() => setShowClose(false)} title="Close shift" footer={
+        <button type="button" onClick={() => void closeShift()} className="press w-full h-12 rounded-[14px] bg-danger text-white font-semibold">Close shift</button>
+      }>
+        {openSession && (
+          <div className="space-y-4">
+            <div className="rounded-[16px] bg-surface-secondary p-4 space-y-2 text-[14px]">
+              <div className="flex justify-between"><span className="text-ink-secondary">Opening float</span><span className="tabular-nums font-medium">{fmtMoney(openSession.openingFloat)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-secondary">Cash sales</span><span className="tabular-nums font-medium">{fmtMoney(cashSales)}</span></div>
+              <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold">Expected</span><span className="tabular-nums font-bold">{fmtMoney(expected)}</span></div>
             </div>
-            <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Actual cash counted</label>
-            <input
-              type="number"
-              value={closing}
-              onChange={(e) => setClosing(e.target.value)}
-              className="w-full h-12 px-4 rounded-button bg-surface-secondary border border-transparent focus:border-primary outline-none tabular-nums text-lg"
-              autoFocus
-            />
-            {closing && (
-              <p className={`mt-2 text-sm ${
-                parseFloat(closing) - expected === 0 ? 'text-success' :
-                parseFloat(closing) - expected > 0 ? 'text-primary' : 'text-danger'
-              }`}>
-                Variance: {(parseFloat(closing) - expected).toLocaleString()} TZS
+            <div>
+              <label className="auth-label">Cash counted</label>
+              <input className="field w-full text-lg tabular-nums" inputMode="decimal" value={closing} onChange={(e) => setClosing(e.target.value)} autoFocus />
+            </div>
+            {closing !== '' && (
+              <p className={`text-[14px] font-semibold tabular-nums ${variance === 0 ? 'text-success' : variance > 0 ? 'text-primary' : 'text-danger'}`}>
+                Variance: {variance > 0 ? '+' : ''}{fmtMoney(variance)}
               </p>
             )}
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowClose(false)} className="flex-1 h-11 rounded-button border border-border text-ink-secondary">
-                Cancel
-              </button>
-              <button onClick={closeShift} className="flex-1 h-11 rounded-button bg-danger text-white font-medium">
-                Close Shift
-              </button>
-            </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+      </Sheet>
+    </Screen>
   )
 }
