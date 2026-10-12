@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { ensureSeedData } from './lib/db'
-import { startSyncLoop, processOutbox } from './lib/sync'
+import { startSyncLoop, processOutbox, startRealtime, pullMissing } from './lib/sync'
 import { usePosStore } from './store/posStore'
 import { RequireAuth } from './components/RequireAuth'
 import AppShell from './components/layout/AppShell'
@@ -39,7 +39,10 @@ function App() {
 
     const onOnline = () => {
       setOnline(true)
-      processOutbox().then(() => refreshPendingSync())
+      void processOutbox().then(() => {
+        refreshPendingSync()
+        return pullMissing()
+      })
     }
     const onOffline = () => setOnline(false)
 
@@ -47,11 +50,13 @@ function App() {
     window.addEventListener('offline', onOffline)
 
     const timer = startSyncLoop(20000)
+    const stopRealtime = startRealtime(() => refreshPendingSync())
 
     return () => {
       window.removeEventListener('online', onOnline)
       window.removeEventListener('offline', onOffline)
       clearInterval(timer)
+      stopRealtime()
     }
   }, [setOnline, refreshPendingSync])
 

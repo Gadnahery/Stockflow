@@ -319,6 +319,33 @@ export const usePosStore = create<PosState>((set, get) => ({
         createdAt: now,
         retries: 0,
       })
+      // Keep remote stock + ledger in lockstep with the sale
+      for (const item of cart) {
+        const product = await db.products.get(item.productId)
+        if (product) {
+          await db.outbox.add({
+            id: uuidv4(),
+            type: 'product_upsert',
+            payload: product,
+            createdAt: now,
+            retries: 0,
+          })
+        }
+        const mov = await db.stockMovements
+          .where('referenceId')
+          .equals(saleId)
+          .filter((m) => m.productId === item.productId)
+          .first()
+        if (mov) {
+          await db.outbox.add({
+            id: uuidv4(),
+            type: 'stock_movement',
+            payload: mov,
+            createdAt: now,
+            retries: 0,
+          })
+        }
+      }
     })
 
     set({ cart: [], currentSaleId: saleId, selectedCustomerId: null, selectedCustomerName: null })

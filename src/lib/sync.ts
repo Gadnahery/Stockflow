@@ -13,6 +13,9 @@ const IMAGE_BUCKET = 'product-images'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v)
+const MAX_OUTBOX_RETRIES = 12
+const LAST_PULL_KEY = 'sf_last_pull'
+const LAST_SYNC_KEY = 'sf_last_sync'
 
 async function ensureBusiness(): Promise<string> {
   const id = getBusinessId()
@@ -308,6 +311,11 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
     const events = await db.outbox.orderBy('createdAt').toArray()
 
     for (const event of events) {
+      if ((event.retries || 0) >= MAX_OUTBOX_RETRIES) {
+        // Dead-letter — keep for diagnostics, skip forever until user discards
+        failed++
+        continue
+      }
       try {
         await processEvent(event, businessId)
         await db.outbox.delete(event.id)
@@ -315,9 +323,12 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
       } catch (err) {
         failed++
         const message = err instanceof Error ? err.message : (err as { message?: string })?.message ?? String(err)
-        await db.outbox.update(event.id, { retries: event.retries + 1, lastError: message })
+        await db.outbox.update(event.id, { retries: (event.retries || 0) + 1, lastError: message })
         console.warn('sync failed', event.type, message)
       }
+    }
+    if (synced > 0) {
+      try { localStorage.setItem(LAST_SYNC_KEY, new Date().toISOString()) } catch { /* ignore */ }
     }
   } catch (err) {
     console.warn('processOutbox', err)
@@ -336,19 +347,57 @@ export async function pullMissing(): Promise<number> {
   const businessId = getBusinessId()
   if (!businessId) return 0
 
-  const [{ data: prodRows }, { data: custRows }] = await Promise.all([
-    supabase.from('products').select('*').eq('business_id', businessId),
-    supabase.from('customers').select('*').eq('business_id', businessId),
-  ])
+  let since = '1970-01-01T00:00:00.000Z'
+  try {
+    const s = localStorage.getItem(LAST_PULL_KEY)
+    if (s) since = s
+  } catch { /* ignore */ }
+
+  const nowIso = new Date().toISOString()
+  let added = 0
+
+  const [{ data: prodRows }, { data: custRows }, { data: supRows }, { data: saleRows }, { data: expRows }, { data: movRows }] =
+    await Promise.all([
+      supabase.from('products').select('*').eq('business_id', businessId).gte('updated_at', since),
+      supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
+      supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
+      supabase.from('sales').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
+      supabase.from('expenses').select('*').eq('business_id', businessId).gte('created_at', since).limit(300),
+      supabase.from('stock_movements').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
+    ])
 
   const localProducts = new Set((await db.products.toCollection().primaryKeys()) as string[])
   const localCustomers = new Set((await db.customers.toCollection().primaryKeys()) as string[])
-  const now = new Date().toISOString()
-  let added = 0
+  const localSuppliers = new Set((await db.suppliers.toCollection().primaryKeys()) as string[])
+  const localSales = new Set((await db.sales.toCollection().primaryKeys()) as string[])
+  const localExpenses = new Set((await db.expenses.toCollection().primaryKeys()) as string[])
+  const localMovements = new Set((await db.stockMovements.toCollection().primaryKeys()) as string[])
+  const now = nowIso
 
   await withoutSync(async () => {
     for (const row of prodRows ?? []) {
-      if (localProducts.has(row.id)) continue
+      if (localProducts.has(row.id)) {
+        // Cloud is newer — update stock/price if remote updated_at is later
+        const local = await db.products.get(row.id)
+        if (local && row.updated_at && local.updatedAt && row.updated_at > local.updatedAt) {
+          await db.products.update(row.id, {
+            name: row.name,
+            sku: row.sku || local.sku,
+            barcode: row.barcode || undefined,
+            price: Number(row.unit_price) || 0,
+            cost: Number(row.cost) || 0,
+            stock: Number(row.stock_quantity) ?? local.stock,
+            minStock: Number(row.min_stock) || undefined,
+            category: row.category || undefined,
+            unit: row.unit || local.unit,
+            imageUrl: row.image_url || local.imageUrl,
+            active: row.is_active !== false,
+            updatedAt: row.updated_at || now,
+          })
+          added++
+        }
+        continue
+      }
       await db.products.put({
         id: row.id,
         name: row.name,
@@ -367,6 +416,7 @@ export async function pullMissing(): Promise<number> {
       })
       added++
     }
+
     for (const row of custRows ?? []) {
       if (localCustomers.has(row.id)) continue
       await db.customers.put({
@@ -383,11 +433,100 @@ export async function pullMissing(): Promise<number> {
       })
       added++
     }
+
+    for (const row of supRows ?? []) {
+      if (localSuppliers.has(row.id)) continue
+      await db.suppliers.put({
+        id: row.id,
+        name: row.name,
+        phone: row.phone || undefined,
+        email: row.email || undefined,
+        address: row.address || undefined,
+        balance: Number(row.balance) || 0,
+        notes: row.notes || undefined,
+        createdAt: row.created_at || now,
+        updatedAt: row.updated_at || now,
+      })
+      added++
+    }
+
+    for (const row of saleRows ?? []) {
+      if (localSales.has(row.id)) continue
+      const payments = Array.isArray(row.payments) ? row.payments : []
+      // Fetch line items for this sale
+      const { data: items } = await supabase
+        .from('sale_items')
+        .select('*')
+        .eq('sale_id', row.id)
+      await db.sales.put({
+        id: row.id,
+        deviceId: row.device_id || 'remote',
+        items: (items || []).map((it: Record<string, unknown>) => ({
+          productId: String(it.product_id || ''),
+          name: String(it.product_name || ''),
+          sku: '',
+          price: Number(it.unit_price) || 0,
+          quantity: Number(it.quantity) || 0,
+          discount: Number(it.discount_amount) || 0,
+          lineTotal: Number(it.line_total) || 0,
+        })),
+        subtotal: Number(row.subtotal) || 0,
+        discount: Number(row.discount_total) || 0,
+        tax: Number(row.tax_total) || 0,
+        total: Number(row.total) || 0,
+        payments: payments as { method: string; amount: number }[],
+        customerId: row.customer_id || undefined,
+        customerName: row.customer_name || undefined,
+        cashierId: row.user_id || undefined,
+        cashierName: row.cashier_name || undefined,
+        status: (row.status as 'completed' | 'voided' | 'held') || 'completed',
+        receiptNumber: row.receipt_number || row.id.slice(0, 8),
+        note: row.note || undefined,
+        createdAt: row.created_at || now,
+        synced: true,
+      })
+      added++
+    }
+
+    for (const row of expRows ?? []) {
+      if (localExpenses.has(row.id)) continue
+      await db.expenses.put({
+        id: row.id,
+        category: row.category || 'Other',
+        amount: Number(row.amount) || 0,
+        paymentMethod: row.payment_method || 'cash',
+        note: row.note || undefined,
+        userId: row.user_id || undefined,
+        createdAt: row.created_at || now,
+        synced: true,
+      })
+      added++
+    }
+
+    for (const row of movRows ?? []) {
+      if (localMovements.has(row.id)) continue
+      await db.stockMovements.put({
+        id: row.id,
+        productId: row.product_id,
+        productName: row.product_name || '',
+        type: row.type,
+        quantity: Number(row.quantity) || 0,
+        previousStock: Number(row.previous_stock) || 0,
+        newStock: Number(row.new_stock) || 0,
+        reason: row.reason || undefined,
+        referenceId: row.reference_id || undefined,
+        userId: row.user_id || undefined,
+        createdAt: row.created_at || now,
+        synced: true,
+      })
+      added++
+    }
   })
+
+  try { localStorage.setItem(LAST_PULL_KEY, nowIso) } catch { /* ignore */ }
   return added
 }
 
-/** Push everything pending, then pull anything new from other devices. */
 export async function syncNow() {
   const result = await processOutbox()
   const pending = await db.outbox.count()
@@ -395,15 +534,52 @@ export async function syncNow() {
   return { ...result, pulled, pending }
 }
 
-export function startSyncLoop(intervalMs = 30000) {
+export function startRealtime(onChange?: () => void): () => void {
+  if (!supabaseConfigured || !supabase) return () => {}
+  const businessId = getBusinessId()
+  if (!businessId) return () => {}
+
+  const channel = supabase
+    .channel(`biz-${businessId}`)
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'products', filter: `business_id=eq.${businessId}` },
+      () => { void pullMissing().then(() => onChange?.()) },
+    )
+    .on(
+      'postgres_changes',
+      { event: '*', schema: 'public', table: 'customers', filter: `business_id=eq.${businessId}` },
+      () => { void pullMissing().then(() => onChange?.()) },
+    )
+    .on(
+      'postgres_changes',
+      { event: 'INSERT', schema: 'public', table: 'sales', filter: `business_id=eq.${businessId}` },
+      () => { void pullMissing().then(() => onChange?.()) },
+    )
+    .subscribe()
+
+  return () => {
+    void supabase.removeChannel(channel)
+  }
+}
+
+export function startSyncLoop(intervalMs = 20000) {
   let ticks = 0
   const tick = async () => {
     if (!navigator.onLine) return
     const result = await processOutbox()
     if (result.synced > 0) console.info(`Synced ${result.synced} events`)
-    // pull on first run and then every ~5 minutes
-    if (ticks++ % 10 === 0 && result.failed === 0 && (await db.outbox.count()) === 0) await pullMissing().catch(() => 0)
+    // Full pull on first tick and every ~2 minutes
+    if (ticks++ % 6 === 0) await pullMissing().catch(() => 0)
   }
   tick()
   return window.setInterval(tick, intervalMs)
+}
+
+export function getLastSyncAt(): string | null {
+  try { return localStorage.getItem(LAST_SYNC_KEY) } catch { return null }
+}
+
+export function getLastPullAt(): string | null {
+  try { return localStorage.getItem(LAST_PULL_KEY) } catch { return null }
 }

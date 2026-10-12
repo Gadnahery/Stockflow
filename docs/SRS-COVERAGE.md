@@ -49,3 +49,9 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - Top bar: title, command palette ⌘K, New sale, lock, account
 - Grouped desktop nav (Sell, Inventory, People, Money, Insights, Admin)
 - POS cart panel denser widths; F2/F4 shortcuts
+
+## Phase 4 data integrity
+- Outbox dead-letter after 12 retries; last push/pull timestamps
+- Full pull: products (merge by updated_at), customers, suppliers, sales+items, expenses, stock_movements
+- Sale completion queues product_upsert + stock_movement with the sale
+- Realtime on products/customers/sales; Sync page force sync + diagnostics
