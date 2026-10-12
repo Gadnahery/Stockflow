@@ -12,7 +12,7 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 | Customers + suppliers | ✅ | **Credit limit enforced, balance tracked, record payments** |
 | Offline sales | ✅ | Local DB + outbox |
 | Synchronization | ✅ | Idempotent upserts, retry, **Sync status screen** (errors/retries), pull from other devices |
-| Users / permissions | 🟡 | Supabase Auth + RLS live; PIN lock layer; invite/onboarding; email reset; permission matrix UI still pending |
+| Users / permissions | 🟡 | Supabase Auth + RLS; PIN lock; onboarding; invite-by-email + member list/suspend; Account page; SMTP branding + PIN Edge Function pending |
 | Basic reports | ✅ | Period compare, profit, payments, best sellers, categories, stock |
 | Subscription basics | ⬜ | Plans/entitlements/billing — Phase 6 |
 
