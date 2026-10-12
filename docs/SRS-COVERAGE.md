@@ -82,3 +82,9 @@ Status: ✅ done · 🟡 partial · ⬜ not started
 - Billing page: Free plan, seat usage (10), feature list, future paid notes
 - Account: workspace links (plan, team), rename business (owner/settings)
 - Soft seat cap on invites; Plan in desktop nav + More
+
+## Tenant isolation
+- Dropped public/demo read RLS on products/customers
+- IndexedDB cleared when business id changes (switchToBusinessWorkspace)
+- No demo product seed; new shops start empty then pull only their cloud data
+- Branches page: list/create/set active branch per device

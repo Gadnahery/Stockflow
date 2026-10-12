@@ -24,6 +24,8 @@ import {
   type User,
 } from '../lib/supabase'
 import type { Permission } from '../types'
+import { switchToBusinessWorkspace } from '../lib/db'
+import { pullMissing } from '../lib/sync'
 
 const PIN_LOCK_KEY = 'sf_pin_locked'
 const PIN_FAIL_KEY = 'sf_pin_fails'
@@ -89,13 +91,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const applyMembership = useCallback(async (uid: string) => {
     try {
       const { member: m, business: b } = await fetchMembership(uid)
+      // Isolate IndexedDB per business — never show another shop's products/customers
+      const { switched } = await switchToBusinessWorkspace(m?.business_id ?? null)
       setMember(m)
       setBusiness(b)
       cacheMember(m)
       mirrorSessionUser(m)
+      if (m?.business_id && navigator.onLine) {
+        // Load ONLY this business from the cloud (empty if new shop)
+        void pullMissing().catch(() => 0)
+      }
       return m
     } catch (e) {
       console.warn('fetchMembership failed', e)
+      await switchToBusinessWorkspace(null)
       setMember(null)
       setBusiness(null)
       return null

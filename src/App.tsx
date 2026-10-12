@@ -17,6 +17,7 @@ import AcceptInvitePage from './pages/auth/AcceptInvitePage'
 import AccountPage from './pages/auth/AccountPage'
 import HelpPage from './pages/HelpPage'
 import BillingPage from './pages/BillingPage'
+import BranchesPage from './pages/BranchesPage'
 import PosPage from './pages/PosPage'
 import ProductsPage from './pages/ProductsPage'
 import CustomersPage from './pages/CustomersPage'
@@ -101,6 +102,7 @@ function App() {
         <Route path="/audit" element={<AuditPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="/billing" element={<BillingPage />} />
+        <Route path="/branches" element={<BranchesPage />} />
         <Route path="/help" element={<HelpPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
