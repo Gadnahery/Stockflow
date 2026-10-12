@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
   Settings, Users, Truck, Wallet, ClipboardList, Download, ChevronRight, Lock, Package, Receipt,
-  RefreshCw, Wifi, WifiOff, Upload, ShieldCheck, CloudCog, UserCircle, HelpCircle, LogOut, CreditCard, Building2, LayoutDashboard,
+  RefreshCw, Wifi, WifiOff, Upload, ShieldCheck, CloudCog, UserCircle, HelpCircle, LogOut, CreditCard, Building2, LayoutDashboard, Bell,
 } from 'lucide-react'
 import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
@@ -26,6 +26,7 @@ const sections = [
       { icon: Receipt, label: 'Sales history', desc: 'View and reprint receipts', to: '/sales', color: '#007AFF' },
       { icon: ClipboardList, label: 'Cash shifts', desc: 'Open and close till sessions', to: '/shifts', color: '#34C759' },
       { icon: Truck, label: 'Suppliers & purchases', desc: 'Receive new stock', to: '/suppliers', color: '#FF9500' },
+      { icon: Bell, label: 'Notifications', desc: 'Low stock and sync alerts', to: '/notifications', color: '#FF9500' },
       { icon: LayoutDashboard, label: 'Home dashboard', desc: 'Today’s sales and alerts', to: '/home', color: '#007AFF' },
       { icon: Package, label: 'Inventory', desc: 'Value, alerts, ledger & adjustments', to: '/stock', color: '#AF52DE' },
       { icon: Wallet, label: 'Expenses', desc: 'Record business costs', to: '/expenses', color: '#FF3B30' },

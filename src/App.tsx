@@ -20,6 +20,7 @@ import BillingPage from './pages/BillingPage'
 import BranchesPage from './pages/BranchesPage'
 import PosPage from './pages/PosPage'
 import DashboardPage from './pages/DashboardPage'
+import NotificationsPage from './pages/NotificationsPage'
 import ProductsPage from './pages/ProductsPage'
 import CustomersPage from './pages/CustomersPage'
 import ReportsPage from './pages/ReportsPage'
@@ -86,6 +87,8 @@ function App() {
         }
       >
         <Route path="/" element={<PosPage />} />
+        <Route path="home" element={<DashboardPage />} />
+        <Route path="notifications" element={<NotificationsPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/reports" element={<ReportsPage />} />

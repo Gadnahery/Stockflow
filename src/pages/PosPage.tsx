@@ -28,7 +28,7 @@ export default function PosPage() {
   const {
     cart, searchQuery, setSearchQuery, addToCart, updateQuantity, removeFromCart, clearCart,
     isOnline, pendingSyncCount, completeSale, setCustomer, selectedCustomerName, applyCartDiscount,
-    held, holdCart, resumeHeld, deleteHeld,
+    held, holdCart, resumeHeld, deleteHeld, catalogTick,
   } = usePosStore()
   const { can } = usePermission()
 
@@ -46,7 +46,7 @@ export default function PosPage() {
   const [discMode, setDiscMode] = useState<'amount' | 'percent'>('amount')
   const [showHeld, setShowHeld] = useState(false)
 
-  const productsQ = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), [])
+  const productsQ = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), [catalogTick])
   const products = useMemo(() => productsQ ?? [], [productsQ])
   const loading = productsQ === undefined
   const customers = useLiveQuery(() => db.customers.orderBy('name').toArray(), []) || []

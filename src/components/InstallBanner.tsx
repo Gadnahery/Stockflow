@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Download, X } from 'lucide-react'
 import { canInstall, isStandalone, promptInstall } from '../lib/pwa'
+import { usePosStore } from '../store/posStore'
 
 export default function InstallBanner() {
   const [show, setShow] = useState(false)
+  const cartLen = usePosStore((s) => s.cart.length)
 
   useEffect(() => {
     if (isStandalone()) return
@@ -15,11 +17,11 @@ export default function InstallBanner() {
     return () => window.removeEventListener('sf-installable', onReady)
   }, [])
 
-  if (!show || isStandalone()) return null
+  if (!show || isStandalone() || cartLen > 0) return null
 
   return (
-    <div className="fixed bottom-20 md:bottom-4 left-3 right-3 md:left-auto md:right-4 md:w-96 z-40 rounded-[18px] bg-ink text-white shadow-float p-4 flex gap-3 items-start">
-      <Download size={22} className="shrink-0 mt-0.5 text-primary" />
+    <div className="fixed bottom-[5.5rem] md:bottom-4 left-3 right-3 md:left-auto md:right-4 md:w-96 z-30 rounded-[18px] bg-ink text-white shadow-float p-4 flex gap-3 items-start pointer-events-auto">
+      <Download size={22} className="shrink-0 mt-0.5 text-[#5AC8FA]" />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold">Install StockFlow</p>
         <p className="text-[13px] text-white/70 mt-0.5">

@@ -42,6 +42,7 @@ const desktopNav: NavItem[] = [
   { to: '/shifts', icon: ClipboardList, label: 'Shifts', section: 'Money' },
   { to: '/reports', icon: BarChart3, label: 'Reports', section: 'Insights' },
   { to: '/sync', icon: CloudCog, label: 'Sync', section: 'Insights' },
+  { to: '/notifications', icon: ShieldCheck, label: 'Alerts', section: 'Insights' },
   { to: '/audit', icon: ShieldCheck, label: 'Audit', section: 'Insights' },
   { to: '/branches', icon: Building2, label: 'Branches', section: 'Admin' },
   { to: '/settings', icon: Settings, label: 'Settings', section: 'Admin' },

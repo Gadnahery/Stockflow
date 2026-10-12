@@ -1,14 +1,17 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Play, Square, Clock } from 'lucide-react'
+import { Play, Square, Clock, ArrowDownUp } from 'lucide-react'
 import { format } from 'date-fns'
 import { db } from '../lib/db'
 import type { CashSession } from '../types'
 import Screen from '../components/ui/Screen'
 import Sheet from '../components/ui/Sheet'
 import { fmtMoney } from '../lib/util'
+import { useUi } from '../store/uiStore'
+import { v4 as uuidv4 } from 'uuid'
 
 export default function ShiftsPage() {
+  const toast = useUi((s) => s.toast)
   const sessions = useLiveQuery(() => db.cashSessions.orderBy('openedAt').reverse().toArray(), [])
   const loading = sessions === undefined
   const list = sessions || []
@@ -19,6 +22,10 @@ export default function ShiftsPage() {
   const [closing, setClosing] = useState('')
   const [showOpen, setShowOpen] = useState(false)
   const [showClose, setShowClose] = useState(false)
+  const [showCash, setShowCash] = useState(false)
+  const [cashDir, setCashDir] = useState<'in' | 'out'>('in')
+  const [cashMove, setCashMove] = useState('')
+  const [cashNote, setCashNote] = useState('')
   const [expected, setExpected] = useState(0)
   const [cashSales, setCashSales] = useState(0)
 
@@ -64,6 +71,39 @@ export default function ShiftsPage() {
     setExpected(exp)
     setClosing(String(exp))
     setShowClose(true)
+  }
+
+  const recordCashMove = async () => {
+    if (!openSession) return
+    const amount = parseFloat(cashMove) || 0
+    if (amount <= 0) {
+      toast('Enter an amount', 'error')
+      return
+    }
+    const now = new Date().toISOString()
+    const signed = cashDir === 'in' ? amount : -amount
+    const row = {
+      id: uuidv4(),
+      category: cashDir === 'in' ? 'Cash in' : 'Cash out',
+      amount: Math.abs(amount),
+      note: (cashNote || (cashDir === 'in' ? 'Till cash in' : 'Till cash out')) + ` · shift ${openSession.id.slice(0, 8)}`,
+      paymentMethod: 'cash',
+      userId: openSession.userId,
+      createdAt: now,
+      synced: false,
+    }
+    await db.expenses.add(row)
+    await db.outbox.add({
+      id: uuidv4(),
+      type: 'expense',
+      payload: row,
+      createdAt: now,
+      retries: 0,
+    })
+    toast(cashDir === 'in' ? 'Cash in recorded' : 'Cash out recorded', 'success')
+    setShowCash(false)
+    setCashMove('')
+    setCashNote('')
   }
 
   const closeShift = async () => {
@@ -209,6 +249,49 @@ export default function ShiftsPage() {
           </div>
         )}
       </Sheet>
+
+      <Sheet
+        open={showCash && !!openSession}
+        onClose={() => setShowCash(false)}
+        title="Cash in / out"
+        footer={
+          <button type="button" onClick={() => void recordCashMove()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">
+            Record {cashDir === 'in' ? 'cash in' : 'cash out'}
+          </button>
+        }
+      >
+        <div className="space-y-4">
+          <div className="flex gap-2">
+            {(['in', 'out'] as const).map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setCashDir(d)}
+                className={`press flex-1 h-11 rounded-full text-[14px] font-semibold ${
+                  cashDir === d ? 'bg-ink text-white' : 'bg-black/[0.06] text-ink-secondary'
+                }`}
+              >
+                Cash {d}
+              </button>
+            ))}
+          </div>
+          <div>
+            <label className="auth-label">Amount (TZS)</label>
+            <input
+              className="field w-full text-lg tabular-nums"
+              inputMode="decimal"
+              value={cashMove}
+              onChange={(e) => setCashMove(e.target.value)}
+              autoFocus
+            />
+          </div>
+          <div>
+            <label className="auth-label">Note (optional)</label>
+            <input className="field w-full" value={cashNote} onChange={(e) => setCashNote(e.target.value)} placeholder="e.g. Bank deposit, change float" />
+          </div>
+        </div>
+      </Sheet>
     </Screen>
   )
 }
+

@@ -21,6 +21,7 @@ export default function SalesPage() {
   const [period, setPeriod] = useState<Period>('7d')
   const [status, setStatus] = useState<StatusFilter>('all')
   const voidSale = usePosStore((s) => s.voidSale)
+  const refundSale = usePosStore((s) => s.refundSale)
   const { can } = usePermission()
   const confirm = useConfirm()
   const toast = useUi((s) => s.toast)
@@ -78,6 +79,27 @@ export default function SalesPage() {
       if (selected?.id === sale.id) setSelected(null)
     } catch (e) {
       toast((e as Error).message || 'Could not void sale', 'error')
+    }
+  }
+
+  const handleRefund = async (sale: Sale) => {
+    if (!can('REFUND_SALE') && !can('VOID_SALE')) {
+      toast('You do not have permission to refund sales', 'error')
+      return
+    }
+    if (sale.status !== 'completed') return
+    const ok = await confirm({
+      title: 'Refund this sale?',
+      message: `Restock items and mark receipt ${sale.receiptNumber} as refunded. Total ${sale.total.toLocaleString()} TZS.`,
+      confirmLabel: 'Refund',
+      tone: 'danger',
+    })
+    if (!ok) return
+    try {
+      await refundSale(sale.id)
+      toast('Sale refunded — stock restored', 'success')
+    } catch (e) {
+      toast((e as Error).message || 'Could not refund sale', 'error')
     }
   }
 
@@ -227,6 +249,16 @@ export default function SalesPage() {
                     >
                       <Receipt size={15} />
                     </button>
+                    {s.status === 'completed' && (can('REFUND_SALE') || can('VOID_SALE')) && (
+                      <button
+                        type="button"
+                        onClick={() => void handleRefund(s)}
+                        className="press h-8 px-2.5 rounded-full bg-amber-50 text-warning text-[11px] font-bold"
+                        aria-label="Refund sale"
+                      >
+                        Refund
+                      </button>
+                    )}
                     {s.status === 'completed' && can('VOID_SALE') && (
                       <button
                         type="button"

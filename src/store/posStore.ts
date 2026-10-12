@@ -9,6 +9,7 @@ interface PosState {
   searchQuery: string
   isOnline: boolean
   pendingSyncCount: number
+  catalogTick: number
   currentSaleId: string | null
   selectedCustomerId: string | null
   selectedCustomerName: string | null
@@ -25,6 +26,7 @@ interface PosState {
   applyCartDiscount: (discount: number) => void
   completeSale: (payments: Payment[], note?: string) => Promise<Sale>
   voidSale: (saleId: string) => Promise<void>
+  refundSale: (saleId: string) => Promise<void>
   held: HeldCart[]
   holdCart: () => boolean
   resumeHeld: (id: string) => boolean
@@ -48,6 +50,7 @@ export const usePosStore = create<PosState>((set, get) => ({
   searchQuery: '',
   isOnline: navigator.onLine,
   pendingSyncCount: 0,
+  catalogTick: 0,
   currentSaleId: null,
   selectedCustomerId: null,
   selectedCustomerName: null,
@@ -218,6 +221,74 @@ export const usePosStore = create<PosState>((set, get) => ({
       })
     })
     await audit('SALE_VOID', 'sale', saleId, { before: { status: 'completed', total: sale.total }, after: { status: 'voided' }, reason: `Receipt ${sale.receiptNumber}` })
+    set({ catalogTick: get().catalogTick + 1 })
+    await get().refreshPendingSync()
+    if (navigator.onLine) {
+      void processOutbox().then(() => get().refreshPendingSync()).catch(() => {})
+    }
+  },
+
+  refundSale: async (saleId) => {
+    const sale = await db.sales.get(saleId)
+    if (!sale || sale.status !== 'completed') throw new Error('Cannot refund this sale')
+    const now = new Date().toISOString()
+    const user = getCurrentUser()
+    const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
+
+    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
+      await db.sales.update(saleId, { status: 'refunded', synced: false })
+      if (creditAmt > 0 && sale.customerId) {
+        const c = await db.customers.get(sale.customerId)
+        if (c) await db.customers.update(c.id, { balance: Math.max(0, c.balance - creditAmt), updatedAt: now })
+      }
+      for (const item of sale.items) {
+        const product = await db.products.get(item.productId)
+        if (!product) continue
+        const previousStock = product.stock
+        const newStock = previousStock + item.quantity
+        await db.products.update(item.productId, { stock: newStock, updatedAt: now })
+        const movement = {
+          id: uuidv4(),
+          productId: item.productId,
+          productName: item.name,
+          type: 'return' as const,
+          quantity: item.quantity,
+          previousStock,
+          newStock,
+          referenceId: saleId,
+          reason: 'Sale refunded',
+          userId: user.id,
+          createdAt: now,
+          synced: false,
+        }
+        await db.stockMovements.add(movement)
+        await db.outbox.add({ id: uuidv4(), type: 'stock_movement', payload: movement, createdAt: now, retries: 0 })
+        await db.outbox.add({
+          id: uuidv4(),
+          type: 'product_upsert',
+          payload: { ...product, stock: newStock, updatedAt: now },
+          createdAt: now,
+          retries: 0,
+        })
+      }
+      await db.outbox.add({
+        id: uuidv4(),
+        type: 'sale',
+        payload: { ...sale, status: 'refunded' },
+        createdAt: now,
+        retries: 0,
+      })
+    })
+    await audit('SALE_REFUND', 'sale', saleId, {
+      before: { status: 'completed', total: sale.total },
+      after: { status: 'refunded' },
+      reason: `Receipt ${sale.receiptNumber}`,
+    })
+    set({ catalogTick: get().catalogTick + 1 })
+    await get().refreshPendingSync()
+    if (navigator.onLine) {
+      void processOutbox().then(() => get().refreshPendingSync()).catch(() => {})
+    }
   },
 
   completeSale: async (payments, note) => {
@@ -356,7 +427,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       }
     })
 
-    set({ cart: [], currentSaleId: saleId, selectedCustomerId: null, selectedCustomerName: null })
+    set({ cart: [], currentSaleId: saleId, selectedCustomerId: null, selectedCustomerName: null, catalogTick: get().catalogTick + 1 })
     if (sale.discount > 0) await audit('SALE_DISCOUNT', 'sale', saleId, { after: { discount: sale.discount, total: sale.total }, reason: `Receipt ${receiptNumber}` })
     await get().refreshPendingSync()
     // Push immediately when online so sales appear in cloud without waiting for the poll loop
