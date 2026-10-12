@@ -49,6 +49,21 @@ export class StockFlowDB extends Dexie {
       settings: 'id',
       auditLogs: 'id, action, entityType, createdAt',
     })
+    this.version(4).stores({
+      products: 'id, sku, barcode, name, category, active',
+      sales: 'id, createdAt, synced, receiptNumber, status, cashierId, shiftId',
+      stockMovements: 'id, productId, type, createdAt, synced, referenceId',
+      customers: 'id, name, phone',
+      suppliers: 'id, name, phone',
+      purchases: 'id, supplierId, status, createdAt, synced',
+      cashSessions: 'id, userId, status, openedAt',
+      expenses: 'id, category, createdAt, synced',
+      outbox: 'id, type, createdAt',
+      users: 'id, pin, role, active',
+      branches: 'id, name, active',
+      settings: 'id',
+      auditLogs: 'id, action, entityType, createdAt',
+    })
   }
 }
 

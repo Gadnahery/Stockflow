@@ -297,6 +297,7 @@ export const usePosStore = create<PosState>((set, get) => ({
         if (c) await db.customers.update(c.id, { balance: c.balance + creditAmt, updatedAt: now })
       }
 
+      const movements: StockMovement[] = []
       for (const item of cart) {
         const product = await db.products.get(item.productId)
         if (!product) continue
@@ -323,6 +324,7 @@ export const usePosStore = create<PosState>((set, get) => ({
           synced: false,
         }
         await db.stockMovements.add(movement)
+        movements.push(movement)
       }
 
       await db.outbox.add({
@@ -333,8 +335,8 @@ export const usePosStore = create<PosState>((set, get) => ({
         retries: 0,
       })
       // Keep remote stock + ledger in lockstep with the sale
-      for (const item of cart) {
-        const product = await db.products.get(item.productId)
+      for (const movement of movements) {
+        const product = await db.products.get(movement.productId)
         if (product) {
           await db.outbox.add({
             id: uuidv4(),
@@ -344,20 +346,13 @@ export const usePosStore = create<PosState>((set, get) => ({
             retries: 0,
           })
         }
-        const mov = await db.stockMovements
-          .where('referenceId')
-          .equals(saleId)
-          .filter((m) => m.productId === item.productId)
-          .first()
-        if (mov) {
-          await db.outbox.add({
-            id: uuidv4(),
-            type: 'stock_movement',
-            payload: mov,
-            createdAt: now,
-            retries: 0,
-          })
-        }
+        await db.outbox.add({
+          id: uuidv4(),
+          type: 'stock_movement',
+          payload: movement,
+          createdAt: now,
+          retries: 0,
+        })
       }
     })
 
