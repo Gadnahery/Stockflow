@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ensureSeedData } from './lib/db'
 import { startSyncLoop, processOutbox, startRealtime, pullMissing } from './lib/sync'
 import { usePosStore } from './store/posStore'
@@ -33,12 +33,17 @@ import StockAdjustmentPage from './pages/StockAdjustmentPage'
 import UsersPage from './pages/UsersPage'
 import SalesPage from './pages/SalesPage'
 import ExportPage from './pages/ExportPage'
+import LandingPage from './pages/LandingPage'
 
 function App() {
+  const location = useLocation()
   const setOnline = usePosStore((s) => s.setOnline)
   const refreshPendingSync = usePosStore((s) => s.refreshPendingSync)
 
   useEffect(() => {
+    const publicOnlyRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/accept-invite']
+    if (publicOnlyRoutes.includes(location.pathname)) return
+
     ensureSeedData().then(() => refreshPendingSync())
 
     const onOnline = () => {
@@ -62,10 +67,11 @@ function App() {
       clearInterval(timer)
       stopRealtime()
     }
-  }, [setOnline, refreshPendingSync])
+  }, [location.pathname, setOnline, refreshPendingSync])
 
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -86,7 +92,7 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<PosPage />} />
+        <Route path="/pos" element={<PosPage />} />
         <Route path="home" element={<DashboardPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="/products" element={<ProductsPage />} />
