@@ -18,6 +18,15 @@ export type Permission =
   | 'MANAGE_SETTINGS'
 
 export interface Product {
+  /** Pharmacy: lot / batch */
+  batchNumber?: string
+  /** Pharmacy: expiry ISO date */
+  expiryDate?: string
+  /** Restricted item (pharmacy / liquor) */
+  restricted?: boolean
+  /** Service line (salon/restaurant) — skip stock deduct if true */
+  isService?: boolean
+
   id: UUID
   name: string
   sku: string
@@ -202,7 +211,10 @@ export interface AppSettings {
   fiscalMode?: 'off' | 'prepare' | 'vfd'
   /** Last sequential fiscal receipt counter on this device */
   fiscalReceiptSeq?: number
+  /** Feature-flagged shop type from SRS §8 */
+  industryType?: 'retail' | 'restaurant' | 'pharmacy' | 'liquor' | 'salon' | 'wholesale'
 }
+
 
 export interface AuditLog {
   id: UUID

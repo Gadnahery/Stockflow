@@ -30,6 +30,7 @@ import ShiftsPage from './pages/ShiftsPage'
 import ExpensesPage from './pages/ExpensesPage'
 import SuppliersPage from './pages/SuppliersPage'
 import StockAdjustmentPage from './pages/StockAdjustmentPage'
+import RestaurantTablesPage from './pages/RestaurantTablesPage'
 import UsersPage from './pages/UsersPage'
 import SalesPage from './pages/SalesPage'
 import ExportPage from './pages/ExportPage'
@@ -132,6 +133,7 @@ function App() {
         <Route path="/expenses" element={<ExpensesPage />} />
         <Route path="/suppliers" element={<SuppliersPage />} />
         <Route path="/stock" element={<StockAdjustmentPage />} />
+        <Route path="/tables" element={<RestaurantTablesPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="/export" element={<ExportPage />} />
         <Route path="/import" element={<ImportPage />} />

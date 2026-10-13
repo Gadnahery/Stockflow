@@ -128,3 +128,9 @@ $$;
 
 -- Storage bucket for avatars (run in dashboard if storage policies need UI)
 -- insert into storage.buckets (id, name, public) values ('avatars', 'avatars', true) on conflict do nothing;
+
+-- Industry module flag (SRS §8)
+alter table public.businesses
+  add column if not exists industry_type text default 'retail';
+
+-- Local settings mirror can stay in Dexie; cloud column for reporting

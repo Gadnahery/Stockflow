@@ -387,6 +387,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       for (const item of cart) {
         const product = await db.products.get(item.productId)
         if (!product) continue
+        if (product.isService) continue // salon/restaurant service lines
 
         const previousStock = product.stock
         const newStock = Math.max(0, previousStock - item.quantity)

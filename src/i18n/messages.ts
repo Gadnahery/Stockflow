@@ -170,6 +170,7 @@ export const messages = {
     'pos.scan': 'Scan barcode',
     'pos.noProducts': 'No products match',
     'pos.addProducts': 'Add products first',
+    'pos.ageCheck': 'Confirm customer is of legal age before completing this sale',
 
     // Products
     'products.title': 'Products',
@@ -320,6 +321,7 @@ export const messages = {
     'more.sync': 'Sync status',
     'more.audit': 'Audit log',
     'more.notifications': 'Notifications',
+    'more.tables': 'Restaurant tables',
     'mkt.features.title': 'Features',
     'mkt.features.sub': 'Capabilities that match real shop work',
     'mkt.pricing.title': 'Pricing',
@@ -500,6 +502,7 @@ export const messages = {
     'pos.scan': 'Skani barcode',
     'pos.noProducts': 'Hakuna bidhaa zinazolingana',
     'pos.addProducts': 'Ongeza bidhaa kwanza',
+    'pos.ageCheck': 'Thibitisha mteja ana umri wa kisheria kabla ya kukamilisha mauzo',
     'products.title': 'Bidhaa',
     'products.sub': 'Orodha na viwango vya stoo',
     'products.search': 'Tafuta jina, SKU, barcode…',
@@ -646,6 +649,7 @@ export const messages = {
     'more.sync': 'Hali ya sinki',
     'more.audit': 'Ukaguzi',
     'more.notifications': 'Arifa',
+    'more.tables': 'Meza za mgahawa',
     'mkt.features.title': 'Vipengele',
     'mkt.features.sub': 'Uwezo unaolingana na kazi ya duka',
     'mkt.pricing.title': 'Bei',

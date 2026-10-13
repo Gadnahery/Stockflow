@@ -13,6 +13,7 @@ import { useTabCompact } from '../hooks/useTabCompact'
 import { fmt, haptic } from '../lib/util'
 import { usePermission } from '../hooks/usePermission'
 import { useI18n } from '../i18n/I18nContext'
+import { featuresFor } from '../lib/industry'
 import { format } from 'date-fns'
 
 const METHOD_IDS = ['cash', 'mobile', 'card', 'bank', 'credit'] as const
@@ -27,6 +28,8 @@ const METHOD_KEYS = {
 export default function PosPage() {
   const toast = useUi((s) => s.toast)
   const { t } = useI18n()
+  const settingsRow = useLiveQuery(() => db.settings.get('main'), [])
+  const industryFeats = featuresFor(settingsRow?.industryType)
   const onScroll = useTabCompact()
   const {
     cart, searchQuery, setSearchQuery, addToCart, updateQuantity, removeFromCart, clearCart,
@@ -123,7 +126,12 @@ export default function PosPage() {
       }
       if (e.key === 'F4' && cart.length > 0) {
         e.preventDefault()
-        setShowPay(true)
+        {
+          if (industryFeats.ageCheck) {
+            toast(t('pos.ageCheck') || 'Confirm customer is of legal age before completing this sale', 'info')
+          }
+          setShowPay(true)
+        }
       }
       if (e.key === 'Escape') {
         setShowPay(false)

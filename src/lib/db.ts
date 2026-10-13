@@ -141,6 +141,7 @@ export async function ensureSeedData() {
       vrnNumber: '',
       fiscalMode: 'off',
       fiscalReceiptSeq: 0,
+      industryType: 'retail',
     })
   } else if (!existing.deviceId) {
     await db.settings.update('main', { deviceId })
@@ -201,6 +202,7 @@ export async function switchToBusinessWorkspace(businessId: string | null) {
       vrnNumber: '',
       fiscalMode: 'off',
       fiscalReceiptSeq: 0,
+      industryType: 'retail',
     })
   })
   return { switched: true }

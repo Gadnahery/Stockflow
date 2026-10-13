@@ -29,6 +29,7 @@ const sectionDefs: {
     title: 'Operations',
     items: [
       { icon: Receipt, labelKey: 'more.sales', to: '/sales', color: '#007AFF' },
+      { icon: LayoutDashboard, labelKey: 'more.tables', to: '/tables', color: '#FF9500' },
       { icon: ClipboardList, labelKey: 'more.shifts', to: '/shifts', color: '#34C759' },
       { icon: Truck, labelKey: 'more.suppliers', to: '/suppliers', color: '#FF9500' },
       { icon: Bell, labelKey: 'more.notifications', to: '/notifications', color: '#FF9500' },

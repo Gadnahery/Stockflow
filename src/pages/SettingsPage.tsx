@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { fmt } from '../lib/util'
 import { useI18n } from '../i18n/I18nContext'
+import { INDUSTRY_OPTIONS, type IndustryType } from '../lib/industry'
 
 type BranchRow = { id: string; name: string; code: string | null }
 
@@ -29,6 +30,7 @@ export default function SettingsPage() {
     tinNumber: '',
     vrnNumber: '',
     fiscalMode: 'off' as 'off' | 'prepare' | 'vfd',
+    industryType: 'retail' as IndustryType,
   })
   const [saving, setSaving] = useState(false)
   const [branches, setBranches] = useState<BranchRow[]>([])
@@ -51,6 +53,7 @@ export default function SettingsPage() {
       tinNumber: settings.tinNumber || '',
       vrnNumber: settings.vrnNumber || '',
       fiscalMode: settings.fiscalMode || 'off',
+      industryType: (settings.industryType as IndustryType) || 'retail',
     })
     if (settings.branchId && !localStorage.getItem('branchId')) {
       setActiveBranchId(settings.branchId)
@@ -123,6 +126,7 @@ export default function SettingsPage() {
         vrnNumber: form.vrnNumber.trim() || undefined,
         fiscalMode: form.fiscalMode,
         fiscalReceiptSeq: settings?.fiscalReceiptSeq ?? 0,
+        industryType: form.industryType,
       })
       toast('Settings saved', 'success')
     } catch {
@@ -225,6 +229,39 @@ export default function SettingsPage() {
           )}
         </section>
 
+
+
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">
+            {locale === 'sw' ? 'Aina ya biashara' : 'Shop type'}
+          </h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4 space-y-2">
+            <p className="text-[13px] text-ink-muted mb-2">
+              {locale === 'sw'
+                ? 'Inawasha vipengele vinavyolingana (meza, batch, umri…).'
+                : 'Turns on matching features (tables, batches, age check…).'}
+            </p>
+            {INDUSTRY_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => set({ industryType: opt.id })}
+                className={`press w-full text-left px-4 py-3 rounded-[14px] ${
+                  form.industryType === opt.id
+                    ? 'bg-primary/10 ring-1 ring-primary/30'
+                    : 'bg-black/[0.04]'
+                }`}
+              >
+                <span className="block text-[14px] font-semibold">
+                  {locale === 'sw' ? opt.labelSw : opt.label}
+                </span>
+                <span className="block text-[12px] text-ink-muted mt-0.5">
+                  {locale === 'sw' ? opt.descriptionSw : opt.description}
+                </span>
+              </button>
+            ))}
+          </div>
+        </section>
 
         {/* TRA / fiscal readiness */}
         <section>
