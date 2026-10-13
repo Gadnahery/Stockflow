@@ -1,6 +1,6 @@
-import { useState, type FormEvent } from 'react'
+import { useState, useEffect, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Building2, CreditCard, Users, ChevronRight } from 'lucide-react'
+import { Building2, CreditCard, Users, ChevronRight, Camera } from 'lucide-react'
 import Screen from '../../components/ui/Screen'
 import { useAuth, setDevicePin } from '../../contexts/AuthContext'
 import { useUi } from '../../store/uiStore'
@@ -23,6 +23,49 @@ export default function AccountPage() {
   const [pwdError, setPwdError] = useState('')
   const [bizName, setBizName] = useState(business?.name || '')
   const [savingBiz, setSavingBiz] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
+
+  // Load profile avatar
+  useEffect(() => {
+    if (!user?.id || !supabase) return
+    void supabase
+      .from('profiles')
+      .select('avatar_url, full_name')
+      .eq('id', user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data?.avatar_url) setAvatarUrl(data.avatar_url)
+      })
+  }, [user?.id])
+
+  const onAvatar = async (file: File | null) => {
+    if (!file || !user?.id || !supabase) return
+    if (file.size > 2_000_000) {
+      toast('Image must be under 2 MB', 'error')
+      return
+    }
+    setUploadingAvatar(true)
+    try {
+      const ext = file.name.split('.').pop() || 'jpg'
+      const path = `${user.id}/avatar.${ext}`
+      const { error: upErr } = await supabase.storage.from('avatars').upload(path, file, {
+        upsert: true,
+        contentType: file.type,
+      })
+      if (upErr) throw upErr
+      const { data: pub } = supabase.storage.from('avatars').getPublicUrl(path)
+      const url = pub.publicUrl + '?t=' + Date.now()
+      await supabase.from('profiles').update({ avatar_url: url }).eq('id', user.id)
+      setAvatarUrl(url)
+      toast('Profile photo updated', 'success')
+    } catch (e) {
+      toast(e instanceof Error ? e.message : 'Upload failed — create avatars bucket in Supabase', 'error')
+    } finally {
+      setUploadingAvatar(false)
+    }
+  }
+
 
   const onPassword = async (e: FormEvent) => {
     e.preventDefault()
@@ -83,6 +126,33 @@ export default function AccountPage() {
   return (
     <Screen title={t('account.title')} subtitle="Profile, business and security">
       <div className="space-y-6 md:max-w-lg pb-8">
+
+        {/* Profile photo */}
+        <div className="bg-white rounded-[22px] shadow-card p-5 flex items-center gap-4">
+          <div className="relative h-16 w-16 rounded-full bg-primary/10 overflow-hidden shrink-0">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="" className="h-full w-full object-cover" />
+            ) : (
+              <span className="h-full w-full flex items-center justify-center text-[22px] font-bold text-primary">
+                {(member?.display_name || user?.email || '?').charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-[15px] font-semibold truncate">{member?.display_name || user?.email}</p>
+            <label className="press mt-2 inline-flex h-9 px-3 rounded-full bg-black/[0.06] text-[13px] font-semibold items-center gap-1.5 cursor-pointer">
+              <Camera size={14} />
+              {uploadingAvatar ? 'Uploading…' : 'Upload photo'}
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                disabled={uploadingAvatar}
+                onChange={(e) => void onAvatar(e.target.files?.[0] || null)}
+              />
+            </label>
+          </div>
+        </div>
         <div className="bg-white rounded-[22px] shadow-card p-5">
           <div className="flex items-center gap-4">
             <div className="h-16 w-16 rounded-full bg-gradient-to-br from-[#3395FF] to-[#0062CC] text-white flex items-center justify-center text-[24px] font-bold">

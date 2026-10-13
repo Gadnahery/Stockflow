@@ -11,7 +11,7 @@ export default function PricingPage() {
   const plans = [
     {
       name: sw ? 'Anza' : 'Start',
-      price: sw ? 'Bure kuanzisha' : 'Free to start',
+      price: sw ? 'Bure siku 7' : '7-day free trial',
       blurb: sw
         ? 'Fungua akaunti, ongeza bidhaa, uuze kwenye simu au kompyuta — ikiwa ni nje ya mtandao.'
         : 'Create an account, add products, and sell on phone or computer — including offline.',
@@ -24,7 +24,7 @@ export default function PricingPage() {
     },
     {
       name: sw ? 'Kukuza' : 'Grow',
-      price: sw ? 'Bei kwa duka' : 'Priced per shop',
+      price: sw ? 'TZS 25,000 / mwezi' : 'TZS 25,000 / month',
       blurb: sw
         ? 'Kwa maduka yenye wauzaji wengi au matawi. Tunakupa bei wazi baada ya mazungumzo mafupi.'
         : 'For shops with several cashiers or branches. Clear quote after a short conversation.',

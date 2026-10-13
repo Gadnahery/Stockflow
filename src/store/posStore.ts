@@ -294,6 +294,13 @@ export const usePosStore = create<PosState>((set, get) => ({
   completeSale: async (payments, note) => {
     const { cart, selectedCustomerId, selectedCustomerName } = get()
     if (cart.length === 0) throw new Error('Cart is empty')
+    // Subscription gate: after trial, block sales until paid (cached entitlement from last membership load)
+    try {
+      const raw = localStorage.getItem('sf_write_allowed')
+      if (raw === '0') throw new Error('Trial ended — subscribe in Plan & billing to sell again')
+    } catch (e) {
+      if (e instanceof Error && e.message.includes('Trial ended')) throw e
+    }
 
     const settings = await db.settings.get('main')
     const taxRate = settings?.taxRate ?? 0

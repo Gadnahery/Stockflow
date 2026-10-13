@@ -25,6 +25,7 @@ import {
 } from '../lib/supabase'
 import type { Permission } from '../types'
 import { switchToBusinessWorkspace } from '../lib/db'
+import { canWrite as entitlementCanWrite, computeAccess } from '../lib/entitlement'
 import { pullMissing } from '../lib/sync'
 
 const PIN_LOCK_KEY = 'sf_pin_locked'
@@ -56,6 +57,8 @@ interface AuthContextValue extends AuthState {
   unlockWithPin: (pin: string) => Promise<boolean>
   refreshMembership: () => Promise<void>
   touchActivity: () => void
+  canWrite: boolean
+  access: ReturnType<typeof computeAccess>
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
@@ -96,6 +99,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setMember(m)
       setBusiness(b)
       cacheMember(m)
+      try {
+        localStorage.setItem('sf_write_allowed', entitlementCanWrite(b) ? '1' : '0')
+      } catch { /* ignore */ }
       mirrorSessionUser(m)
       if (m?.business_id && navigator.onLine) {
         // Load ONLY this business from the cloud (empty if new shop)
@@ -358,6 +364,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signUp,
       signOut,
       createBusiness,
+      canWrite: entitlementCanWrite(business),
+      access: computeAccess(business),
       acceptInvite,
       resetPassword,
       updatePassword,

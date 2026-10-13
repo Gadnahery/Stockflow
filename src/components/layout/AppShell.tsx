@@ -12,6 +12,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
+import SubscriptionBanner from '../SubscriptionBanner'
 import { useI18n } from '../i18n/I18nContext'
 import type { MessageKey } from '../i18n/messages'
 
@@ -374,8 +375,9 @@ export default function AppShell() {
 
         <main className="flex-1 min-h-0 min-w-0 relative" onScrollCapture={onScrollAny}>
           <div key={location.pathname} className="page-enter h-full flex flex-col">
+            <SubscriptionBanner />
+            <InstallBanner />
             <Outlet />
-      <InstallBanner />
           </div>
         </main>
       </div>
