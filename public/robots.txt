@@ -10,7 +10,6 @@ Allow: /privacy
 Allow: /terms
 Allow: /industries/
 
-# Private application areas (not for indexing)
 Disallow: /pos
 Disallow: /home
 Disallow: /products
@@ -36,13 +35,10 @@ Disallow: /notifications
 Disallow: /onboarding
 Disallow: /accept-invite
 Disallow: /reset-password
-
-# Auth pages — noindex preference via meta; still disallow crawl noise
 Disallow: /login
 Disallow: /signup
 Disallow: /forgot-password
 
-# OpenAI search crawler — public content only
 User-agent: OAI-SearchBot
 Allow: /
 Allow: /features

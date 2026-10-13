@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ensureSeedData } from './lib/db'
 import { startSyncLoop, processOutbox, startRealtime, pullMissing } from './lib/sync'
 import { usePosStore } from './store/posStore'
@@ -33,6 +33,7 @@ import StockAdjustmentPage from './pages/StockAdjustmentPage'
 import UsersPage from './pages/UsersPage'
 import SalesPage from './pages/SalesPage'
 import ExportPage from './pages/ExportPage'
+import LandingPage from './pages/LandingPage'
 
 
 import MarketingLayout from './marketing/MarketingLayout'
@@ -49,10 +50,14 @@ import IndustryPage from './pages/marketing/IndustryPage'
 import NotFoundPage from './pages/marketing/NotFoundPage'
 
 function App() {
+  const location = useLocation()
   const setOnline = usePosStore((s) => s.setOnline)
   const refreshPendingSync = usePosStore((s) => s.refreshPendingSync)
 
   useEffect(() => {
+    const publicOnlyRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/accept-invite']
+    if (publicOnlyRoutes.includes(location.pathname)) return
+
     ensureSeedData().then(() => refreshPendingSync())
 
     const onOnline = () => {
@@ -76,13 +81,13 @@ function App() {
       clearInterval(timer)
       stopRealtime()
     }
-  }, [setOnline, refreshPendingSync])
+  }, [location.pathname, setOnline, refreshPendingSync])
 
   return (
     <Routes>
       {/* Public marketing — SEO entry points */}
+      <Route path="/" element={<LandingPage />} />
       <Route element={<MarketingLayout />}>
-        <Route path="/" element={<HomePage />} />
         <Route path="/features" element={<FeaturesPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/about" element={<AboutPage />} />

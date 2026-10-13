@@ -51,7 +51,7 @@ const desktopNav: NavItem[] = [
 ]
 
 function mobileActiveIndex(pathname: string) {
-  if (pathname === '/') return 0
+  if (pathname === '/pos') return 0
   if (pathname.startsWith('/products')) return 1
   if (pathname.startsWith('/customers')) return 2
   if (pathname.startsWith('/reports')) return 3
