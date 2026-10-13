@@ -12,18 +12,21 @@ import ProductImage from '../components/ui/ProductImage'
 import { useTabCompact } from '../hooks/useTabCompact'
 import { fmt, haptic } from '../lib/util'
 import { usePermission } from '../hooks/usePermission'
+import { useI18n } from '../i18n/I18nContext'
 import { format } from 'date-fns'
 
-const METHODS = [
-  { id: 'cash', label: 'Cash' },
-  { id: 'mobile', label: 'Mobile' },
-  { id: 'card', label: 'Card' },
-  { id: 'bank', label: 'Bank' },
-  { id: 'credit', label: 'Credit' },
-] as const
+const METHOD_IDS = ['cash', 'mobile', 'card', 'bank', 'credit'] as const
+const METHOD_KEYS = {
+  cash: 'pos.cash',
+  mobile: 'pos.mobile',
+  card: 'pos.card',
+  bank: 'pos.bank',
+  credit: 'pos.credit',
+} as const
 
 export default function PosPage() {
   const toast = useUi((s) => s.toast)
+  const { t } = useI18n()
   const onScroll = useTabCompact()
   const {
     cart, searchQuery, setSearchQuery, addToCart, updateQuantity, removeFromCart, clearCart,
@@ -37,7 +40,7 @@ export default function PosPage() {
   const [cashReceived, setCashReceived] = useState('')
   const [saleNote, setSaleNote] = useState('')
   const [lastSale, setLastSale] = useState<Sale | null>(null)
-  const [payMethod, setPayMethod] = useState<(typeof METHODS)[number]['id']>('cash')
+  const [payMethod, setPayMethod] = useState<(typeof METHOD_IDS)[number]>('cash')
   const [discountInput, setDiscountInput] = useState('')
   const [customerQuery, setCustomerQuery] = useState('')
   const [category, setCategory] = useState('All')
@@ -115,7 +118,7 @@ export default function PosPage() {
         if (holdCart()) {
           setShowPay(false)
           setLines([])
-          toast('Cart put on hold', 'info')
+          toast(t('pos.cartHeld'), 'info')
         }
       }
       if (e.key === 'F4' && cart.length > 0) {
@@ -135,12 +138,12 @@ export default function PosPage() {
 
   const add = (p: Product) => {
     if (p.stock <= 0) {
-      toast(`${p.name} is out of stock`, 'error')
+      toast(`${p.name} ${t('pos.outOfStock')}`, 'error')
       return
     }
     const inCart = qtyById.get(p.id) ?? 0
     if (inCart >= p.stock) {
-      toast(`Only ${fmt(p.stock)} of ${p.name} in stock`, 'error')
+      toast(t('pos.onlyStock').replace('{n}', fmt(p.stock)).replace('{name}', p.name), 'error')
       return
     }
     addToCart(p)
@@ -151,11 +154,11 @@ export default function PosPage() {
     const code = raw.trim()
     const p = products.find((x) => x.barcode === code || x.sku.toLowerCase() === code.toLowerCase())
     if (!p) {
-      toast(`No product with code ${code}`, 'error')
+      toast(t('pos.noProduct').replace('{code}', code), 'error')
       return
     }
     add(p)
-    toast(`${p.name} added`, 'success')
+    toast(`${p.name} ${t('pos.added')}`, 'success')
   }
 
   // Hardware (keyboard-wedge) USB barcode scanners
@@ -176,7 +179,7 @@ export default function PosPage() {
           )
           if (product) {
             if (product.stock <= 0) {
-              toast(`${product.name} is out of stock`, 'error')
+              toast(`${product.name} ${t('pos.outOfStock')}`, 'error')
             } else {
               addToCart(product)
               setSearchQuery('')
@@ -214,7 +217,7 @@ export default function PosPage() {
       setPayMethod('cash')
       setCustomerQuery('')
       setLines([])
-      toast('Sale completed', 'success')
+      toast(t('pos.saleDone'), 'success')
     } catch (err) {
       toast((err as Error).message, 'error')
     } finally {
@@ -231,7 +234,7 @@ export default function PosPage() {
   }
 
   const doHold = () => {
-    if (holdCart()) { setShowPay(false); setLines([]); toast('Cart put on hold', 'info') }
+    if (holdCart()) { setShowPay(false); setLines([]); toast(t('pos.cartHeld'), 'info') }
   }
 
   const applyDiscount = () => {
@@ -281,7 +284,7 @@ export default function PosPage() {
                 type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search or scan barcode"
+                placeholder={t('pos.search')}
                 className="field !bg-black/[0.06] pl-10 pr-3 focus:!bg-white"
                 autoFocus={typeof window !== 'undefined' && window.matchMedia('(pointer: fine)').matches}
               />
@@ -388,7 +391,7 @@ export default function PosPage() {
               disabled={paying || !canCharge}
               className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold disabled:opacity-40 shadow-soft"
             >
-              {paying ? 'Processing…' : `Charge ${fmt(payTotal)} TZS`}
+              {paying ? t('pos.completing') : `${t('pos.charge')} ${fmt(payTotal)} TZS`}
             </button>
           ) : undefined
         }
@@ -441,7 +444,7 @@ export default function PosPage() {
                 </div>
               ) : (
                 <div className="relative">
-                  <input value={customerQuery} onChange={(e) => setCustomerQuery(e.target.value)} placeholder="Walk-in — or search a customer" className="field" />
+                  <input value={customerQuery} onChange={(e) => setCustomerQuery(e.target.value)} placeholder={t('pos.noCustomer')} className="field" />
                   {filteredCustomers.length > 0 && (
                     <div className="absolute z-10 left-0 right-0 top-full mt-1.5 bg-white rounded-[16px] shadow-float border border-border overflow-hidden">
                       {filteredCustomers.map((c) => (
@@ -491,23 +494,23 @@ export default function PosPage() {
                 className="field"
                 value={saleNote}
                 onChange={(e) => setSaleNote(e.target.value)}
-                placeholder="e.g. Table 4, delivery…"
+                placeholder={t('pos.note')}
               />
             </div>
 
             {/* Payment method — iOS segmented control */}
             <div className="mt-5">
-              <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Payment</label>
+              <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">{t('pos.pay')}</label>
               <div className="grid grid-cols-5 p-1 rounded-[14px] bg-black/[0.06]">
-                {METHODS.map((m) => (
+                {METHOD_IDS.map((id) => (
                   <button
-                    key={m.id}
-                    onClick={() => setPayMethod(m.id)}
+                    key={id}
+                    onClick={() => setPayMethod(id)}
                     className={`h-10 rounded-[11px] text-[13px] font-semibold transition-all duration-200 ${
-                      payMethod === m.id ? 'bg-white text-ink shadow-soft' : 'text-ink-secondary'
+                      payMethod === id ? 'bg-white text-ink shadow-soft' : 'text-ink-secondary'
                     }`}
                   >
-                    {m.label}
+                    {t(METHOD_KEYS[id])}
                   </button>
                 ))}
               </div>
@@ -710,7 +713,7 @@ function CartPanel({
           disabled={cart.length === 0}
           className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold disabled:opacity-40 shadow-soft"
         >
-          Charge
+          {t('pos.charge')}
         </button>
       </div>
     </>

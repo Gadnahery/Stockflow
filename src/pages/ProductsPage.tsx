@@ -11,6 +11,7 @@ import BarcodeScanner from '../components/ui/BarcodeScanner'
 import ProductImage from '../components/ui/ProductImage'
 import { useUi } from '../store/uiStore'
 import { fileToDataUrl } from '../lib/image'
+import { useI18n } from '../i18n/I18nContext'
 import { fmt, generateBarcode, makeSku } from '../lib/util'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 
@@ -21,6 +22,7 @@ const emptyForm = {
 }
 
 export default function ProductsPage() {
+  const { t } = useI18n()
   const confirm = useConfirm()
   const { can } = usePermission()
   const toast = useUi((s) => s.toast)
@@ -165,7 +167,7 @@ export default function ProductsPage() {
         title="Products"
         subtitle={loading ? ' ' : `${products.length} ${products.length === 1 ? 'item' : 'items'}`}
         action={canManage && (
-          <button onClick={openCreate} aria-label="Add product" className="press h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center shadow-soft">
+          <button onClick={openCreate} aria-label={t('products.add')} className="press h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center shadow-soft">
             <Plus size={22} strokeWidth={2.6} />
           </button>
         )}
@@ -219,10 +221,10 @@ export default function ProductsPage() {
           ) : filtered.length === 0 ? (
             <div className="text-center py-16">
               <div className="mx-auto h-16 w-16 rounded-full bg-black/[0.05] text-ink-muted flex items-center justify-center"><Package size={28} /></div>
-              <p className="mt-4 text-[17px] font-semibold">{products.length === 0 ? 'No products yet' : 'Nothing matches'}</p>
+              <p className="mt-4 text-[17px] font-semibold">{products.length === 0 ? t('products.empty') : 'Nothing matches'}</p>
               <p className="text-[15px] text-ink-secondary mt-1">{products.length === 0 ? 'Add your first product to start selling.' : 'Check the spelling or scan the barcode.'}</p>
               {canManage && products.length === 0 && (
-                <button onClick={openCreate} className="press mt-5 h-11 px-6 rounded-full bg-primary text-white font-semibold">Add product</button>
+                <button onClick={openCreate} className="press mt-5 h-11 px-6 rounded-full bg-primary text-white font-semibold">{t('products.add')}</button>
               )}
             </div>
           ) : (
@@ -261,7 +263,7 @@ export default function ProductsPage() {
         title={editing ? 'Edit product' : 'New product'}
         footer={
           <button onClick={save} disabled={saving} className="press w-full h-14 rounded-[16px] bg-primary text-white text-[17px] font-bold disabled:opacity-50 shadow-soft">
-            {saving ? 'Saving…' : editing ? 'Save changes' : 'Add product'}
+            {saving ? t('products.saving') : editing ? t('products.save') : t('products.add')}
           </button>
         }
       >

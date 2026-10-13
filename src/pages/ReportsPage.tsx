@@ -12,19 +12,21 @@ import { db } from '../lib/db'
 import { usePermission } from '../hooks/usePermission'
 import Screen from '../components/ui/Screen'
 import ProductImage from '../components/ui/ProductImage'
+import { useI18n } from '../i18n/I18nContext'
 import { fmt, fmtMoney } from '../lib/util'
 
 type Period = 'today' | '7d' | '30d'
-const PERIODS: { id: Period; label: string; days: number }[] = [
-  { id: 'today', label: 'Today', days: 1 },
-  { id: '7d', label: '7 days', days: 7 },
-  { id: '30d', label: '30 days', days: 30 },
+const PERIODS: { id: Period; labelKey: 'reports.today' | 'reports.7d' | 'reports.30d'; days: number }[] = [
+  { id: 'today', labelKey: 'reports.today', days: 1 },
+  { id: '7d', labelKey: 'reports.7d', days: 7 },
+  { id: '30d', labelKey: 'reports.30d', days: 30 },
 ]
 const METHOD_COLORS: Record<string, string> = {
   cash: '#34C759', mobile: '#007AFF', card: '#AF52DE', bank: '#FF9500', credit: '#8E8E93',
 }
 
 export default function ReportsPage() {
+  const { t } = useI18n()
   const { can } = usePermission()
   const [period, setPeriod] = useState<Period>('7d')
   const [selected, setSelected] = useState<number | null>(null)
@@ -205,7 +207,7 @@ export default function ReportsPage() {
   const heroValue = sel ? sel.value : data.revenue
 
   return (
-    <Screen title="Reports" subtitle="Your business at a glance">
+    <Screen title={t('reports.title')} subtitle={t('reports.sub')}>
       <div className="space-y-5 md:max-w-3xl pb-8">
         {/* Period */}
         <div className="grid grid-cols-3 p-1 rounded-[14px] bg-black/[0.06]">
@@ -221,7 +223,7 @@ export default function ReportsPage() {
                 period === p.id ? 'bg-white text-ink shadow-soft' : 'text-ink-secondary'
               }`}
             >
-              {p.label}
+              {t(p.labelKey)}
             </button>
           ))}
         </div>
@@ -288,7 +290,7 @@ export default function ReportsPage() {
             </Card>
 
             {/* ─── Profit & Loss (connected ERP view) ─── */}
-            <Card title="Profit & loss">
+            <Card title={t('reports.pnl')}>
               <p className="text-[13px] text-ink-secondary mb-3 -mt-1">
                 How sales, product cost, and expenses form your net result
               </p>
@@ -362,10 +364,10 @@ export default function ReportsPage() {
             </div>
 
             {/* Money movement */}
-            <Card title="How money moved">
+            <Card title={t('reports.payments')}>
               <div className="space-y-3">
                 {data.methods.length === 0 ? (
-                  <Empty text="No payments in this period." />
+                  <Empty text={t('reports.noPayments')} />
                 ) : (
                   data.methods.map(([method, amount]) => {
                     const pct = data.revenue > 0 ? (amount / data.revenue) * 100 : 0
@@ -437,9 +439,9 @@ export default function ReportsPage() {
             </Card>
 
             {/* Top products */}
-            <Card title="Best sellers">
+            <Card title={t('reports.best')}>
               {data.topProducts.length === 0 ? (
-                <Empty text="No product sales yet." />
+                <Empty text={t('reports.noSales')} />
               ) : (
                 <ul className="divide-y divide-border">
                   {data.topProducts.map((p, i) => (
@@ -468,7 +470,7 @@ export default function ReportsPage() {
 
             {/* Categories */}
             {data.categories.length > 0 && (
-              <Card title="By category">
+              <Card title={t('reports.category')}>
                 <div className="space-y-2">
                   {data.categories.map(([cat, amt]) => (
                     <div key={cat} className="flex justify-between text-[14px]">
@@ -481,7 +483,7 @@ export default function ReportsPage() {
             )}
 
             {/* Balance sheet style snapshot */}
-            <Card title="What you hold">
+            <Card title={t('reports.stock')}>
               <div className="space-y-3 text-[14px]">
                 <div className="flex justify-between items-center">
                   <span className="text-ink-secondary flex items-center gap-2">
@@ -550,7 +552,7 @@ export default function ReportsPage() {
             )}
 
             {/* Quick links — ERP navigation */}
-            <Card title="Explore">
+            <Card title={t('reports.explore')}>
               <div className="grid grid-cols-2 gap-2">
                 {[
                   { to: '/sales', icon: Receipt, label: 'Sales history' },
