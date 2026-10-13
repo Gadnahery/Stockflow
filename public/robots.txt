@@ -1,0 +1,30 @@
+User-agent: *
+Allow: /
+
+# Keep authenticated application areas out of search results.
+Disallow: /pos
+Disallow: /home
+Disallow: /products
+Disallow: /sales
+Disallow: /customers
+Disallow: /reports
+Disallow: /stock
+Disallow: /suppliers
+Disallow: /expenses
+Disallow: /shifts
+Disallow: /users
+Disallow: /branches
+Disallow: /sync
+Disallow: /audit
+Disallow: /notifications
+Disallow: /settings
+Disallow: /import
+Disallow: /export
+Disallow: /billing
+Disallow: /account
+Disallow: /onboarding
+Disallow: /accept-invite
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
