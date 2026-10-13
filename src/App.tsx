@@ -33,6 +33,7 @@ import StockAdjustmentPage from './pages/StockAdjustmentPage'
 import UsersPage from './pages/UsersPage'
 import SalesPage from './pages/SalesPage'
 import ExportPage from './pages/ExportPage'
+import LandingPage from './pages/LandingPage'
 
 function App() {
   const setOnline = usePosStore((s) => s.setOnline)
@@ -66,6 +67,7 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -86,7 +88,7 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<PosPage />} />
+        <Route path="/pos" element={<PosPage />} />
         <Route path="home" element={<DashboardPage />} />
         <Route path="notifications" element={<NotificationsPage />} />
         <Route path="/products" element={<ProductsPage />} />
