@@ -229,6 +229,7 @@
   position: absolute;
   inset: 0;
   overflow: hidden;
+  background: #1a1d24;
 }
 .sf-lp-hero-media img {
   width: 100%;
@@ -242,9 +243,9 @@
   inset: 0;
   background: linear-gradient(
     180deg,
-    rgba(8, 10, 16, 0.35) 0%,
-    rgba(8, 10, 16, 0.45) 45%,
-    rgba(8, 10, 16, 0.88) 100%
+    rgba(8, 10, 16, 0.25) 0%,
+    rgba(8, 10, 16, 0.35) 40%,
+    rgba(8, 10, 16, 0.78) 100%
   );
 }
 .sf-lp-hero-content {

@@ -35,21 +35,21 @@ const PILLARS = [
     title: 'Sell at the counter',
     text: 'Search or scan products, take payment, and hand over a clear receipt — without losing the sale when the network drops.',
     image:
-      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1556740758-90de374c12ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85',
     alt: 'Retail counter transaction',
   },
   {
     title: 'Know your stock',
     text: 'See what is on the shelf, what is running low, and every movement tied to sales and receiving.',
     image:
-      'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85',
     alt: 'Organized retail products on shelves',
   },
   {
     title: 'Read the real numbers',
     text: 'Revenue is not profit. Reports show cost of goods, expenses, and net result so you can decide with clarity.',
     image:
-      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=85',
+      'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85',
     alt: 'Business reports on a laptop',
   },
 ]
@@ -174,7 +174,7 @@ export default function LandingPage() {
           <section className="sf-lp-hero">
             <div className="sf-lp-hero-media" aria-hidden="true">
               <img
-                src="https://images.unsplash.com/photo-1604719312566-8912e9c8a213?auto=format&fit=crop&w=2400&q=90"
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?ixlib=rb-4.0.3&auto=format&fit=crop&w=2400&q=85"
                 alt=""
                 fetchPriority="high"
               />
@@ -248,7 +248,7 @@ export default function LandingPage() {
               </div>
               <div className="sf-lp-strip-photo">
                 <img
-                  src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1400&q=85"
+                  src="https://images.unsplash.com/photo-1556742111-a301076d9d18?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=85"
                   alt="Shop owner with a customer at the counter"
                   loading="lazy"
                 />
@@ -319,7 +319,7 @@ export default function LandingPage() {
           <section className="sf-lp-final">
             <div className="sf-lp-final-media" aria-hidden="true">
               <img
-                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2200&q=85"
+                src="https://images.unsplash.com/photo-1472851294608-062f824d29cc?ixlib=rb-4.0.3&auto=format&fit=crop&w=2200&q=85"
                 alt=""
                 loading="lazy"
               />
