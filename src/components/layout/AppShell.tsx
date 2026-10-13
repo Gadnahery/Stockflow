@@ -12,6 +12,8 @@ import { useAuth } from '../../contexts/AuthContext'
 import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
+import { useI18n } from '../i18n/I18nContext'
+import type { MessageKey } from '../i18n/messages'
 
 type NavItem = {
   to: string
@@ -21,33 +23,33 @@ type NavItem = {
   section?: string
 }
 
-const mobileNav = [
-  { to: '/pos', icon: ShoppingCart, label: 'POS', end: true },
-  { to: '/products', icon: Package, label: 'Products' },
-  { to: '/customers', icon: Users, label: 'Customers' },
-  { to: '/reports', icon: BarChart3, label: 'Reports' },
-  { to: '/more', icon: LayoutGrid, label: 'More' },
+const mobileNavKeys = [
+  { to: '/pos', icon: ShoppingCart, labelKey: 'app.pos' as MessageKey, end: true },
+  { to: '/products', icon: Package, labelKey: 'app.products' as MessageKey },
+  { to: '/customers', icon: Users, labelKey: 'app.customers' as MessageKey },
+  { to: '/reports', icon: BarChart3, labelKey: 'app.reports' as MessageKey },
+  { to: '/more', icon: LayoutGrid, labelKey: 'app.more' as MessageKey },
 ]
 
-const desktopNav: NavItem[] = [
-  { to: '/home', icon: LayoutGrid, label: 'Home', section: 'Sell' },
-  { to: '/pos', icon: ShoppingCart, label: 'POS', end: true, section: 'Sell' },
-  { to: '/sales', icon: Receipt, label: 'Sales', section: 'Sell' },
-  { to: '/products', icon: Package, label: 'Products', section: 'Inventory' },
-  { to: '/stock', icon: Package, label: 'Stock', section: 'Inventory' },
-  { to: '/suppliers', icon: Truck, label: 'Suppliers', section: 'Inventory' },
-  { to: '/customers', icon: Users, label: 'Customers', section: 'People' },
-  { to: '/users', icon: Users, label: 'Team', section: 'People' },
-  { to: '/expenses', icon: Wallet, label: 'Expenses', section: 'Money' },
-  { to: '/shifts', icon: ClipboardList, label: 'Shifts', section: 'Money' },
-  { to: '/reports', icon: BarChart3, label: 'Reports', section: 'Insights' },
-  { to: '/sync', icon: CloudCog, label: 'Sync', section: 'Insights' },
-  { to: '/notifications', icon: ShieldCheck, label: 'Alerts', section: 'Insights' },
-  { to: '/audit', icon: ShieldCheck, label: 'Audit', section: 'Insights' },
-  { to: '/branches', icon: Building2, label: 'Branches', section: 'Admin' },
-  { to: '/settings', icon: Settings, label: 'Settings', section: 'Admin' },
-  { to: '/billing', icon: CreditCard, label: 'Plan', section: 'Admin' },
-  { to: '/more', icon: LayoutGrid, label: 'More', section: 'Admin' },
+const desktopNavKeys = [
+  { to: '/home', icon: LayoutGrid, labelKey: 'app.home' as MessageKey, section: 'Sell' },
+  { to: '/pos', icon: ShoppingCart, labelKey: 'app.pos' as MessageKey, end: true, section: 'Sell' },
+  { to: '/sales', icon: Receipt, labelKey: 'app.sales' as MessageKey, section: 'Sell' },
+  { to: '/products', icon: Package, labelKey: 'app.products' as MessageKey, section: 'Inventory' },
+  { to: '/stock', icon: Package, labelKey: 'app.stock' as MessageKey, section: 'Inventory' },
+  { to: '/suppliers', icon: Truck, labelKey: 'app.suppliers' as MessageKey, section: 'Inventory' },
+  { to: '/customers', icon: Users, labelKey: 'app.customers' as MessageKey, section: 'People' },
+  { to: '/users', icon: Users, labelKey: 'app.team' as MessageKey, section: 'People' },
+  { to: '/expenses', icon: Wallet, labelKey: 'app.expenses' as MessageKey, section: 'Money' },
+  { to: '/shifts', icon: ClipboardList, labelKey: 'app.shifts' as MessageKey, section: 'Money' },
+  { to: '/reports', icon: BarChart3, labelKey: 'app.reports' as MessageKey, section: 'Insights' },
+  { to: '/sync', icon: CloudCog, labelKey: 'app.sync' as MessageKey, section: 'Insights' },
+  { to: '/notifications', icon: ShieldCheck, labelKey: 'app.alerts' as MessageKey, section: 'Insights' },
+  { to: '/audit', icon: ShieldCheck, labelKey: 'app.audit' as MessageKey, section: 'Insights' },
+  { to: '/branches', icon: Building2, labelKey: 'app.branches' as MessageKey, section: 'Admin' },
+  { to: '/settings', icon: Settings, labelKey: 'app.settings' as MessageKey, section: 'Admin' },
+  { to: '/billing', icon: CreditCard, labelKey: 'app.plan' as MessageKey, section: 'Admin' },
+  { to: '/more', icon: LayoutGrid, labelKey: 'app.more' as MessageKey, section: 'Admin' },
 ]
 
 function mobileActiveIndex(pathname: string) {
@@ -58,16 +60,14 @@ function mobileActiveIndex(pathname: string) {
   return 4
 }
 
-function pageTitle(pathname: string): string {
-  const hit = desktopNav.find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))
-  if (hit) return hit.label
-  if (pathname.startsWith('/account')) return 'Account'
-  if (pathname.startsWith('/help')) return 'Help'
-  if (pathname.startsWith('/export')) return 'Export'
-  if (pathname.startsWith('/billing')) return 'Plan & billing'
-  if (pathname.startsWith('/branches')) return 'Branches'
-  if (pathname.startsWith('/import')) return 'Import'
-  return 'StockFlow'
+function pageTitleKey(pathname: string): MessageKey | null {
+  const hit = desktopNavKeys.find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))
+  if (hit) return hit.labelKey
+  if (pathname.startsWith('/account')) return 'app.account'
+  if (pathname.startsWith('/help')) return 'app.help'
+  if (pathname.startsWith('/branches')) return 'app.branches'
+  if (pathname.startsWith('/billing')) return 'app.plan'
+  return null
 }
 
 const SIDEBAR_W: Record<SidebarMode, string> = {
@@ -77,7 +77,13 @@ const SIDEBAR_W: Record<SidebarMode, string> = {
 }
 
 export default function AppShell() {
+  const { t } = useI18n()
   const location = useLocation()
+  const mobileNav = mobileNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))
+  const desktopNav = desktopNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))
+  const titleKey = pageTitleKey(location.pathname)
+  const pageHeading = titleKey ? t(titleKey) : 'StockFlow'
+
   const navigate = useNavigate()
   const { isOnline, pendingSyncCount, cart } = usePosStore()
   const tabCompact = useUi((s) => s.tabCompact)
@@ -94,7 +100,7 @@ export default function AppShell() {
   const cartCount = cart.reduce((s, i) => s + i.quantity, 0)
   const active = mobileActiveIndex(location.pathname)
   const userName = member?.display_name || business?.name || 'User'
-  const title = pageTitle(location.pathname)
+  const title = pageHeading
   const expanded = sidebarMode === 'expanded'
   const rail = sidebarMode === 'rail'
   const hidden = sidebarMode === 'hidden'

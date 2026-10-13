@@ -1,0 +1,259 @@
+import type { Locale } from './locale'
+
+/** Flat message catalogs for landing, auth, and shell. */
+export const messages = {
+  en: {
+    // Landing nav
+    'nav.what': 'What it does',
+    'nav.how': 'How it works',
+    'nav.faq': 'FAQ',
+    'nav.pricing': 'Pricing',
+    'nav.signin': 'Sign in',
+    'nav.getStarted': 'Get started',
+    'nav.openPos': 'Open POS',
+    'nav.features': 'Features',
+    'nav.resources': 'Resources',
+    'nav.about': 'About',
+    'nav.contact': 'Contact',
+    'nav.bookDemo': 'Book a Demo',
+    'nav.lang': 'SW',
+    'nav.langFull': 'Kiswahili',
+
+    // Landing hero
+    'hero.kicker': 'Point of sale · Stock management',
+    'hero.title1': 'Know your shop.',
+    'hero.title2': 'Run it better.',
+    'hero.lead':
+      'Sales, stock, and clear profit numbers — in one calm workspace built for everyday retail in Tanzania.',
+    'hero.cta': 'Get started',
+    'hero.explore': 'See how it works',
+
+    // Landing sections
+    'work.kicker': 'What it does',
+    'work.title1': 'Less noise.',
+    'work.title2': 'More control.',
+    'work.sub': 'Three jobs every retailer needs done well — without a crowded feature list.',
+    'work.sell.title': 'Sell at the counter',
+    'work.sell.text':
+      'Search or scan products, take payment, and hand over a clear receipt — without losing the sale when the network drops.',
+    'work.stock.title': 'Know your stock',
+    'work.stock.text':
+      'See what is on the shelf, what is running low, and every movement tied to sales and receiving.',
+    'work.numbers.title': 'Read the real numbers',
+    'work.numbers.text':
+      'Revenue is not profit. Reports show cost of goods, expenses, and net result so you can decide with clarity.',
+
+    'strip.kicker': 'On the device',
+    'strip.title1': 'Built for the counter',
+    'strip.title2': 'and the quiet hours after.',
+    'strip.t1': 'Offline sales when the network fails',
+    'strip.t2': 'Barcode search on supported phones',
+    'strip.t3': 'Team roles, PIN lock, and branches',
+    'strip.t4': 'Sync when you are back online',
+    'strip.link': 'Full capabilities',
+
+    'how.kicker': 'How it works',
+    'how.title': 'Three steps.',
+    'how.1.title': 'Set up your shop',
+    'how.1.text': 'Create an account, name the business, add products and optional staff.',
+    'how.2.title': 'Sell and update stock',
+    'how.2.text': 'Record sales at the till, receive supplier stock, adjust counts when needed.',
+    'how.3.title': 'Review the day',
+    'how.3.text': 'Open reports for revenue, cost of goods, expenses, and net profit.',
+
+    'faq.kicker': 'FAQ',
+    'faq.title1': 'Straight',
+    'faq.title2': 'answers.',
+    'faq.1.q': 'What is StockFlow?',
+    'faq.1.a':
+      'StockFlow is point-of-sale and inventory software for retail shops. Record sales, track stock, manage staff, and review profit from one place.',
+    'faq.2.q': 'Does it work offline?',
+    'faq.2.a':
+      'Yes for everyday selling. Sales and products stay on the device. When you are online again, changes sync to the cloud.',
+    'faq.3.q': 'Who is it for?',
+    'faq.3.a':
+      'Independent retail shops, minimarkets, electronics and accessories stores, and similar merchandise businesses in Tanzania and East Africa.',
+    'faq.4.q': 'How do I start?',
+    'faq.4.a':
+      'Create an account, set up your shop name, add products, and start selling on your phone or computer — or book a short demo first.',
+
+    'final.title1': 'Ready for a clearer',
+    'final.title2': 'view of your shop?',
+    'final.demo': 'Book a demo',
+
+    'footer.tag': 'Retail POS and inventory for shops that want calm, accurate records.',
+    'footer.privacy': 'Privacy',
+    'footer.terms': 'Terms',
+    'footer.region': 'Tanzania · East Africa',
+
+    // Auth
+    'auth.welcome': 'Welcome back',
+    'auth.subtitle': 'Sign in to your StockFlow business',
+    'auth.email': 'Email',
+    'auth.password': 'Password',
+    'auth.signin': 'Sign in',
+    'auth.signingIn': 'Signing in…',
+    'auth.forgot': 'Forgot password?',
+    'auth.new': 'New here?',
+    'auth.create': 'Create an account',
+    'auth.signupTitle': 'Create your account',
+    'auth.signupSub': 'Start your StockFlow business workspace',
+    'auth.name': 'Full name',
+    'auth.signup': 'Create account',
+    'auth.haveAccount': 'Already have an account?',
+
+    // App shell
+    'app.pos': 'POS',
+    'app.products': 'Products',
+    'app.customers': 'Customers',
+    'app.reports': 'Reports',
+    'app.more': 'More',
+    'app.home': 'Home',
+    'app.sales': 'Sales',
+    'app.stock': 'Stock',
+    'app.suppliers': 'Suppliers',
+    'app.team': 'Team',
+    'app.expenses': 'Expenses',
+    'app.shifts': 'Shifts',
+    'app.sync': 'Sync',
+    'app.alerts': 'Alerts',
+    'app.audit': 'Audit',
+    'app.branches': 'Branches',
+    'app.settings': 'Settings',
+    'app.plan': 'Plan',
+    'app.account': 'Account',
+    'app.help': 'Help',
+    'app.language': 'Language',
+    'app.languageHint': 'App and landing language',
+    'app.english': 'English',
+    'app.swahili': 'Kiswahili',
+  },
+  sw: {
+    'nav.what': 'Inafanya nini',
+    'nav.how': 'Inavyofanya kazi',
+    'nav.faq': 'Maswali',
+    'nav.pricing': 'Bei',
+    'nav.signin': 'Ingia',
+    'nav.getStarted': 'Anza sasa',
+    'nav.openPos': 'Fungua POS',
+    'nav.features': 'Vipengele',
+    'nav.resources': 'Rasilimali',
+    'nav.about': 'Kuhusu',
+    'nav.contact': 'Wasiliana',
+    'nav.bookDemo': 'Omba onyesho',
+    'nav.lang': 'EN',
+    'nav.langFull': 'English',
+
+    'hero.kicker': 'Uuzaji · Usimamizi wa stoo',
+    'hero.title1': 'Jua duka lako.',
+    'hero.title2': 'Liendeshe vizuri.',
+    'hero.lead':
+      'Mauzo, stoo, na faida wazi — katika mfumo mmoja rahisi kwa maduka ya kila siku nchini Tanzania.',
+    'hero.cta': 'Anza sasa',
+    'hero.explore': 'Angalia jinsi inavyofanya kazi',
+
+    'work.kicker': 'Inafanya nini',
+    'work.title1': 'Kelele kidogo.',
+    'work.title2': 'Udhibiti zaidi.',
+    'work.sub': 'Kazi tatu muhimu kwa mfanyabiashara — bila orodha ndefu ya vipengele.',
+    'work.sell.title': 'Uza kwenye kaunta',
+    'work.sell.text':
+      'Tafuta au skani bidhaa, pokea malipo, na toa risiti — hata mtandao ukikatika.',
+    'work.stock.title': 'Jua stoo yako',
+    'work.stock.text':
+      'Ona kilicho kwenye rafu, kinachokaribia kuisha, na kila harakati ya stoo kutoka mauzo na mapokezi.',
+    'work.numbers.title': 'Soma namba halisi',
+    'work.numbers.text':
+      'Mauzo si faida. Ripoti zinaonyesha gharama ya bidhaa, matumizi, na faida halisi.',
+
+    'strip.kicker': 'Kwenye kifaa',
+    'strip.title1': 'Imeundwa kwa kaunta',
+    'strip.title2': 'na saa za baada ya kazi.',
+    'strip.t1': 'Mauzo bila mtandao mtandao ukikatika',
+    'strip.t2': 'Utafutaji wa barcode kwenye simu zinazotumika',
+    'strip.t3': 'Majukumu ya timu, PIN, na matawi',
+    'strip.t4': 'Sinki unaporudi mtandaoni',
+    'strip.link': 'Vipengele vyote',
+
+    'how.kicker': 'Inavyofanya kazi',
+    'how.title': 'Hatua tatu.',
+    'how.1.title': 'Sanidi duka lako',
+    'how.1.text': 'Fungua akaunti, weka jina la biashara, ongeza bidhaa na wafanyakazi.',
+    'how.2.title': 'Uza na sasisha stoo',
+    'how.2.text': 'Rekodi mauzo, pokea stoo kutoka wasambazaji, rekebisha idadi inapohitajika.',
+    'how.3.title': 'Kagua siku',
+    'how.3.text': 'Fungua ripoti za mapato, gharama ya bidhaa, matumizi, na faida.',
+
+    'faq.kicker': 'Maswali',
+    'faq.title1': 'Majibu',
+    'faq.title2': 'wazi.',
+    'faq.1.q': 'StockFlow ni nini?',
+    'faq.1.a':
+      'StockFlow ni programu ya uuzaji na stoo kwa maduka. Rekodi mauzo, fuatilia stoo, simamia wafanyakazi, na angalia faida mahali pamoja.',
+    'faq.2.q': 'Inafanya kazi bila mtandao?',
+    'faq.2.a':
+      'Ndiyo kwa mauzo ya kila siku. Mauzo na bidhaa huhifadhiwa kwenye kifaa. Unaporudi mtandaoni, data inasinki.',
+    'faq.3.q': 'Imeundwa kwa nani?',
+    'faq.3.a':
+      'Maduka ya rejareja, minimarket, maduka ya elektroniki na vifaa, na biashara zinazofanana Tanzania na Afrika Mashariki.',
+    'faq.4.q': 'Nianza vipi?',
+    'faq.4.a':
+      'Fungua akaunti, weka jina la duka, ongeza bidhaa, na uanze kuuza kwenye simu au kompyuta — au omba onyesho fupi.',
+
+    'final.title1': 'Uko tayari kwa mwonekano',
+    'final.title2': 'wazi wa duka lako?',
+    'final.demo': 'Omba onyesho',
+
+    'footer.tag': 'POS na stoo kwa maduka yanayotaka rekodi sahihi na tulivu.',
+    'footer.privacy': 'Faragha',
+    'footer.terms': 'Masharti',
+    'footer.region': 'Tanzania · Afrika Mashariki',
+
+    'auth.welcome': 'Karibu tena',
+    'auth.subtitle': 'Ingia kwenye biashara yako ya StockFlow',
+    'auth.email': 'Barua pepe',
+    'auth.password': 'Nenosiri',
+    'auth.signin': 'Ingia',
+    'auth.signingIn': 'Inaingia…',
+    'auth.forgot': 'Umesahau nenosiri?',
+    'auth.new': 'Mpya hapa?',
+    'auth.create': 'Fungua akaunti',
+    'auth.signupTitle': 'Fungua akaunti yako',
+    'auth.signupSub': 'Anza nafasi ya biashara yako ya StockFlow',
+    'auth.name': 'Jina kamili',
+    'auth.signup': 'Fungua akaunti',
+    'auth.haveAccount': 'Tayari una akaunti?',
+
+    'app.pos': 'POS',
+    'app.products': 'Bidhaa',
+    'app.customers': 'Wateja',
+    'app.reports': 'Ripoti',
+    'app.more': 'Zaidi',
+    'app.home': 'Nyumbani',
+    'app.sales': 'Mauzo',
+    'app.stock': 'Stoo',
+    'app.suppliers': 'Wasambazaji',
+    'app.team': 'Timu',
+    'app.expenses': 'Matumizi',
+    'app.shifts': 'Zamu',
+    'app.sync': 'Sinki',
+    'app.alerts': 'Arifa',
+    'app.audit': 'Ukaguzi',
+    'app.branches': 'Matawi',
+    'app.settings': 'Mipangilio',
+    'app.plan': 'Mpango',
+    'app.account': 'Akaunti',
+    'app.help': 'Msaada',
+    'app.language': 'Lugha',
+    'app.languageHint': 'Lugha ya programu na ukurasa wa kuingia',
+    'app.english': 'English',
+    'app.swahili': 'Kiswahili',
+  },
+} as const
+
+export type MessageKey = keyof typeof messages.en
+
+export function translate(locale: Locale, key: MessageKey): string {
+  const table = messages[locale] || messages.en
+  return (table as Record<string, string>)[key] || messages.en[key] || key
+}

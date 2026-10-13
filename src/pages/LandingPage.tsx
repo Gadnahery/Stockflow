@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Menu, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../i18n/I18nContext'
 import Seo from '../marketing/Seo'
 import {
   organizationJsonLd,
@@ -11,57 +12,39 @@ import {
 } from '../lib/seo'
 import './LandingPage.css'
 
-const FAQS = [
+const PILLAR_IMGS = [
   {
-    q: 'What is StockFlow?',
-    a: 'StockFlow is point-of-sale and inventory software for retail shops. Record sales, track stock, manage staff, and review profit from one place.',
-  },
-  {
-    q: 'Does it work offline?',
-    a: 'Yes for everyday selling. Sales and products stay on the device. When you are online again, changes sync to the cloud.',
-  },
-  {
-    q: 'Who is it for?',
-    a: 'Independent retail shops, minimarkets, electronics and accessories stores, and similar merchandise businesses in Tanzania and East Africa.',
-  },
-  {
-    q: 'How do I start?',
-    a: 'Create an account, set up your shop name, add products, and start selling on your phone or computer — or book a short demo first.',
-  },
-]
-
-const PILLARS = [
-  {
-    title: 'Sell at the counter',
-    text: 'Search or scan products, take payment, and hand over a clear receipt — without losing the sale when the network drops.',
     image:
       'https://images.unsplash.com/photo-1556740758-90de374c12ad?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85',
-    alt: 'Retail counter transaction',
+    alt: 'Retail counter',
+    titleKey: 'work.sell.title' as const,
+    textKey: 'work.sell.text' as const,
   },
   {
-    title: 'Know your stock',
-    text: 'See what is on the shelf, what is running low, and every movement tied to sales and receiving.',
     image:
       'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85',
-    alt: 'Organized retail products on shelves',
+    alt: 'Stock shelves',
+    titleKey: 'work.stock.title' as const,
+    textKey: 'work.stock.text' as const,
   },
   {
-    title: 'Read the real numbers',
-    text: 'Revenue is not profit. Reports show cost of goods, expenses, and net result so you can decide with clarity.',
     image:
       'https://images.unsplash.com/photo-1551288049-bebda4e38f71?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=85',
-    alt: 'Business reports on a laptop',
+    alt: 'Reports',
+    titleKey: 'work.numbers.title' as const,
+    textKey: 'work.numbers.text' as const,
   },
 ]
 
 export default function LandingPage() {
   const { session, member } = useAuth()
+  const { t, locale, setLocale } = useI18n()
   const [scrolled, setScrolled] = useState(false)
   const [menu, setMenu] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
 
   const appPath = session && member ? '/pos' : '/signup'
-  const ctaLabel = session && member ? 'Open POS' : 'Get started'
+  const ctaLabel = session && member ? t('nav.openPos') : t('nav.getStarted')
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 32)
@@ -77,6 +60,15 @@ export default function LandingPage() {
     }
   }, [menu])
 
+  const faqs = [
+    { q: t('faq.1.q'), a: t('faq.1.a') },
+    { q: t('faq.2.q'), a: t('faq.2.a') },
+    { q: t('faq.3.q'), a: t('faq.3.a') },
+    { q: t('faq.4.q'), a: t('faq.4.a') },
+  ]
+
+  const toggleLang = () => setLocale(locale === 'en' ? 'sw' : 'en')
+
   return (
     <>
       <Seo
@@ -87,7 +79,7 @@ export default function LandingPage() {
           organizationJsonLd(),
           softwareJsonLd(),
           websiteJsonLd(),
-          faqJsonLd(FAQS),
+          faqJsonLd(faqs),
         ]}
       />
 
@@ -104,15 +96,18 @@ export default function LandingPage() {
             </Link>
 
             <nav className="sf-lp-nav" aria-label="Primary">
-              <a href="#work">What it does</a>
-              <a href="#how">How it works</a>
-              <a href="#faq">FAQ</a>
-              <Link to="/pricing">Pricing</Link>
+              <a href="#work">{t('nav.what')}</a>
+              <a href="#how">{t('nav.how')}</a>
+              <a href="#faq">{t('nav.faq')}</a>
+              <Link to="/pricing">{t('nav.pricing')}</Link>
             </nav>
 
             <div className="sf-lp-actions">
+              <button type="button" className="sf-lp-lang" onClick={toggleLang} aria-label={t('nav.langFull')}>
+                {t('nav.lang')}
+              </button>
               <Link to="/login" className="sf-lp-ghost">
-                Sign in
+                {t('nav.signin')}
               </Link>
               <Link to={appPath} className="sf-lp-btn">
                 {ctaLabel}
@@ -142,35 +137,25 @@ export default function LandingPage() {
               </button>
             </div>
             <nav className="sf-lp-drawer-nav">
-              {[
-                ['#work', 'What it does'],
-                ['#how', 'How it works'],
-                ['#faq', 'FAQ'],
-                ['/pricing', 'Pricing'],
-                ['/contact', 'Contact'],
-              ].map(([href, label]) =>
-                href.startsWith('#') ? (
-                  <a key={href} href={href} onClick={() => setMenu(false)}>
-                    {label}
-                  </a>
-                ) : (
-                  <Link key={href} to={href} onClick={() => setMenu(false)}>
-                    {label}
-                  </Link>
-                ),
-              )}
+              <a href="#work" onClick={() => setMenu(false)}>{t('nav.what')}</a>
+              <a href="#how" onClick={() => setMenu(false)}>{t('nav.how')}</a>
+              <a href="#faq" onClick={() => setMenu(false)}>{t('nav.faq')}</a>
+              <Link to="/pricing" onClick={() => setMenu(false)}>{t('nav.pricing')}</Link>
+              <Link to="/contact" onClick={() => setMenu(false)}>{t('nav.contact')}</Link>
             </nav>
+            <button type="button" className="sf-lp-lang sf-lp-lang-drawer" onClick={toggleLang}>
+              {t('nav.langFull')}
+            </button>
             <Link to={appPath} className="sf-lp-btn sf-lp-btn-block" onClick={() => setMenu(false)}>
               {ctaLabel}
             </Link>
             <Link to="/login" className="sf-lp-drawer-sign" onClick={() => setMenu(false)}>
-              Sign in
+              {t('nav.signin')}
             </Link>
           </div>
         )}
 
         <main id="main">
-          {/* Hero — salon-style full bleed */}
           <section className="sf-lp-hero">
             <div className="sf-lp-hero-media" aria-hidden="true">
               <img
@@ -181,124 +166,109 @@ export default function LandingPage() {
             </div>
             <div className="sf-lp-hero-scrim" aria-hidden="true" />
             <div className="sf-lp-hero-content">
-              <p className="sf-lp-kicker">Point of sale · Stock management</p>
+              <p className="sf-lp-kicker">{t('hero.kicker')}</p>
               <h1>
-                Know your shop.
-                <em> Run it better.</em>
+                {t('hero.title1')}
+                <em> {t('hero.title2')}</em>
               </h1>
-              <p className="sf-lp-lead">
-                Sales, stock, and clear profit numbers — in one calm workspace built for everyday
-                retail in Tanzania.
-              </p>
+              <p className="sf-lp-lead">{t('hero.lead')}</p>
               <div className="sf-lp-hero-cta">
                 <Link to={appPath} className="sf-lp-btn sf-lp-btn-light">
                   {ctaLabel}
                   <ArrowRight size={16} strokeWidth={2} />
                 </Link>
                 <a href="#work" className="sf-lp-btn sf-lp-btn-outline">
-                  See how it works
+                  {t('hero.explore')}
                 </a>
               </div>
             </div>
           </section>
 
-          {/* Three pillars with photography */}
           <section id="work" className="sf-lp-section">
             <div className="sf-lp-wrap">
-              <p className="sf-lp-kicker sf-lp-kicker-dark">What it does</p>
+              <p className="sf-lp-kicker sf-lp-kicker-dark">{t('work.kicker')}</p>
               <h2 className="sf-lp-display">
-                Less noise.
-                <em> More control.</em>
+                {t('work.title1')}
+                <em> {t('work.title2')}</em>
               </h2>
-              <p className="sf-lp-sub">
-                Three jobs every retailer needs done well — without a crowded feature list.
-              </p>
+              <p className="sf-lp-sub">{t('work.sub')}</p>
               <div className="sf-lp-pillars">
-                {PILLARS.map((p) => (
-                  <article key={p.title} className="sf-lp-pillar">
+                {PILLAR_IMGS.map((p) => (
+                  <article key={p.titleKey} className="sf-lp-pillar">
                     <div className="sf-lp-pillar-img">
                       <img src={p.image} alt={p.alt} loading="lazy" />
                     </div>
-                    <h3>{p.title}</h3>
-                    <p>{p.text}</p>
+                    <h3>{t(p.titleKey)}</h3>
+                    <p>{t(p.textKey)}</p>
                   </article>
                 ))}
               </div>
             </div>
           </section>
 
-          {/* Quiet product strip */}
           <section className="sf-lp-strip">
             <div className="sf-lp-wrap sf-lp-strip-grid">
               <div>
-                <p className="sf-lp-kicker sf-lp-kicker-dark">On the device</p>
+                <p className="sf-lp-kicker sf-lp-kicker-dark">{t('strip.kicker')}</p>
                 <h2 className="sf-lp-display">
-                  Built for the counter
-                  <em> and the quiet hours after.</em>
+                  {t('strip.title1')}
+                  <em> {t('strip.title2')}</em>
                 </h2>
                 <ul className="sf-lp-ticks">
-                  <li>Offline sales when the network fails</li>
-                  <li>Barcode search on supported phones</li>
-                  <li>Team roles, PIN lock, and branches</li>
-                  <li>Sync when you are back online</li>
+                  <li>{t('strip.t1')}</li>
+                  <li>{t('strip.t2')}</li>
+                  <li>{t('strip.t3')}</li>
+                  <li>{t('strip.t4')}</li>
                 </ul>
                 <Link to="/features" className="sf-lp-text-link">
-                  Full capabilities <ArrowRight size={15} />
+                  {t('strip.link')} <ArrowRight size={15} />
                 </Link>
               </div>
               <div className="sf-lp-strip-photo">
                 <img
                   src="https://images.unsplash.com/photo-1556742111-a301076d9d18?ixlib=rb-4.0.3&auto=format&fit=crop&w=1400&q=85"
-                  alt="Shop owner with a customer at the counter"
+                  alt=""
                   loading="lazy"
                 />
               </div>
             </div>
           </section>
 
-          {/* How it works — 3 steps only */}
           <section id="how" className="sf-lp-section sf-lp-section-soft">
             <div className="sf-lp-wrap">
-              <p className="sf-lp-kicker sf-lp-kicker-dark">How it works</p>
-              <h2 className="sf-lp-display">Three steps.</h2>
+              <p className="sf-lp-kicker sf-lp-kicker-dark">{t('how.kicker')}</p>
+              <h2 className="sf-lp-display">{t('how.title')}</h2>
               <ol className="sf-lp-steps">
-                <li>
-                  <span>01</span>
-                  <div>
-                    <strong>Set up your shop</strong>
-                    <p>Create an account, name the business, add products and optional staff.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>02</span>
-                  <div>
-                    <strong>Sell and update stock</strong>
-                    <p>Record sales at the till, receive supplier stock, adjust counts when needed.</p>
-                  </div>
-                </li>
-                <li>
-                  <span>03</span>
-                  <div>
-                    <strong>Review the day</strong>
-                    <p>Open reports for revenue, cost of goods, expenses, and net profit.</p>
-                  </div>
-                </li>
+                {(
+                  [
+                    ['01', 'how.1.title', 'how.1.text'],
+                    ['02', 'how.2.title', 'how.2.text'],
+                    ['03', 'how.3.title', 'how.3.text'],
+                  ] as const
+                ).map(([n, tk, tx]) => (
+                  <li key={n}>
+                    <span>{n}</span>
+                    <div>
+                      <strong>{t(tk)}</strong>
+                      <p>{t(tx)}</p>
+                    </div>
+                  </li>
+                ))}
               </ol>
             </div>
           </section>
 
-          {/* FAQ */}
           <section id="faq" className="sf-lp-section">
             <div className="sf-lp-wrap sf-lp-faq-grid">
               <div>
-                <p className="sf-lp-kicker sf-lp-kicker-dark">FAQ</p>
+                <p className="sf-lp-kicker sf-lp-kicker-dark">{t('faq.kicker')}</p>
                 <h2 className="sf-lp-display">
-                  Straight
-                  <em> answers.</em>
+                  {t('faq.title1')}
+                  <em> {t('faq.title2')}</em>
                 </h2>
               </div>
               <div className="sf-lp-faq-list">
-                {FAQS.map((f, i) => (
+                {faqs.map((f, i) => (
                   <div key={f.q} className={`sf-lp-faq${openFaq === i ? ' is-open' : ''}`}>
                     <button
                       type="button"
@@ -315,7 +285,6 @@ export default function LandingPage() {
             </div>
           </section>
 
-          {/* Final CTA */}
           <section className="sf-lp-final">
             <div className="sf-lp-final-media" aria-hidden="true">
               <img
@@ -327,8 +296,8 @@ export default function LandingPage() {
             <div className="sf-lp-final-scrim" aria-hidden="true" />
             <div className="sf-lp-final-content">
               <h2>
-                Ready for a clearer
-                <em> view of your shop?</em>
+                {t('final.title1')}
+                <em> {t('final.title2')}</em>
               </h2>
               <div className="sf-lp-hero-cta">
                 <Link to={appPath} className="sf-lp-btn sf-lp-btn-light">
@@ -336,7 +305,7 @@ export default function LandingPage() {
                   <ArrowRight size={16} />
                 </Link>
                 <Link to="/contact" className="sf-lp-btn sf-lp-btn-outline">
-                  Book a demo
+                  {t('final.demo')}
                 </Link>
               </div>
             </div>
@@ -350,21 +319,21 @@ export default function LandingPage() {
                 <span className="sf-lp-mark">SF</span>
                 <span className="sf-lp-word">StockFlow</span>
               </div>
-              <p>Retail POS and inventory for shops that want calm, accurate records.</p>
+              <p>{t('footer.tag')}</p>
             </div>
             <div className="sf-lp-footer-links">
-              <Link to="/features">Features</Link>
-              <Link to="/pricing">Pricing</Link>
-              <Link to="/resources">Resources</Link>
-              <Link to="/contact">Contact</Link>
-              <Link to="/privacy">Privacy</Link>
-              <Link to="/terms">Terms</Link>
-              <Link to="/login">Sign in</Link>
+              <Link to="/features">{t('nav.features')}</Link>
+              <Link to="/pricing">{t('nav.pricing')}</Link>
+              <Link to="/resources">{t('nav.resources')}</Link>
+              <Link to="/contact">{t('nav.contact')}</Link>
+              <Link to="/privacy">{t('footer.privacy')}</Link>
+              <Link to="/terms">{t('footer.terms')}</Link>
+              <Link to="/login">{t('nav.signin')}</Link>
             </div>
           </div>
           <div className="sf-lp-wrap sf-lp-footer-copy">
             <span>© {new Date().getFullYear()} StockFlow</span>
-            <span>Tanzania · East Africa</span>
+            <span>{t('footer.region')}</span>
           </div>
         </footer>
       </div>

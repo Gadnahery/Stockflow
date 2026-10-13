@@ -8,6 +8,7 @@ import { useUi } from '../store/uiStore'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { fmt } from '../lib/util'
+import { useI18n } from '../i18n/I18nContext'
 
 type BranchRow = { id: string; name: string; code: string | null }
 
@@ -15,6 +16,7 @@ export default function SettingsPage() {
   const settings = useLiveQuery(() => db.settings.get('main'), [])
   const { member, business } = useAuth()
   const toast = useUi((s) => s.toast)
+  const { locale, setLocale, t } = useI18n()
   const [form, setForm] = useState({
     businessName: '',
     businessPhone: '',
@@ -124,8 +126,32 @@ export default function SettingsPage() {
   const activeBranch = branches.find((b) => b.id === activeBranchId)
 
   return (
-    <Screen title="Settings" subtitle={business?.name || 'Business, tax, and receipts'}>
+    <Screen title={t('app.settings')} subtitle={business?.name || 'Business, tax, and receipts'}>
       <div className="space-y-6 md:max-w-lg pb-8">
+        {/* Language */}
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">{t('app.language')}</h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4">
+            <p className="text-[13px] text-ink-muted mb-3">{t('app.languageHint')}</p>
+            <div className="flex gap-2">
+              {([
+                ['en', t('app.english')],
+                ['sw', t('app.swahili')],
+              ] as const).map(([code, label]) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => setLocale(code)}
+                  className={`press flex-1 h-11 rounded-full text-[14px] font-semibold ${
+                    locale === code ? 'bg-primary text-white' : 'bg-black/[0.06] text-ink-secondary'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
         {/* Branch selection */}
         <section>
           <div className="flex items-center justify-between mb-2 px-1">
