@@ -1,50 +1,40 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import {
-  ArrowDownRight, ArrowRight, BarChart3, Check, ChevronDown, CircleHelp,
-  Menu, Package, ScanBarcode, ShoppingBag, ShoppingCart, Smartphone, Truck,
-  Users, X, Zap,
+  ArrowRight, BarChart3, Barcode, Check, ChevronDown, CircleHelp,
+  Cloud, Menu, Package, ScanLine, ShoppingCart, Smartphone, Truck,
+  Users, WalletCards, X, WifiOff, Zap,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import './LandingPage.css'
 
-const features = [
-  { icon: ShoppingCart, title: 'Sales that stay organized', text: 'A focused checkout flow helps you record daily transactions without unnecessary steps.' },
-  { icon: Package, title: 'Stock you can trust', text: 'Keep quantities, product details and stock movements together, where they belong.' },
-  { icon: BarChart3, title: 'A clearer view of business', text: 'Review your sales and business activity without searching through separate records.' },
-  { icon: ScanBarcode, title: 'Find products quickly', text: 'Search your catalogue and use supported barcode-scanning workflows at checkout.' },
-  { icon: Users, title: 'Your business relationships', text: 'Keep customer and supplier details close to the work you do every day.' },
-  { icon: Smartphone, title: 'Made for your workflow', text: 'Use a responsive workspace designed to work across desktop and mobile screens.' },
+const capabilities = [
+  { icon: ShoppingCart, title: 'Point of sale', text: 'Keep checkout clear and record each sale without losing track of the details.', image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=85', alt: 'Shop owner handling a customer transaction' },
+  { icon: Package, title: 'Stock management', text: 'Know what is in your shop, follow stock movements and spot items that need attention.', image: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=900&q=85', alt: 'Carefully arranged retail products' },
+  { icon: BarChart3, title: 'Reports that make sense', text: 'See sales activity and business performance in one place, ready to guide your next decision.', image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=900&q=85', alt: 'Business performance charts on a screen' },
+  { icon: Users, title: 'Customer records', text: 'Keep customer details and transaction history close to the everyday work of your shop.', image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=85', alt: 'Small business team working together' },
+]
+
+const benefits = [
+  { icon: Barcode, title: 'Faster product lookup', text: 'Find items by searching or using supported barcode-scanning workflows.' },
+  { icon: Truck, title: 'Suppliers and stock movement', text: 'Keep supplier information and inventory activity organized together.' },
+  { icon: WalletCards, title: 'Sales and expenses', text: 'Track everyday money movement with records you can return to.' },
+  { icon: WifiOff, title: 'Work through interruptions', text: 'Offline-first workflows keep supported tasks available when connectivity drops.' },
+  { icon: Cloud, title: 'Sync when connected', text: 'Bring local changes back into sync when your connection is available.' },
+  { icon: Smartphone, title: 'Ready for your devices', text: 'A responsive experience for the counter, the office or your phone.' },
 ]
 
 const faqs = [
-  { q: 'What is StockFlow?', a: 'StockFlow brings point of sale, product inventory, stock movements and business reporting into one retail workspace.' },
-  { q: 'Who is StockFlow for?', a: 'StockFlow is designed for shop owners and teams who want a more organized way to record sales and manage inventory.' },
-  { q: 'Can I scan barcodes?', a: 'StockFlow supports barcode-based product lookup and camera scanning workflows. Compatibility depends on your device and scanner.' },
-  { q: 'Can I use it on a phone?', a: 'Yes. The landing page and product experience are designed to adapt to mobile and desktop screens.' },
-  { q: 'Does it work offline?', a: 'Supported workflows can use local data and queued synchronization. Cloud syncing and some features need an internet connection.' },
-  { q: 'How do I get started?', a: 'Create an account, set up your shop, add your products and start recording sales.' },
+  { q: 'What is StockFlow?', a: 'StockFlow is a point-of-sale and stock-management workspace for retailers. It brings sales, products, stock movements, customers and reporting together.' },
+  { q: 'Can I use StockFlow without internet?', a: 'StockFlow is designed with offline-first workflows. Some cloud features and synchronization require an internet connection.' },
+  { q: 'Can I scan product barcodes?', a: 'Yes. StockFlow supports barcode-based product lookup and compatible scanning workflows, including device-camera options where supported.' },
+  { q: 'Can I manage customers and suppliers?', a: 'Yes. Keep customer and supplier records connected to your shop operations.' },
+  { q: 'Does StockFlow work on mobile and desktop?', a: 'The interface adapts to phone and desktop screens, and StockFlow also has a Windows desktop-app build.' },
+  { q: 'How do I get started?', a: 'Create an account, set up your shop, add products and start recording sales.' },
 ]
 
-function ProductPreview() {
-  return (
-    <div className="sf-product-scene" aria-label="Illustrative StockFlow point of sale interface">
-      <div className="sf-scene-label"><span className="sf-live-dot" /> A clearer view of your shop</div>
-      <div className="sf-pos-window">
-        <div className="sf-pos-topbar"><div className="sf-pos-brand"><span className="sf-brand-mark"><Package size={15} /></span> stockflow</div><span className="sf-pos-crumb">Workspace&nbsp; / &nbsp;Overview</span><span className="sf-pos-avatar">S</span></div>
-        <div className="sf-pos-body">
-          <aside className="sf-pos-sidebar"><span className="sf-pos-side-active"><ShoppingCart size={15} /> Point of sale</span><span><BarChart3 size={15} /> Overview</span><span><Package size={15} /> Products</span><span><Truck size={15} /> Suppliers</span><span><Users size={15} /> Customers</span><div className="sf-pos-side-bottom">Your shop, in focus.</div></aside>
-          <div className="sf-pos-content"><div className="sf-pos-heading"><div><small>MONDAY, YOUR SHOP AT A GLANCE</small><h3>Good morning.</h3><p>Here’s a snapshot of your business.</p></div><span className="sf-pos-date">Today <ChevronDown size={12} /></span></div>
-            <div className="sf-pos-stats"><div><small>Sales today</small><strong>TSh 486,000</strong><span className="sf-stat-note">Daily total · sample data</span></div><div><small>Transactions</small><strong>38</strong><span className="sf-stat-note">Recorded today</span></div><div><small>Stock to review</small><strong>06 <em>items</em></strong><span className="sf-stat-note">At reorder level</span></div></div>
-            <div className="sf-pos-lower"><div className="sf-pos-chart-card"><div className="sf-pos-card-title"><b>Sales activity</b><span>This week⌄</span></div><div className="sf-pos-total">TSh 2.84M <small>sample</small></div><div className="sf-pos-chart"><div className="sf-chart-lines"><i/><i/><i/><i/></div><svg viewBox="0 0 400 100" preserveAspectRatio="none" aria-hidden="true"><path d="M0 76 C30 72 38 48 65 60 S102 76 130 47 S170 63 198 38 S236 52 266 28 S304 42 333 20 S372 31 400 8" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"/></svg></div><div className="sf-pos-week"><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span></div></div>
-              <div className="sf-pos-activity"><div className="sf-pos-card-title"><b>Recent activity</b><span>•••</span></div><div className="sf-pos-activity-row"><i className="sf-activity-blue"><ShoppingCart size={13}/></i><span><b>Sale recorded</b><small>Counter sale</small></span><strong>+48k</strong></div><div className="sf-pos-activity-row"><i className="sf-activity-sand"><Package size={13}/></i><span><b>Stock updated</b><small>Inventory record</small></span><strong>Done</strong></div><div className="sf-pos-activity-row"><i className="sf-activity-dark"><Check size={13}/></i><span><b>Daily record</b><small>Saved to workspace</small></span><strong>Saved</strong></div></div></div>
-          </div>
-        </div>
-      </div>
-      <div className="sf-scene-note"><span className="sf-note-check"><Check size={15}/></span><span><b>Everything in its place.</b><small>Sales · Products · Stock · Reports</small></span></div>
-      <p className="sf-scene-caption">Illustrative interface · Sample figures</p>
-    </div>
-  )
+function Brand() {
+  return <Link to="/" className="sf-wordmark" aria-label="StockFlow home"><span className="sf-brand-symbol"><Package size={17} strokeWidth={2.2} /></span><span>stockflow<span className="sf-brand-dot">.</span></span></Link>
 }
 
 export default function LandingPage() {
@@ -52,42 +42,71 @@ export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
   const appPath = session && member ? '/pos' : '/signup'
-  const ctaLabel = session && member ? 'Open your workspace' : 'Get started'
+  const ctaLabel = session && member ? 'Open StockFlow' : 'Get started'
   const closeMenu = () => setMenuOpen(false)
 
   return (
     <div className="sf-landing">
       <a className="sf-skip-link" href="#main-content">Skip to content</a>
-      <div className="sf-announcement"><span className="sf-announcement-dot" /> A calmer way to manage your shop <ArrowRight size={13} /></div>
       <header className="sf-site-header">
         <div className="sf-nav-inner">
-          <Link to="/" className="sf-wordmark" aria-label="StockFlow home" onClick={closeMenu}><span className="sf-brand-mark"><Package size={18} strokeWidth={2.2}/></span><span>stockflow<span className="sf-wordmark-period">.</span></span></Link>
+          <Brand />
           <nav className={'sf-nav-links ' + (menuOpen ? 'is-open' : '')} aria-label="Main navigation">
-            <a href="#features" onClick={closeMenu}>What you can do</a><a href="#how-it-works" onClick={closeMenu}>How it works</a><a href="#businesses" onClick={closeMenu}>Who it’s for</a><a href="#faq" onClick={closeMenu}>FAQs</a>
+            <a href="#features" onClick={closeMenu}>Features</a>
+            <a href="#benefits" onClick={closeMenu}>Why StockFlow</a>
+            <a href="#about" onClick={closeMenu}>For your shop</a>
+            <a href="#faq" onClick={closeMenu}>FAQs</a>
             <div className="sf-mobile-nav-actions"><Link to="/login" onClick={closeMenu}>Sign in</Link><Link className="sf-button sf-button-primary" to={appPath} onClick={closeMenu}>{ctaLabel}<ArrowRight size={16}/></Link></div>
           </nav>
-          <div className="sf-desktop-actions"><Link className="sf-signin" to="/login">Sign in</Link><Link className="sf-button sf-button-primary sf-nav-cta" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link></div>
-          <button className="sf-menu-toggle" type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)}>{menuOpen ? <X size={22}/> : <Menu size={22}/>}</button>
+          <div className="sf-desktop-actions"><Link className="sf-signin" to="/login">Sign in</Link><Link className="sf-button sf-button-primary" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link></div>
+          <button className="sf-menu-toggle" type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}>{menuOpen ? <X size={21}/> : <Menu size={21}/>}</button>
         </div>
       </header>
+
       <main id="main-content">
         <section className="sf-hero">
-          <div className="sf-hero-photo" aria-hidden="true"></div><div className="sf-hero-shade" aria-hidden="true"></div>
-          <div className="sf-container sf-hero-layout">
-            <div className="sf-hero-copy"><div className="sf-eyebrow"><span className="sf-eyebrow-line"></span> RETAIL POS & STOCK MANAGEMENT</div><h1>Know your shop.<br/><em>Run it better.</em></h1><p className="sf-hero-description">Sales, stock and everyday business records — brought together in one clear workspace.</p><div className="sf-hero-actions"><Link className="sf-button sf-button-primary sf-button-large" to={appPath}>{ctaLabel}<ArrowRight size={17}/></Link><a className="sf-hero-link" href="#features">Discover StockFlow <ArrowDownRight size={16}/></a></div><div className="sf-hero-points"><span><Check size={14}/> Sales and inventory together</span><span><Check size={14}/> Designed for everyday retail</span></div></div>
-            <div className="sf-hero-visual"><ProductPreview/></div>
+          <div className="sf-hero-photo" aria-hidden="true" />
+          <div className="sf-hero-overlay" aria-hidden="true" />
+          <div className="sf-hero-content sf-container">
+            <span className="sf-eyebrow"><i /> POINT OF SALE · STOCK MANAGEMENT</span>
+            <h1>More control.<br/><em>Less guesswork.</em></h1>
+            <p>Know what you sell, what you have and how your shop is doing — all from one clear workspace.</p>
+            <div className="sf-hero-actions"><Link className="sf-button sf-button-white" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link><a className="sf-button sf-button-outline" href="#features">Explore features</a></div>
+            <div className="sf-hero-trust"><span><Check size={13}/> Sales and stock together</span><span><Check size={13}/> Built for everyday retail</span></div>
           </div>
-          <div className="sf-hero-bottom"><span>LESS CLUTTER. MORE CLARITY.</span><span>BUILT FOR THE RHYTHM OF RETAIL <ArrowDownRight size={13}/></span></div>
+          <div className="sf-hero-bottom"><span>YOUR SHOP, IN BETTER ORDER</span><span>SCROLL TO EXPLORE <ChevronDown size={13}/></span></div>
         </section>
-        <section className="sf-intro-strip"><div className="sf-container sf-intro-inner"><p>Good business starts with a clearer picture.</p><div><span><ShoppingCart size={16}/> Sales</span><span><Package size={16}/> Inventory</span><span><BarChart3 size={16}/> Reports</span><span><Smartphone size={16}/> Mobile ready</span></div></div></section>
-        <section id="features" className="sf-section sf-features-section"><div className="sf-container"><div className="sf-section-heading"><div><span className="sf-section-kicker">THE EVERYDAY, MADE EASIER</span><h2>Everything you need.<br/><em>Nothing in the way.</em></h2></div><p>Running a shop is already full of moving parts. StockFlow keeps the essentials close, so your team can focus on the work in front of them.</p></div><div className="sf-feature-grid">{features.map(({icon:Icon,title,text},index)=><article className="sf-feature-card" key={title}><div className="sf-feature-top"><span className="sf-feature-icon"><Icon size={21} strokeWidth={1.6}/></span><span className="sf-feature-number">0{index+1}</span></div><h3>{title}</h3><p>{text}</p><span className="sf-feature-rule"></span></article>)}</div></div></section>
-        <section id="how-it-works" className="sf-work-section"><div className="sf-container sf-work-layout"><div className="sf-work-intro"><span className="sf-section-kicker">A MORE NATURAL WORKFLOW</span><h2>From the first sale<br/>to <em>the bigger picture.</em></h2><p>Start with the products you sell. Record transactions as they happen. Then use the records you build to understand what needs attention.</p><Link className="sf-text-link" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link></div><div className="sf-steps"><article className="sf-step"><span className="sf-step-number">01</span><div><h3>Bring your products together</h3><p>Keep names, prices and quantities organized in one catalogue.</p></div><span className="sf-step-icon"><Package size={20}/></span></article><article className="sf-step"><span className="sf-step-number">02</span><div><h3>Keep each sale connected</h3><p>Record transactions and keep stock movements tied to daily activity.</p></div><span className="sf-step-icon"><ShoppingCart size={20}/></span></article><article className="sf-step"><span className="sf-step-number">03</span><div><h3>See what deserves attention</h3><p>Review your records and make decisions with a clearer view of the shop.</p></div><span className="sf-step-icon"><BarChart3 size={20}/></span></article></div></div></section>
-        <section id="businesses" className="sf-business-section"><div className="sf-container"><div className="sf-business-heading"><div><span className="sf-section-kicker">MADE FOR REAL RETAIL</span><h2>One shop at a time.<br/><em>One clearer picture.</em></h2></div><p>From the neighbourhood shop to a growing retail team, keep your everyday operations in better order.</p></div><div className="sf-business-grid"><article className="sf-business-card sf-business-card-photo"><div className="sf-business-photo sf-business-photo-one"></div><div><span>01 / DAILY SALES</span><h3>General retail</h3><p>Keep the counter moving and transactions organized.</p></div></article><article className="sf-business-card"><div className="sf-business-symbol"><ShoppingBag size={24}/></div><div><span>02 / PRODUCT CONTROL</span><h3>Minimarkets</h3><p>Keep product quantities and stock movement in view.</p></div></article><article className="sf-business-card"><div className="sf-business-symbol"><ScanBarcode size={24}/></div><div><span>03 / QUICK LOOKUP</span><h3>Electronics & accessories</h3><p>Find items and maintain clearer product records.</p></div></article></div></div></section>
-        <section className="sf-quote-section"><div className="sf-container sf-quote-inner"><span className="sf-quote-mark">“</span><blockquote>When the records are clear, the next decision gets easier.</blockquote><p>STOCKFLOW · YOUR SHOP, IN BETTER ORDER</p></div></section>
-        <section id="faq" className="sf-section sf-faq-section"><div className="sf-container sf-faq-layout"><div className="sf-faq-intro"><span className="sf-section-kicker">GOOD TO KNOW</span><h2>Questions,<br/><em>answered.</em></h2><p>A few things you might want to know before getting started.</p><div className="sf-faq-help"><CircleHelp size={18}/><span>Ready to take a look?<small>Open StockFlow and explore your workspace.</small></span></div></div><div className="sf-faq-list">{faqs.map((faq,index)=><article className={'sf-faq-item ' + (openFaq===index?'is-open':'')} key={faq.q}><h3><button type="button" aria-expanded={openFaq===index} onClick={()=>setOpenFaq(openFaq===index?null:index)}>{faq.q}<ChevronDown size={18}/></button></h3><p hidden={openFaq!==index}>{faq.a}</p></article>)}</div></div></section>
-        <section className="sf-final-cta"><div className="sf-container sf-final-cta-inner"><div><span className="sf-section-kicker sf-kicker-light">MAKE ROOM FOR A CLEARER DAY</span><h2>Your shop deserves<br/><em>a better overview.</em></h2><p>Bring sales, products and everyday records into one workspace.</p></div><div className="sf-final-actions"><Link className="sf-button sf-button-light sf-button-large" to={appPath}>{ctaLabel}<ArrowRight size={17}/></Link><span>No complicated setup to explore.</span></div></div></section>
+
+        <section className="sf-intro-section">
+          <div className="sf-container sf-intro-layout"><span className="sf-kicker">A CLEARER WAY TO RUN RETAIL</span><h2>Your shop has a lot going on.<br/><em>Your system should make it simpler.</em></h2><p>From the first sale of the day to the stock you need to reorder, StockFlow helps bring the important details into view.</p></div>
+        </section>
+
+        <section id="features" className="sf-features-section">
+          <div className="sf-container">
+            <div className="sf-section-head"><div><span className="sf-kicker">WHAT YOU CAN DO</span><h2>Everything in its<br/><em>right place.</em></h2></div><p>Less time looking for information. More time serving customers and running your business.</p></div>
+            <div className="sf-capability-grid">{capabilities.map(({icon:Icon,title,text,image,alt},i)=><article className={'sf-capability sf-capability-'+(i+1)} key={title}><div className="sf-capability-image"><img src={image} alt={alt} loading="lazy"/><span className="sf-capability-icon"><Icon size={19}/></span></div><div className="sf-capability-copy"><span className="sf-capability-count">0{i+1} / STOCKFLOW</span><h3>{title}</h3><p>{text}</p><a href="#benefits" aria-label={'Learn about '+title}>Explore feature <ArrowRight size={14}/></a></div></article>)}</div>
+          </div>
+        </section>
+
+        <section id="benefits" className="sf-benefits-section">
+          <div className="sf-container sf-benefits-layout">
+            <div className="sf-benefits-intro"><span className="sf-kicker">MORE THAN A CHECKOUT</span><h2>Small details.<br/><em>Real difference.</em></h2><p>Running a shop is about much more than taking payment. StockFlow helps you stay on top of the work around every sale, too.</p><Link className="sf-text-link" to={appPath}>{ctaLabel}<ArrowRight size={15}/></Link></div>
+            <div className="sf-benefit-list">{benefits.map(({icon:Icon,title,text},i)=><article className="sf-benefit-row" key={title}><span className="sf-benefit-icon"><Icon size={19}/></span><div><span className="sf-benefit-index">0{i+1}</span><h3>{title}</h3><p>{text}</p></div><ArrowRight className="sf-benefit-arrow" size={16}/></article>)}</div>
+          </div>
+        </section>
+
+        <section id="about" className="sf-shop-section">
+          <div className="sf-container sf-shop-layout"><div className="sf-shop-image"><img src="https://images.unsplash.com/photo-1604719312566-8912e9c8a213?auto=format&fit=crop&w=1300&q=85" alt="Well-organized neighbourhood retail shop" loading="lazy"/><span className="sf-image-caption"><i/> MADE FOR THE DAY-TO-DAY</span></div><div className="sf-shop-copy"><span className="sf-kicker">MADE FOR REAL SHOPS</span><h2>Your business.<br/><em>Your way of working.</em></h2><p>Whether you run a minimarket, cosmetics shop, electronics store or general retail business, keep the essentials connected without adding complexity.</p><ul><li><Check size={15}/> One place for sales and products</li><li><Check size={15}/> Clearer stock records</li><li><Check size={15}/> Reports to help you plan ahead</li><li><Check size={15}/> A workflow that fits your devices</li></ul><Link className="sf-text-link" to={appPath}>See StockFlow for yourself <ArrowRight size={15}/></Link></div></div>
+        </section>
+
+        <section className="sf-proof-section"><div className="sf-container sf-proof-layout"><span className="sf-proof-mark">“</span><div><span className="sf-kicker">THE STOCKFLOW APPROACH</span><blockquote>When your records are clear, running your shop feels clearer too.</blockquote><p>SALES · STOCK · CUSTOMERS · REPORTS</p></div><div className="sf-proof-image"><img src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=800&q=85" alt="Retail business owner helping a customer" loading="lazy"/></div></div></section>
+
+        <section id="faq" className="sf-faq-section"><div className="sf-container sf-faq-layout"><div className="sf-faq-intro"><span className="sf-kicker">GOOD TO KNOW</span><h2>Questions?<br/><em>We have answers.</em></h2><p>Everything you need to know before you start using StockFlow.</p><div className="sf-faq-help"><CircleHelp size={18}/><span>Ready to get started?<small>Set up your shop and explore the workspace.</small></span></div></div><div className="sf-faq-list">{faqs.map((faq,i)=><article className={'sf-faq-item '+(openFaq===i?'is-open':'')} key={faq.q}><h3><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}>{faq.q}<ChevronDown size={17}/></button></h3><p hidden={openFaq!==i}>{faq.a}</p></article>)}</div></div></section>
+
+        <section className="sf-final-cta"><div className="sf-final-photo" aria-hidden="true"/><div className="sf-final-overlay" aria-hidden="true"/><div className="sf-final-content"><span className="sf-kicker sf-kicker-light">YOUR NEXT BUSINESS DECISION STARTS HERE</span><h2>Your shop is ready<br/>for <em>a clearer view.</em></h2><Link className="sf-button sf-button-white" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link></div></section>
       </main>
-      <footer className="sf-footer"><div className="sf-container sf-footer-inner"><Link to="/" className="sf-wordmark"><span className="sf-brand-mark"><Package size={17}/></span><span>stockflow<span className="sf-wordmark-period">.</span></span></Link><p>Clearer records. Better-run shops.</p><div><a href="#features">Features</a><a href="#faq">FAQs</a><Link to="/login">Sign in</Link></div><small>© {new Date().getFullYear()} StockFlow. All rights reserved.</small></div></footer>
+
+      <footer className="sf-footer"><div className="sf-container sf-footer-main"><div><Brand/><p>Know your shop. Run it better.</p></div><div className="sf-footer-links"><a href="#features">Features</a><a href="#benefits">Why StockFlow</a><a href="#faq">FAQs</a><Link to="/login">Sign in</Link></div><Link className="sf-footer-top" to="/">Back to top ↑</Link></div><div className="sf-container sf-footer-bottom"><span>© {new Date().getFullYear()} StockFlow. All rights reserved.</span><span>Point of sale & stock management</span></div></footer>
     </div>
   )
 }
