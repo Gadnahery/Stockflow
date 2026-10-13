@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { ensureSeedData } from './lib/db'
 import { startSyncLoop, processOutbox, startRealtime, pullMissing } from './lib/sync'
 import { usePosStore } from './store/posStore'
@@ -36,10 +36,14 @@ import ExportPage from './pages/ExportPage'
 import LandingPage from './pages/LandingPage'
 
 function App() {
+  const location = useLocation()
   const setOnline = usePosStore((s) => s.setOnline)
   const refreshPendingSync = usePosStore((s) => s.refreshPendingSync)
 
   useEffect(() => {
+    const publicOnlyRoutes = ['/', '/login', '/signup', '/forgot-password', '/reset-password', '/accept-invite']
+    if (publicOnlyRoutes.includes(location.pathname)) return
+
     ensureSeedData().then(() => refreshPendingSync())
 
     const onOnline = () => {
@@ -63,7 +67,7 @@ function App() {
       clearInterval(timer)
       stopRealtime()
     }
-  }, [setOnline, refreshPendingSync])
+  }, [location.pathname, setOnline, refreshPendingSync])
 
   return (
     <Routes>
