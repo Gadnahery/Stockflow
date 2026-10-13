@@ -137,6 +137,10 @@ export async function ensureSeedData() {
       deviceId,
       offlineWindowHours: 72,
       receiptFooter: 'Thank you for shopping with us!',
+      tinNumber: '',
+      vrnNumber: '',
+      fiscalMode: 'off',
+      fiscalReceiptSeq: 0,
     })
   } else if (!existing.deviceId) {
     await db.settings.update('main', { deviceId })
@@ -193,6 +197,10 @@ export async function switchToBusinessWorkspace(businessId: string | null) {
       deviceId,
       offlineWindowHours: 72,
       receiptFooter: 'Thank you for shopping with us!',
+      tinNumber: '',
+      vrnNumber: '',
+      fiscalMode: 'off',
+      fiscalReceiptSeq: 0,
     })
   })
   return { switched: true }

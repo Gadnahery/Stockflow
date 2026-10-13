@@ -258,6 +258,38 @@ export default function LandingPage() {
             </div>
           </section>
 
+
+          <section className="sf-lp-section sf-lp-section-soft" aria-label="Stories">
+            <div className="sf-lp-wrap">
+              <p className="sf-lp-kicker sf-lp-kicker-dark">{locale === 'sw' ? 'Maduka' : 'Shops'}</p>
+              <h2 className="sf-lp-display">
+                {locale === 'sw' ? 'Rahisi kwenye kaunta.' : 'Simple at the counter.'}
+              </h2>
+              <div className="sf-lp-stories" style={{ display: 'grid', gap: '1rem', marginTop: '2rem' }}>
+                <blockquote className="rounded-[18px] border border-black/8 bg-white p-6 shadow-sm">
+                  <p className="text-[16px] leading-relaxed text-ink">
+                    {locale === 'sw'
+                      ? '“Mauzo yanaendelea hata mtandao ukikatika. Faida inaonekana bila kelele.”'
+                      : '“Sales keep going when the network drops. Profit is clear without the noise.”'}
+                  </p>
+                  <footer className="mt-3 text-[13px] font-semibold text-ink-secondary">
+                    {locale === 'sw' ? 'Duka la vifaa · Dar' : 'Electronics shop · Dar'}
+                  </footer>
+                </blockquote>
+                <blockquote className="rounded-[18px] border border-black/8 bg-white p-6 shadow-sm">
+                  <p className="text-[16px] leading-relaxed text-ink">
+                    {locale === 'sw'
+                      ? '“Timu ilijifunza POS kwa dakika. Mimi ninaona stoo na matumizi.”'
+                      : '“The team learned POS in minutes. I can see stock and expenses.”'}
+                  </p>
+                  <footer className="mt-3 text-[13px] font-semibold text-ink-secondary">
+                    {locale === 'sw' ? 'Minimarket · Arusha' : 'Minimarket · Arusha'}
+                  </footer>
+                </blockquote>
+              </div>
+            </div>
+          </section>
+
           <section id="faq" className="sf-lp-section">
             <div className="sf-lp-wrap sf-lp-faq-grid">
               <div>

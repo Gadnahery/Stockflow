@@ -331,6 +331,13 @@ export const usePosStore = create<PosState>((set, get) => ({
     const now = new Date().toISOString()
     const saleId = uuidv4()
     const receiptNumber = `R${Date.now().toString().slice(-8)}`
+    const fiscalMode = settings?.fiscalMode || 'off'
+    let fiscalReceiptNumber: string | undefined
+    if (fiscalMode === 'prepare' || fiscalMode === 'vfd') {
+      const next = (settings?.fiscalReceiptSeq ?? 0) + 1
+      fiscalReceiptNumber = `FS${String(next).padStart(8, '0')}`
+      await db.settings.update('main', { fiscalReceiptSeq: next })
+    }
 
     // Find open shift if any
     const openShift = await db.cashSessions.filter((s) => s.status === 'open').first()
@@ -356,6 +363,7 @@ export const usePosStore = create<PosState>((set, get) => ({
       shiftId: openShift?.id,
       status: 'completed',
       receiptNumber,
+      fiscalReceiptNumber,
       note: note?.trim() || undefined,
       createdAt: now,
       synced: false,

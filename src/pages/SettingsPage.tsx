@@ -26,6 +26,9 @@ export default function SettingsPage() {
     taxInclusive: true,
     receiptFooter: '',
     offlineWindowHours: '72',
+    tinNumber: '',
+    vrnNumber: '',
+    fiscalMode: 'off' as 'off' | 'prepare' | 'vfd',
   })
   const [saving, setSaving] = useState(false)
   const [branches, setBranches] = useState<BranchRow[]>([])
@@ -45,6 +48,9 @@ export default function SettingsPage() {
       taxInclusive: settings.taxInclusive !== false,
       receiptFooter: settings.receiptFooter || '',
       offlineWindowHours: String(settings.offlineWindowHours ?? 72),
+      tinNumber: settings.tinNumber || '',
+      vrnNumber: settings.vrnNumber || '',
+      fiscalMode: settings.fiscalMode || 'off',
     })
     if (settings.branchId && !localStorage.getItem('branchId')) {
       setActiveBranchId(settings.branchId)
@@ -113,6 +119,10 @@ export default function SettingsPage() {
         deviceId: settings?.deviceId || crypto.randomUUID(),
         branchId: activeBranchId || settings?.branchId,
         logoUrl: settings?.logoUrl,
+        tinNumber: form.tinNumber.trim() || undefined,
+        vrnNumber: form.vrnNumber.trim() || undefined,
+        fiscalMode: form.fiscalMode,
+        fiscalReceiptSeq: settings?.fiscalReceiptSeq ?? 0,
       })
       toast('Settings saved', 'success')
     } catch {
@@ -213,6 +223,44 @@ export default function SettingsPage() {
               Sales on this device will use <strong>{activeBranch.name}</strong>.
             </p>
           )}
+        </section>
+
+
+        {/* TRA / fiscal readiness */}
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">{t('fiscal.title')}</h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
+            <p className="text-[13px] text-ink-muted leading-relaxed">{t('fiscal.hint')}</p>
+            <div>
+              <label className="block text-[13px] font-semibold text-ink-secondary mb-1">{t('fiscal.tin')}</label>
+              <input className="field" value={form.tinNumber} onChange={(e) => set({ tinNumber: e.target.value })} placeholder="e.g. 123-456-789" />
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-ink-secondary mb-1">{t('fiscal.vrn')}</label>
+              <input className="field" value={form.vrnNumber} onChange={(e) => set({ vrnNumber: e.target.value })} placeholder="VRN (optional)" />
+            </div>
+            <div>
+              <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">{t('fiscal.mode')}</label>
+              <div className="flex flex-col gap-2">
+                {([
+                  ['off', t('fiscal.off')],
+                  ['prepare', t('fiscal.prepare')],
+                  ['vfd', t('fiscal.vfd')],
+                ] as const).map(([code, label]) => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => set({ fiscalMode: code })}
+                    className={`press text-left px-4 py-3 rounded-[14px] text-[14px] font-medium ${
+                      form.fiscalMode === code ? 'bg-primary/10 text-primary ring-1 ring-primary/30' : 'bg-black/[0.04] text-ink-secondary'
+                    }`}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </section>
 
         <section>

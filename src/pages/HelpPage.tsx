@@ -30,6 +30,10 @@ export default function HelpPage() {
           <p className="text-[13px] text-ink-muted">App version 1.0.0 · Phase 1 auth</p>
         </div>
       </div>
+          <div className="mt-8 rounded-[18px] border border-border bg-white p-5 text-[14px] text-ink-secondary leading-relaxed">
+        <strong className="text-ink">TRA / VFD:</strong> Settings → Tax &amp; fiscal stores your TIN and can issue sequential FS receipt numbers.
+        Live VFD hardware integration is reserved until a certified path is available — StockFlow does not claim TRA approval for device signing yet.
+      </div>
     </Screen>
   )
 }

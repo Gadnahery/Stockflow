@@ -70,6 +70,8 @@ export interface Sale {
   shiftId?: UUID
   status: 'completed' | 'voided' | 'refunded' | 'held'
   receiptNumber: string
+  /** Sequential fiscal-style number when fiscalMode is prepare/vfd */
+  fiscalReceiptNumber?: string
   note?: string
   createdAt: string
   synced: boolean
@@ -192,6 +194,14 @@ export interface AppSettings {
   offlineWindowHours: number
   receiptFooter?: string
   logoUrl?: string
+  /** Tanzania Revenue Authority TIN (for future VFD / fiscal receipts) */
+  tinNumber?: string
+  /** Business registration / VRN if applicable */
+  vrnNumber?: string
+  /** Fiscal mode: off | prepare (numbers only) | vfd (device path, when certified) */
+  fiscalMode?: 'off' | 'prepare' | 'vfd'
+  /** Last sequential fiscal receipt counter on this device */
+  fiscalReceiptSeq?: number
 }
 
 export interface AuditLog {
