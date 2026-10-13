@@ -1,10 +1,14 @@
-/* StockFlow offline shell — cache app assets; API/Supabase always network */
-const CACHE = 'stockflow-shell-v3'
+/* StockFlow service worker — app shell offline */
+const CACHE = 'stockflow-v3'
+
 const PRECACHE = [
   '/',
   '/index.html',
   '/manifest.json',
   '/favicon.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png',
 ]
 
 self.addEventListener('install', (event) => {
@@ -27,7 +31,6 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(req.url)
 
-  // Never cache Supabase / APIs
   if (
     url.hostname.includes('supabase') ||
     url.pathname.startsWith('/auth') ||
@@ -37,7 +40,6 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Navigations: network first, fall back to cached shell
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
@@ -51,26 +53,21 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Static assets: cache first, then network
+  // Static assets: cache first
   if (
     url.origin === self.location.origin &&
     (url.pathname.startsWith('/assets/') ||
-      url.pathname.endsWith('.js') ||
-      url.pathname.endsWith('.css') ||
-      url.pathname.endsWith('.svg') ||
-      url.pathname.endsWith('.woff2') ||
       url.pathname.endsWith('.png') ||
-      url.pathname.endsWith('.ico'))
+      url.pathname.endsWith('.svg') ||
+      url.pathname.endsWith('.json'))
   ) {
     event.respondWith(
       caches.match(req).then(
         (cached) =>
           cached ||
           fetch(req).then((res) => {
-            if (res.ok) {
-              const copy = res.clone()
-              caches.open(CACHE).then((c) => c.put(req, copy))
-            }
+            const copy = res.clone()
+            caches.open(CACHE).then((c) => c.put(req, copy))
             return res
           }),
       ),

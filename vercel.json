@@ -11,11 +11,19 @@
     {
       "source": "/sitemap.xml",
       "headers": [{ "key": "Content-Type", "value": "application/xml; charset=utf-8" }]
+    },
+    {
+      "source": "/manifest.json",
+      "headers": [{ "key": "Content-Type", "value": "application/manifest+json; charset=utf-8" }]
+    },
+    {
+      "source": "/(.*)\\.(png|svg|jpg|jpeg|webp|ico)",
+      "headers": [{ "key": "Cache-Control", "value": "public, max-age=86400, immutable" }]
     }
   ],
   "rewrites": [
     {
-      "source": "/((?!assets/|favicon.svg|manifest.json|sw.js|robots.txt|sitemap.xml|icon-192.png|icon-512.png|og-default.png).*)",
+      "source": "/((?!assets/|favicon\\.svg|favicon-.*\\.png|icon-.*\\.png|apple-touch-icon\\.png|og-default\\.png|manifest\\.json|sw\\.js|robots\\.txt|sitemap\\.xml).*)",
       "destination": "/index.html"
     }
   ]

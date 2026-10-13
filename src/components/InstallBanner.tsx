@@ -21,7 +21,7 @@ export default function InstallBanner() {
 
   return (
     <div className="fixed bottom-[5.5rem] md:bottom-4 left-3 right-3 md:left-auto md:right-4 md:w-96 z-30 rounded-[18px] bg-ink text-white shadow-float p-4 flex gap-3 items-start pointer-events-auto">
-      <Download size={22} className="shrink-0 mt-0.5 text-[#5AC8FA]" />
+      <img src="/icon-192.png" alt="" width={44} height={44} className="shrink-0 rounded-[12px]" />
       <div className="flex-1 min-w-0">
         <p className="text-[15px] font-semibold">Install StockFlow</p>
         <p className="text-[13px] text-white/70 mt-0.5">

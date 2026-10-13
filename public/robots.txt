@@ -1,4 +1,4 @@
-# StockFlow — public marketing crawl rules
+# StockFlow — crawl rules for search engines and AI search bots
 User-agent: *
 Allow: /
 Allow: /features
@@ -39,6 +39,7 @@ Disallow: /login
 Disallow: /signup
 Disallow: /forgot-password
 
+# AI / answer-engine search crawlers — public marketing only
 User-agent: OAI-SearchBot
 Allow: /
 Allow: /features
@@ -52,5 +53,24 @@ Allow: /industries/
 Disallow: /pos
 Disallow: /login
 Disallow: /signup
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /resources
+Allow: /about
+Allow: /contact
+
+User-agent: Google-Extended
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /resources
+
+User-agent: Claude-Web
+Allow: /
+Allow: /features
+Allow: /resources
 
 Sitemap: https://stockflow-taupe-six.vercel.app/sitemap.xml
