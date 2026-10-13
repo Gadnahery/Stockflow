@@ -20,7 +20,7 @@ export default function OnboardingPage() {
       navigate('/login', { replace: true })
       return
     }
-    if (member) navigate('/', { replace: true })
+    if (member) navigate('/pos', { replace: true })
   }, [loading, session, member, navigate])
 
   if (loading || !session || member) {
@@ -47,7 +47,7 @@ export default function OnboardingPage() {
       await createBusiness(name.trim(), phone.trim() || undefined, address.trim() || undefined)
       setDevicePin(pin)
       haptic(30)
-      navigate('/', { replace: true })
+      navigate('/pos', { replace: true })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not create business')
       haptic(50)

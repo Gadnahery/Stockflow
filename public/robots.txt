@@ -1,0 +1,60 @@
+# StockFlow — public marketing crawl rules
+User-agent: *
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /resources
+Allow: /privacy
+Allow: /terms
+Allow: /industries/
+
+# Private application areas (not for indexing)
+Disallow: /pos
+Disallow: /home
+Disallow: /products
+Disallow: /customers
+Disallow: /sales
+Disallow: /reports
+Disallow: /settings
+Disallow: /shifts
+Disallow: /expenses
+Disallow: /suppliers
+Disallow: /stock
+Disallow: /users
+Disallow: /export
+Disallow: /import
+Disallow: /sync
+Disallow: /audit
+Disallow: /account
+Disallow: /billing
+Disallow: /branches
+Disallow: /help
+Disallow: /more
+Disallow: /notifications
+Disallow: /onboarding
+Disallow: /accept-invite
+Disallow: /reset-password
+
+# Auth pages — noindex preference via meta; still disallow crawl noise
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+
+# OpenAI search crawler — public content only
+User-agent: OAI-SearchBot
+Allow: /
+Allow: /features
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /resources
+Allow: /privacy
+Allow: /terms
+Allow: /industries/
+Disallow: /pos
+Disallow: /login
+Disallow: /signup
+
+Sitemap: https://stockflow-taupe-six.vercel.app/sitemap.xml

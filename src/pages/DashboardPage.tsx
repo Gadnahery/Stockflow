@@ -87,7 +87,7 @@ export default function DashboardPage() {
             {today.orders} orders · {fmt(today.units)} units
           </p>
           <Link
-            to="/"
+            to="/pos"
             className="mt-4 inline-flex items-center gap-2 h-11 px-5 rounded-full bg-white text-primary font-semibold text-[14px]"
           >
             <ShoppingCart size={16} /> New sale

@@ -34,6 +34,20 @@ import UsersPage from './pages/UsersPage'
 import SalesPage from './pages/SalesPage'
 import ExportPage from './pages/ExportPage'
 
+
+import MarketingLayout from './marketing/MarketingLayout'
+import HomePage from './pages/marketing/HomePage'
+import FeaturesPage from './pages/marketing/FeaturesPage'
+import PricingPage from './pages/marketing/PricingPage'
+import AboutPage from './pages/marketing/AboutPage'
+import ContactPage from './pages/marketing/ContactPage'
+import PrivacyPage from './pages/marketing/PrivacyPage'
+import TermsPage from './pages/marketing/TermsPage'
+import ResourcesPage from './pages/marketing/ResourcesPage'
+import ArticlePage from './pages/marketing/ArticlePage'
+import IndustryPage from './pages/marketing/IndustryPage'
+import NotFoundPage from './pages/marketing/NotFoundPage'
+
 function App() {
   const setOnline = usePosStore((s) => s.setOnline)
   const refreshPendingSync = usePosStore((s) => s.refreshPendingSync)
@@ -66,6 +80,20 @@ function App() {
 
   return (
     <Routes>
+      {/* Public marketing — SEO entry points */}
+      <Route element={<MarketingLayout />}>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/features" element={<FeaturesPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/about" element={<AboutPage />} />
+        <Route path="/contact" element={<ContactPage />} />
+        <Route path="/privacy" element={<PrivacyPage />} />
+        <Route path="/terms" element={<TermsPage />} />
+        <Route path="/resources" element={<ResourcesPage />} />
+        <Route path="/resources/:slug" element={<ArticlePage />} />
+        <Route path="/industries/:slug" element={<IndustryPage />} />
+      </Route>
+
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -86,9 +114,9 @@ function App() {
           </RequireAuth>
         }
       >
-        <Route path="/" element={<PosPage />} />
-        <Route path="home" element={<DashboardPage />} />
-        <Route path="notifications" element={<NotificationsPage />} />
+        <Route path="/pos" element={<PosPage />} />
+        <Route path="/home" element={<DashboardPage />} />
+        <Route path="/notifications" element={<NotificationsPage />} />
         <Route path="/products" element={<ProductsPage />} />
         <Route path="/customers" element={<CustomersPage />} />
         <Route path="/reports" element={<ReportsPage />} />
@@ -109,7 +137,7 @@ function App() {
         <Route path="/branches" element={<BranchesPage />} />
         <Route path="/help" element={<HelpPage />} />
       </Route>
-      <Route path="*" element={<Navigate to="/" replace />} />
+      <Route path="*" element={<NotFoundPage />} />
     </Routes>
   )
 }

@@ -22,7 +22,7 @@ type NavItem = {
 }
 
 const mobileNav = [
-  { to: '/', icon: ShoppingCart, label: 'POS', end: true },
+  { to: '/pos', icon: ShoppingCart, label: 'POS', end: true },
   { to: '/products', icon: Package, label: 'Products' },
   { to: '/customers', icon: Users, label: 'Customers' },
   { to: '/reports', icon: BarChart3, label: 'Reports' },
@@ -31,7 +31,7 @@ const mobileNav = [
 
 const desktopNav: NavItem[] = [
   { to: '/home', icon: LayoutGrid, label: 'Home', section: 'Sell' },
-  { to: '/', icon: ShoppingCart, label: 'POS', end: true, section: 'Sell' },
+  { to: '/pos', icon: ShoppingCart, label: 'POS', end: true, section: 'Sell' },
   { to: '/sales', icon: Receipt, label: 'Sales', section: 'Sell' },
   { to: '/products', icon: Package, label: 'Products', section: 'Inventory' },
   { to: '/stock', icon: Package, label: 'Stock', section: 'Inventory' },
@@ -338,7 +338,7 @@ export default function AppShell() {
 
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/pos')}
             className="press h-9 px-3.5 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center gap-1.5 shadow-soft"
           >
             <Plus size={15} />

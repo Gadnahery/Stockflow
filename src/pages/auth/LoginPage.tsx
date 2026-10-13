@@ -16,7 +16,7 @@ export default function LoginPage() {
   const { signIn, session, member, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: string })?.from || '/'
+  const from = (location.state as { from?: string })?.from || '/pos'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -27,7 +27,7 @@ export default function LoginPage() {
   useEffect(() => {
     if (loading || busy) return
     if (!session) return
-    navigate(member ? (from.startsWith('/login') ? '/' : from) : '/onboarding', { replace: true })
+    navigate(member ? (from.startsWith('/login') || from === '/' ? '/pos' : from) : '/onboarding', { replace: true })
   }, [loading, session, member, from, navigate, busy])
 
   const onSubmit = async (e: FormEvent) => {
@@ -38,7 +38,7 @@ export default function LoginPage() {
       const { hasBusiness } = await signIn(email.trim(), password)
       haptic(20)
       if (hasBusiness) {
-        const dest = from.startsWith('/login') ? '/' : from
+        const dest = from.startsWith('/login') || from === '/' ? '/pos' : from
         navigate(dest, { replace: true })
       } else {
         navigate('/onboarding', { replace: true })
