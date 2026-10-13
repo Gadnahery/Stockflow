@@ -6,6 +6,7 @@ import Screen from '../components/ui/Screen'
 import { useUi } from '../store/uiStore'
 import { fmt } from '../lib/util'
 import type { Product, Customer } from '../types'
+import { useI18n } from '../i18n/I18nContext'
 
 type Kind = 'products' | 'customers'
 interface RowError { row: number; message: string }
@@ -46,6 +47,7 @@ function download(name: string, content: string) {
 }
 
 export default function ImportPage() {
+  const { t } = useI18n()
   const toast = useUi((s) => s.toast)
   const [kind, setKind] = useState<Kind>('products')
   const [fileName, setFileName] = useState('')
@@ -141,7 +143,7 @@ export default function ImportPage() {
   }
 
   return (
-    <Screen title="Import data" subtitle="Bring in products or customers from a CSV file">
+    <Screen title={t('import.title')} subtitle={t('import.sub')}>
       <div className="space-y-4 md:max-w-xl">
         <div className="grid grid-cols-2 p-1 rounded-[14px] bg-black/[0.06]">
           {(['products', 'customers'] as Kind[]).map((k) => (

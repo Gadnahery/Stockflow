@@ -9,8 +9,10 @@ import { processOutbox, pullMissing, syncNow, getLastSyncAt, getLastPullAt } fro
 import { usePosStore } from '../store/posStore'
 import { useUi } from '../store/uiStore'
 import { useAuth } from '../contexts/AuthContext'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function SyncStatusPage() {
+  const { t } = useI18n()
   const confirm = useConfirm()
   const toast = useUi((s) => s.toast)
   const isOnline = usePosStore((s) => s.isOnline)

@@ -11,11 +11,13 @@ import { usePermission } from '../hooks/usePermission'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { useUi } from '../store/uiStore'
 import { fmtMoney } from '../lib/util'
+import { useI18n } from '../i18n/I18nContext'
 
 type Period = 'today' | '7d' | '30d' | 'all'
 type StatusFilter = 'all' | 'completed' | 'voided' | 'refunded'
 
 export default function SalesPage() {
+  const { t } = useI18n()
   const [selected, setSelected] = useState<Sale | null>(null)
   const [query, setQuery] = useState('')
   const [period, setPeriod] = useState<Period>('7d')

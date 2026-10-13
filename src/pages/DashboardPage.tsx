@@ -10,8 +10,10 @@ import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
 import { useAuth } from '../contexts/AuthContext'
 import { fmt, fmtMoney } from '../lib/util'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function DashboardPage() {
+  const { t } = useI18n()
   const { business, member } = useAuth()
   const isOnline = usePosStore((s) => s.isOnline)
   const pendingSyncCount = usePosStore((s) => s.pendingSyncCount)

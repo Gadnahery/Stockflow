@@ -10,6 +10,7 @@ import Screen from '../components/ui/Screen'
 import Sheet from '../components/ui/Sheet'
 import { useUi } from '../store/uiStore'
 import { fmt, fmtMoney } from '../lib/util'
+import { useI18n } from '../i18n/I18nContext'
 
 const REASONS = [
   { id: 'adjustment', label: 'Count / adjustment' },
@@ -23,6 +24,7 @@ type ReasonId = (typeof REASONS)[number]['id']
 type Tab = 'overview' | 'low' | 'movements'
 
 export default function StockAdjustmentPage() {
+  const { t } = useI18n()
   const toast = useUi((s) => s.toast)
   const [tab, setTab] = useState<Tab>('overview')
   const [showForm, setShowForm] = useState(false)

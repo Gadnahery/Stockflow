@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Screen from '../components/ui/Screen'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, getBusinessId } from '../lib/supabase'
+import { useI18n } from '../i18n/I18nContext'
 
 const FREE_SEATS = 10
 
@@ -17,6 +18,7 @@ const FEATURES = [
 ]
 
 export default function BillingPage() {
+  const { t } = useI18n()
   const { business, member } = useAuth()
   const [seatCount, setSeatCount] = useState<number | null>(null)
 
@@ -36,7 +38,7 @@ export default function BillingPage() {
     typeof seatCount === 'number' ? Math.max(0, FREE_SEATS - seatCount) : null
 
   return (
-    <Screen title="Plan & billing" subtitle={business?.name || 'Your workspace'}>
+    <Screen title={t('billing.title')} subtitle={business?.name || 'Your workspace'}>
       <div className="space-y-5 md:max-w-lg pb-8">
         <div className="rounded-[22px] bg-gradient-to-br from-[#007AFF] to-[#0055CC] text-white p-6 shadow-float">
           <div className="flex items-center gap-2 text-[13px] font-semibold opacity-90">

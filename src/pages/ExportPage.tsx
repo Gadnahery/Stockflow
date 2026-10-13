@@ -5,6 +5,7 @@ import { db } from '../lib/db'
 import Screen from '../components/ui/Screen'
 import { useUi } from '../store/uiStore'
 import { format } from 'date-fns'
+import { useI18n } from '../i18n/I18nContext'
 
 type Dataset = 'products' | 'customers' | 'sales' | 'expenses' | 'suppliers'
 
@@ -37,6 +38,7 @@ function download(filename: string, content: string) {
 }
 
 export default function ExportPage() {
+  const { t } = useI18n()
   const toast = useUi((s) => s.toast)
   const [dataset, setDataset] = useState<Dataset>('products')
   const [busy, setBusy] = useState(false)
@@ -87,7 +89,7 @@ export default function ExportPage() {
   }
 
   return (
-    <Screen title="Export" subtitle="Download CSV for spreadsheets">
+    <Screen title={t('export.title')} subtitle={t('export.sub')}>
       <div className="space-y-5 md:max-w-lg pb-8">
         <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
           {DATASETS.map((d, i) => (

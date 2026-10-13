@@ -6,8 +6,10 @@ import { db } from '../lib/db'
 import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
 import { fmt } from '../lib/util'
+import { useI18n } from '../i18n/I18nContext'
 
 export default function NotificationsPage() {
+  const { t } = useI18n()
   const isOnline = usePosStore((s) => s.isOnline)
   const pendingSyncCount = usePosStore((s) => s.pendingSyncCount)
   const products = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), [])
@@ -87,7 +89,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <Screen title="Notifications" subtitle="Stock, sync, and alerts for this shop">
+    <Screen title={t('notifications.title')} subtitle={t('notifications.sub')}>
       <div className="space-y-3 md:max-w-xl pb-8">
         {items.length === 0 ? (
           <div className="rounded-[22px] bg-white shadow-card px-6 py-12 text-center">

@@ -1,7 +1,9 @@
+import { useI18n } from '../../i18n/I18nContext'
 import Seo from '../../marketing/Seo'
 import { breadcrumbJsonLd } from '../../lib/seo'
 
 export default function TermsPage() {
+  const { t } = useI18n()
   return (
     <>
       <Seo

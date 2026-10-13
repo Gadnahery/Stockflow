@@ -11,43 +11,49 @@ import { syncNow as runSync } from '../lib/sync'
 import { usePermission } from '../hooks/usePermission'
 import { useAuth } from '../contexts/AuthContext'
 import { promptInstall, isStandalone, canInstall } from '../lib/pwa'
+import { useI18n } from '../i18n/I18nContext'
+import type { MessageKey } from '../i18n/messages'
 
-const sections = [
+const sectionDefs: {
+  title: string
+  items: { icon: typeof Settings; labelKey: MessageKey; to: string; color: string }[]
+}[] = [
   {
     title: 'Account',
     items: [
-      { icon: UserCircle, label: 'Profile & account', desc: 'Password, PIN, sign out', to: '/account', color: '#007AFF' },
-      { icon: HelpCircle, label: 'Help & support', desc: 'Guides and contact', to: '/help', color: '#5856D6' },
+      { icon: UserCircle, labelKey: 'more.account', to: '/account', color: '#007AFF' },
+      { icon: HelpCircle, labelKey: 'more.help', to: '/help', color: '#5856D6' },
     ],
   },
   {
     title: 'Operations',
     items: [
-      { icon: Receipt, label: 'Sales history', desc: 'View and reprint receipts', to: '/sales', color: '#007AFF' },
-      { icon: ClipboardList, label: 'Cash shifts', desc: 'Open and close till sessions', to: '/shifts', color: '#34C759' },
-      { icon: Truck, label: 'Suppliers & purchases', desc: 'Receive new stock', to: '/suppliers', color: '#FF9500' },
-      { icon: Bell, label: 'Notifications', desc: 'Low stock and sync alerts', to: '/notifications', color: '#FF9500' },
-      { icon: LayoutDashboard, label: 'Home dashboard', desc: 'Today’s sales and alerts', to: '/home', color: '#007AFF' },
-      { icon: Package, label: 'Inventory', desc: 'Value, alerts, ledger & adjustments', to: '/stock', color: '#AF52DE' },
-      { icon: Wallet, label: 'Expenses', desc: 'Record business costs', to: '/expenses', color: '#FF3B30' },
+      { icon: Receipt, labelKey: 'more.sales', to: '/sales', color: '#007AFF' },
+      { icon: ClipboardList, labelKey: 'more.shifts', to: '/shifts', color: '#34C759' },
+      { icon: Truck, labelKey: 'more.suppliers', to: '/suppliers', color: '#FF9500' },
+      { icon: Bell, labelKey: 'more.notifications', to: '/notifications', color: '#FF9500' },
+      { icon: LayoutDashboard, labelKey: 'more.home', to: '/home', color: '#007AFF' },
+      { icon: Package, labelKey: 'more.stock', to: '/stock', color: '#AF52DE' },
+      { icon: Wallet, labelKey: 'more.expenses', to: '/expenses', color: '#FF3B30' },
     ],
   },
   {
     title: 'Administration',
     items: [
-      { icon: Users, label: 'Users & permissions', desc: 'Staff accounts and roles', to: '/users', color: '#5856D6' },
-      { icon: CreditCard, label: 'Plan & billing', desc: 'Free plan and seats', to: '/billing', color: '#5856D6' },
-      { icon: Building2, label: 'Branches', desc: 'Locations for this business', to: '/branches', color: '#5AC8FA' },
-      { icon: Settings, label: 'Settings', desc: 'Business, tax, receipts', to: '/settings', color: '#8E8E93' },
-      { icon: Upload, label: 'Import data', desc: 'Products and customers from CSV', to: '/import', color: '#34C759' },
-      { icon: Download, label: 'Export data', desc: 'Download sales and inventory', to: '/export', color: '#30B0C7' },
-      { icon: CloudCog, label: 'Sync status', desc: 'Pending changes and errors', to: '/sync', color: '#007AFF' },
-      { icon: ShieldCheck, label: 'Audit log', desc: 'Voids, discounts, price and stock changes', to: '/audit', color: '#FF2D55' },
+      { icon: Users, labelKey: 'more.users', to: '/users', color: '#5856D6' },
+      { icon: CreditCard, labelKey: 'more.billing', to: '/billing', color: '#5856D6' },
+      { icon: Building2, labelKey: 'more.branches', to: '/branches', color: '#5AC8FA' },
+      { icon: Settings, labelKey: 'more.settings', to: '/settings', color: '#8E8E93' },
+      { icon: Upload, labelKey: 'more.import', to: '/import', color: '#34C759' },
+      { icon: Download, labelKey: 'more.export', to: '/export', color: '#30B0C7' },
+      { icon: CloudCog, labelKey: 'more.sync', to: '/sync', color: '#007AFF' },
+      { icon: ShieldCheck, labelKey: 'more.audit', to: '/audit', color: '#FF2D55' },
     ],
   },
 ]
 
 export default function MorePage() {
+  const { t } = useI18n()
   const navigate = useNavigate()
   const { user } = usePermission()
   const { lockWithPin, signOut, business } = useAuth()
@@ -73,7 +79,7 @@ export default function MorePage() {
   const name: string = user?.name || 'User'
 
   return (
-    <Screen title="More" subtitle="Operations and settings">
+    <Screen title={t('more.title')} subtitle="Operations and settings">
       <div className="space-y-6 md:max-w-2xl">
         <div className="bg-white rounded-[22px] shadow-card p-4">
           <div className="flex items-center gap-3.5">
@@ -107,13 +113,13 @@ export default function MorePage() {
           </div>
         </div>
 
-        {sections.map((section) => (
+        {sectionDefs.map((section) => (
           <div key={section.title}>
             <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-4">{section.title}</h2>
             <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
               {section.items.map((item, i) => (
                 <button
-                  key={item.label}
+                  key={t(item.labelKey)}
                   type="button"
                   onClick={() => navigate(item.to)}
                   className="w-full flex items-center gap-3.5 pl-4 pr-3 text-left active:bg-black/[0.04] transition-colors"
@@ -124,7 +130,7 @@ export default function MorePage() {
                   <span className={`flex-1 min-w-0 py-3.5 ${i < section.items.length - 1 ? 'border-b border-border' : ''}`}>
                     <span className="flex items-center">
                       <span className="flex-1 min-w-0">
-                        <span className="block text-[16px] font-medium text-ink">{item.label}</span>
+                        <span className="block text-[16px] font-medium text-ink">{t(item.labelKey)}</span>
                         <span className="block text-[13px] text-ink-muted">{item.desc}</span>
                       </span>
                       <ChevronRight size={18} className="text-ink-muted/70 shrink-0" />

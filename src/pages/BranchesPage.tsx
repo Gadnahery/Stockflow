@@ -7,6 +7,7 @@ import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { db } from '../lib/db'
+import { useI18n } from '../i18n/I18nContext'
 
 type BranchRow = {
   id: string
@@ -16,6 +17,7 @@ type BranchRow = {
 }
 
 export default function BranchesPage() {
+  const { t } = useI18n()
   const { member, business } = useAuth()
   const { can } = usePermission()
   const toast = useUi((s) => s.toast)

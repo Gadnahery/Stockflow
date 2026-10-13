@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n/I18nContext'
 import { useState, type FormEvent } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
@@ -5,6 +6,7 @@ import AuthShell from '../../components/auth/AuthShell'
 import { haptic } from '../../lib/util'
 
 export default function SignupPage() {
+  const { t, locale, setLocale } = useI18n()
   const { signUp } = useAuth()
   const navigate = useNavigate()
   const [fullName, setFullName] = useState('')

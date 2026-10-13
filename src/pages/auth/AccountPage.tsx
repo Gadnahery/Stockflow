@@ -7,8 +7,10 @@ import { useUi } from '../../store/uiStore'
 import { haptic } from '../../lib/util'
 import { supabase, getBusinessId } from '../../lib/supabase'
 import { usePermission } from '../../hooks/usePermission'
+import { useI18n } from '../../i18n/I18nContext'
 
 export default function AccountPage() {
+  const { t } = useI18n()
   const { user, member, business, updatePassword, signOut, lockWithPin, refreshMembership } = useAuth()
   const { can } = usePermission()
   const toast = useUi((s) => s.toast)
@@ -79,7 +81,7 @@ export default function AccountPage() {
   }
 
   return (
-    <Screen title="Account" subtitle="Profile, business and security">
+    <Screen title={t('account.title')} subtitle="Profile, business and security">
       <div className="space-y-6 md:max-w-lg pb-8">
         <div className="bg-white rounded-[22px] shadow-card p-5">
           <div className="flex items-center gap-4">

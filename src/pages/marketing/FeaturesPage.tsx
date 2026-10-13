@@ -1,3 +1,4 @@
+import { useI18n } from '../../i18n/I18nContext'
 import { Link } from 'react-router-dom'
 import Seo from '../../marketing/Seo'
 import { breadcrumbJsonLd, softwareJsonLd } from '../../lib/seo'
@@ -15,6 +16,7 @@ const blocks = [
 ]
 
 export default function FeaturesPage() {
+  const { t } = useI18n()
   return (
     <>
       <Seo

@@ -1,8 +1,10 @@
+import { useI18n } from '../../i18n/I18nContext'
 import { Link } from 'react-router-dom'
 import Seo from '../../marketing/Seo'
 import { breadcrumbJsonLd } from '../../lib/seo'
 
 export default function PricingPage() {
+  const { t } = useI18n()
   return (
     <>
       <Seo

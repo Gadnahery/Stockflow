@@ -5,6 +5,7 @@ import { ShieldCheck } from 'lucide-react'
 import { db } from '../lib/db'
 import { usePermission } from '../hooks/usePermission'
 import Screen from '../components/ui/Screen'
+import { useI18n } from '../i18n/I18nContext'
 
 const ACTION_COLORS: Record<string, string> = {
   SALE_VOID: 'bg-red-50 text-danger', PRICE_CHANGE: 'bg-amber-50 text-warning', STOCK_ADJUST: 'bg-purple-50 text-purple-700',
@@ -13,6 +14,7 @@ const ACTION_COLORS: Record<string, string> = {
 const compact = (v: unknown) => (v == null ? '' : typeof v === 'object' ? Object.entries(v as object).map(([k, x]) => `${k}: ${x}`).join(', ') : String(v))
 
 export default function AuditPage() {
+  const { t } = useI18n()
   const { can } = usePermission()
   const [filter, setFilter] = useState('All')
   const logs = useLiveQuery(() => db.auditLogs.orderBy('createdAt').reverse().limit(300).toArray(), [])
@@ -20,7 +22,7 @@ export default function AuditPage() {
   const shown = (logs ?? []).filter((l) => filter === 'All' || l.action === filter)
 
   if (!can('MANAGE_USERS')) {
-    return <Screen title="Audit log"><p className="py-16 text-center text-ink-secondary">Only owners and managers can view the audit trail.</p></Screen>
+    return <Screen title={t('audit.title')}><p className="py-16 text-center text-ink-secondary">Only owners and managers can view the audit trail.</p></Screen>
   }
 
   return (

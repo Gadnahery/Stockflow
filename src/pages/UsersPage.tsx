@@ -7,6 +7,7 @@ import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import type { Permission } from '../types'
 import { v4 as uuidv4 } from 'uuid'
+import { useI18n } from '../i18n/I18nContext'
 
 const FREE_SEATS = 10
 
@@ -76,6 +77,7 @@ type InviteRow = {
 }
 
 export default function UsersPage() {
+  const { t } = useI18n()
   const { can } = usePermission()
   const { member: me, business } = useAuth()
   const toast = useUi((s) => s.toast)
@@ -273,7 +275,7 @@ export default function UsersPage() {
 
   if (!allowed) {
     return (
-      <Screen title="Team" subtitle="Users and permissions">
+      <Screen title={t('users.title')} subtitle={t('users.sub')}>
         <div className="rounded-[22px] bg-white shadow-card p-8 text-center text-ink-secondary">
           You need <strong>Manage users</strong> permission to view this page.
         </div>
