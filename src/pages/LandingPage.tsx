@@ -1,124 +1,373 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import {
-  ArrowRight, BarChart3, Barcode, Check, ChevronDown, CircleHelp,
-  Cloud, Menu, Package, ScanLine, ShoppingCart, Smartphone, Truck,
-  Users, WalletCards, X, WifiOff, Zap,
-} from 'lucide-react'
+import { ArrowRight, Menu, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
-import './LandingPage.css'
 import Seo from '../marketing/Seo'
-import { organizationJsonLd, softwareJsonLd, websiteJsonLd, faqJsonLd } from '../lib/seo'
+import {
+  organizationJsonLd,
+  softwareJsonLd,
+  websiteJsonLd,
+  faqJsonLd,
+} from '../lib/seo'
+import './LandingPage.css'
 
-const capabilities = [
-  { icon: ShoppingCart, title: 'Point of sale', text: 'Keep checkout clear and record each sale without losing track of the details.', image: 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=900&q=85', alt: 'Shop owner handling a customer transaction' },
-  { icon: Package, title: 'Stock management', text: 'Know what is in your shop, follow stock movements and spot items that need attention.', image: 'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=900&q=85', alt: 'Carefully arranged retail products' },
-  { icon: BarChart3, title: 'Reports that make sense', text: 'See sales activity and business performance in one place, ready to guide your next decision.', image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=900&q=85', alt: 'Business performance charts on a screen' },
-  { icon: Users, title: 'Customer records', text: 'Keep customer details and transaction history close to the everyday work of your shop.', image: 'https://images.unsplash.com/photo-1521737711867-e3b97375f902?auto=format&fit=crop&w=900&q=85', alt: 'Small business team working together' },
+const FAQS = [
+  {
+    q: 'What is StockFlow?',
+    a: 'StockFlow is point-of-sale and inventory software for retail shops. Record sales, track stock, manage staff, and review profit from one place.',
+  },
+  {
+    q: 'Does it work offline?',
+    a: 'Yes for everyday selling. Sales and products stay on the device. When you are online again, changes sync to the cloud.',
+  },
+  {
+    q: 'Who is it for?',
+    a: 'Independent retail shops, minimarkets, electronics and accessories stores, and similar merchandise businesses in Tanzania and East Africa.',
+  },
+  {
+    q: 'How do I start?',
+    a: 'Create an account, set up your shop name, add products, and start selling on your phone or computer — or book a short demo first.',
+  },
 ]
 
-const benefits = [
-  { icon: Barcode, title: 'Faster product lookup', text: 'Find items by searching or using supported barcode-scanning workflows.' },
-  { icon: Truck, title: 'Suppliers and stock movement', text: 'Keep supplier information and inventory activity organized together.' },
-  { icon: WalletCards, title: 'Sales and expenses', text: 'Track everyday money movement with records you can return to.' },
-  { icon: WifiOff, title: 'Work through interruptions', text: 'Offline-first workflows keep supported tasks available when connectivity drops.' },
-  { icon: Cloud, title: 'Sync when connected', text: 'Bring local changes back into sync when your connection is available.' },
-  { icon: Smartphone, title: 'Ready for your devices', text: 'A responsive experience for the counter, the office or your phone.' },
+const PILLARS = [
+  {
+    title: 'Sell at the counter',
+    text: 'Search or scan products, take payment, and hand over a clear receipt — without losing the sale when the network drops.',
+    image:
+      'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=85',
+    alt: 'Retail counter transaction',
+  },
+  {
+    title: 'Know your stock',
+    text: 'See what is on the shelf, what is running low, and every movement tied to sales and receiving.',
+    image:
+      'https://images.unsplash.com/photo-1607082349566-187342175e2f?auto=format&fit=crop&w=1200&q=85',
+    alt: 'Organized retail products on shelves',
+  },
+  {
+    title: 'Read the real numbers',
+    text: 'Revenue is not profit. Reports show cost of goods, expenses, and net result so you can decide with clarity.',
+    image:
+      'https://images.unsplash.com/photo-1460925895917-afdab827c52f?auto=format&fit=crop&w=1200&q=85',
+    alt: 'Business reports on a laptop',
+  },
 ]
-
-const faqs = [
-  { q: 'What is StockFlow?', a: 'StockFlow is a point-of-sale and stock-management workspace for retailers. It brings sales, products, stock movements, customers and reporting together.' },
-  { q: 'Can I use StockFlow without internet?', a: 'StockFlow is designed with offline-first workflows. Some cloud features and synchronization require an internet connection.' },
-  { q: 'Can I scan product barcodes?', a: 'Yes. StockFlow supports barcode-based product lookup and compatible scanning workflows, including device-camera options where supported.' },
-  { q: 'Can I manage customers and suppliers?', a: 'Yes. Keep customer and supplier records connected to your shop operations.' },
-  { q: 'Does StockFlow work on mobile and desktop?', a: 'The interface adapts to phone and desktop screens, and StockFlow also has a Windows desktop-app build.' },
-  { q: 'How do I get started?', a: 'Create an account, set up your shop, add products and start recording sales.' },
-]
-
-function Brand() {
-  return <Link to="/" className="sf-wordmark" aria-label="StockFlow home"><span className="sf-brand-symbol"><Package size={17} strokeWidth={2.2} /></span><span>stockflow<span className="sf-brand-dot">.</span></span></Link>
-}
 
 export default function LandingPage() {
   const { session, member } = useAuth()
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [scrolled, setScrolled] = useState(false)
+  const [menu, setMenu] = useState(false)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
-  const appPath = session && member ? '/pos' : '/signup'
-  const ctaLabel = session && member ? 'Open StockFlow' : 'Get started'
-  const closeMenu = () => setMenuOpen(false)
 
-  const faqPairs = faqs.map((f) => ({ q: f.q, a: f.a }))
+  const appPath = session && member ? '/pos' : '/signup'
+  const ctaLabel = session && member ? 'Open POS' : 'Get started'
+
+  useEffect(() => {
+    const onScroll = () => setScrolled(window.scrollY > 32)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  useEffect(() => {
+    document.body.style.overflow = menu ? 'hidden' : ''
+    return () => {
+      document.body.style.overflow = ''
+    }
+  }, [menu])
+
   return (
     <>
       <Seo
         title="StockFlow | Retail POS & Inventory Management Software"
         description="Manage retail sales, stock levels, products and business reports with StockFlow. Built for everyday shop operations in Tanzania."
         path="/"
-        jsonLd={[organizationJsonLd(), softwareJsonLd(), websiteJsonLd(), faqJsonLd(faqPairs)]}
+        jsonLd={[
+          organizationJsonLd(),
+          softwareJsonLd(),
+          websiteJsonLd(),
+          faqJsonLd(FAQS),
+        ]}
       />
 
-    <div className="sf-landing">
-      <a className="sf-skip-link" href="#main-content">Skip to content</a>
-      <header className="sf-site-header">
-        <div className="sf-nav-inner">
-          <Brand />
-          <nav className={'sf-nav-links ' + (menuOpen ? 'is-open' : '')} aria-label="Main navigation">
-            <a href="#features" onClick={closeMenu}>Features</a>
-            <a href="#benefits" onClick={closeMenu}>Why StockFlow</a>
-            <a href="#about" onClick={closeMenu}>For your shop</a>
-            <a href="#faq" onClick={closeMenu}>FAQs</a>
-            <div className="sf-mobile-nav-actions"><Link to="/login" onClick={closeMenu}>Sign in</Link><Link className="sf-button sf-button-primary" to={appPath} onClick={closeMenu}>{ctaLabel}<ArrowRight size={16}/></Link></div>
-          </nav>
-          <div className="sf-desktop-actions"><Link className="sf-signin" to="/login">Sign in</Link><Link className="sf-button sf-button-primary" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link></div>
-          <button className="sf-menu-toggle" type="button" aria-label={menuOpen ? 'Close menu' : 'Open menu'} aria-expanded={menuOpen} onClick={() => setMenuOpen(v => !v)}>{menuOpen ? <X size={21}/> : <Menu size={21}/>}</button>
-        </div>
-      </header>
+      <div className="sf-lp">
+        <a className="sf-lp-skip" href="#main">
+          Skip to content
+        </a>
 
-      <main id="main-content">
-        <section className="sf-hero">
-          <div className="sf-hero-photo" aria-hidden="true" />
-          <div className="sf-hero-overlay" aria-hidden="true" />
-          <div className="sf-hero-content sf-container">
-            <span className="sf-eyebrow"><i /> POINT OF SALE · STOCK MANAGEMENT</span>
-            <h1>More control.<br/><em>Less guesswork.</em></h1>
-            <p>Know what you sell, what you have and how your shop is doing — all from one clear workspace.</p>
-            <div className="sf-hero-actions"><Link className="sf-button sf-button-white" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link><a className="sf-button sf-button-outline" href="#features">Explore features</a></div>
-            <div className="sf-hero-trust"><span><Check size={13}/> Sales and stock together</span><span><Check size={13}/> Built for everyday retail</span></div>
+        <header className={`sf-lp-header${scrolled ? ' is-scrolled' : ''}`}>
+          <div className="sf-lp-header-inner">
+            <Link to="/" className="sf-lp-brand" aria-label="StockFlow home">
+              <span className="sf-lp-mark">SF</span>
+              <span className="sf-lp-word">StockFlow</span>
+            </Link>
+
+            <nav className="sf-lp-nav" aria-label="Primary">
+              <a href="#work">What it does</a>
+              <a href="#how">How it works</a>
+              <a href="#faq">FAQ</a>
+              <Link to="/pricing">Pricing</Link>
+            </nav>
+
+            <div className="sf-lp-actions">
+              <Link to="/login" className="sf-lp-ghost">
+                Sign in
+              </Link>
+              <Link to={appPath} className="sf-lp-btn">
+                {ctaLabel}
+                <ArrowRight size={16} strokeWidth={2} />
+              </Link>
+              <button
+                type="button"
+                className="sf-lp-menu-btn"
+                aria-label="Open menu"
+                onClick={() => setMenu(true)}
+              >
+                <Menu size={20} strokeWidth={1.75} />
+              </button>
+            </div>
           </div>
-          <div className="sf-hero-bottom"><span>YOUR SHOP, IN BETTER ORDER</span><span>SCROLL TO EXPLORE <ChevronDown size={13}/></span></div>
-        </section>
+        </header>
 
-        <section className="sf-intro-section">
-          <div className="sf-container sf-intro-layout"><span className="sf-kicker">A CLEARER WAY TO RUN RETAIL</span><h2>Your shop has a lot going on.<br/><em>Your system should make it simpler.</em></h2><p>From the first sale of the day to the stock you need to reorder, StockFlow helps bring the important details into view.</p></div>
-        </section>
-
-        <section id="features" className="sf-features-section">
-          <div className="sf-container">
-            <div className="sf-section-head"><div><span className="sf-kicker">WHAT YOU CAN DO</span><h2>Everything in its<br/><em>right place.</em></h2></div><p>Less time looking for information. More time serving customers and running your business.</p></div>
-            <div className="sf-capability-grid">{capabilities.map(({icon:Icon,title,text,image,alt},i)=><article className={'sf-capability sf-capability-'+(i+1)} key={title}><div className="sf-capability-image"><img src={image} alt={alt} loading="lazy"/><span className="sf-capability-icon"><Icon size={19}/></span></div><div className="sf-capability-copy"><span className="sf-capability-count">0{i+1} / STOCKFLOW</span><h3>{title}</h3><p>{text}</p><a href="#benefits" aria-label={'Learn about '+title}>Explore feature <ArrowRight size={14}/></a></div></article>)}</div>
+        {menu && (
+          <div className="sf-lp-drawer" role="dialog" aria-modal="true">
+            <div className="sf-lp-drawer-top">
+              <span className="sf-lp-brand">
+                <span className="sf-lp-mark">SF</span>
+                <span className="sf-lp-word">StockFlow</span>
+              </span>
+              <button type="button" aria-label="Close menu" onClick={() => setMenu(false)}>
+                <X size={22} strokeWidth={1.75} />
+              </button>
+            </div>
+            <nav className="sf-lp-drawer-nav">
+              {[
+                ['#work', 'What it does'],
+                ['#how', 'How it works'],
+                ['#faq', 'FAQ'],
+                ['/pricing', 'Pricing'],
+                ['/contact', 'Contact'],
+              ].map(([href, label]) =>
+                href.startsWith('#') ? (
+                  <a key={href} href={href} onClick={() => setMenu(false)}>
+                    {label}
+                  </a>
+                ) : (
+                  <Link key={href} to={href} onClick={() => setMenu(false)}>
+                    {label}
+                  </Link>
+                ),
+              )}
+            </nav>
+            <Link to={appPath} className="sf-lp-btn sf-lp-btn-block" onClick={() => setMenu(false)}>
+              {ctaLabel}
+            </Link>
+            <Link to="/login" className="sf-lp-drawer-sign" onClick={() => setMenu(false)}>
+              Sign in
+            </Link>
           </div>
-        </section>
+        )}
 
-        <section id="benefits" className="sf-benefits-section">
-          <div className="sf-container sf-benefits-layout">
-            <div className="sf-benefits-intro"><span className="sf-kicker">MORE THAN A CHECKOUT</span><h2>Small details.<br/><em>Real difference.</em></h2><p>Running a shop is about much more than taking payment. StockFlow helps you stay on top of the work around every sale, too.</p><Link className="sf-text-link" to={appPath}>{ctaLabel}<ArrowRight size={15}/></Link></div>
-            <div className="sf-benefit-list">{benefits.map(({icon:Icon,title,text},i)=><article className="sf-benefit-row" key={title}><span className="sf-benefit-icon"><Icon size={19}/></span><div><span className="sf-benefit-index">0{i+1}</span><h3>{title}</h3><p>{text}</p></div><ArrowRight className="sf-benefit-arrow" size={16}/></article>)}</div>
+        <main id="main">
+          {/* Hero — salon-style full bleed */}
+          <section className="sf-lp-hero">
+            <div className="sf-lp-hero-media" aria-hidden="true">
+              <img
+                src="https://images.unsplash.com/photo-1604719312566-8912e9c8a213?auto=format&fit=crop&w=2400&q=90"
+                alt=""
+                fetchPriority="high"
+              />
+            </div>
+            <div className="sf-lp-hero-scrim" aria-hidden="true" />
+            <div className="sf-lp-hero-content">
+              <p className="sf-lp-kicker">Point of sale · Stock management</p>
+              <h1>
+                Know your shop.
+                <em> Run it better.</em>
+              </h1>
+              <p className="sf-lp-lead">
+                Sales, stock, and clear profit numbers — in one calm workspace built for everyday
+                retail in Tanzania.
+              </p>
+              <div className="sf-lp-hero-cta">
+                <Link to={appPath} className="sf-lp-btn sf-lp-btn-light">
+                  {ctaLabel}
+                  <ArrowRight size={16} strokeWidth={2} />
+                </Link>
+                <a href="#work" className="sf-lp-btn sf-lp-btn-outline">
+                  See how it works
+                </a>
+              </div>
+            </div>
+          </section>
+
+          {/* Three pillars with photography */}
+          <section id="work" className="sf-lp-section">
+            <div className="sf-lp-wrap">
+              <p className="sf-lp-kicker sf-lp-kicker-dark">What it does</p>
+              <h2 className="sf-lp-display">
+                Less noise.
+                <em> More control.</em>
+              </h2>
+              <p className="sf-lp-sub">
+                Three jobs every retailer needs done well — without a crowded feature list.
+              </p>
+              <div className="sf-lp-pillars">
+                {PILLARS.map((p) => (
+                  <article key={p.title} className="sf-lp-pillar">
+                    <div className="sf-lp-pillar-img">
+                      <img src={p.image} alt={p.alt} loading="lazy" />
+                    </div>
+                    <h3>{p.title}</h3>
+                    <p>{p.text}</p>
+                  </article>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Quiet product strip */}
+          <section className="sf-lp-strip">
+            <div className="sf-lp-wrap sf-lp-strip-grid">
+              <div>
+                <p className="sf-lp-kicker sf-lp-kicker-dark">On the device</p>
+                <h2 className="sf-lp-display">
+                  Built for the counter
+                  <em> and the quiet hours after.</em>
+                </h2>
+                <ul className="sf-lp-ticks">
+                  <li>Offline sales when the network fails</li>
+                  <li>Barcode search on supported phones</li>
+                  <li>Team roles, PIN lock, and branches</li>
+                  <li>Sync when you are back online</li>
+                </ul>
+                <Link to="/features" className="sf-lp-text-link">
+                  Full capabilities <ArrowRight size={15} />
+                </Link>
+              </div>
+              <div className="sf-lp-strip-photo">
+                <img
+                  src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=1400&q=85"
+                  alt="Shop owner with a customer at the counter"
+                  loading="lazy"
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* How it works — 3 steps only */}
+          <section id="how" className="sf-lp-section sf-lp-section-soft">
+            <div className="sf-lp-wrap">
+              <p className="sf-lp-kicker sf-lp-kicker-dark">How it works</p>
+              <h2 className="sf-lp-display">Three steps.</h2>
+              <ol className="sf-lp-steps">
+                <li>
+                  <span>01</span>
+                  <div>
+                    <strong>Set up your shop</strong>
+                    <p>Create an account, name the business, add products and optional staff.</p>
+                  </div>
+                </li>
+                <li>
+                  <span>02</span>
+                  <div>
+                    <strong>Sell and update stock</strong>
+                    <p>Record sales at the till, receive supplier stock, adjust counts when needed.</p>
+                  </div>
+                </li>
+                <li>
+                  <span>03</span>
+                  <div>
+                    <strong>Review the day</strong>
+                    <p>Open reports for revenue, cost of goods, expenses, and net profit.</p>
+                  </div>
+                </li>
+              </ol>
+            </div>
+          </section>
+
+          {/* FAQ */}
+          <section id="faq" className="sf-lp-section">
+            <div className="sf-lp-wrap sf-lp-faq-grid">
+              <div>
+                <p className="sf-lp-kicker sf-lp-kicker-dark">FAQ</p>
+                <h2 className="sf-lp-display">
+                  Straight
+                  <em> answers.</em>
+                </h2>
+              </div>
+              <div className="sf-lp-faq-list">
+                {FAQS.map((f, i) => (
+                  <div key={f.q} className={`sf-lp-faq${openFaq === i ? ' is-open' : ''}`}>
+                    <button
+                      type="button"
+                      aria-expanded={openFaq === i}
+                      onClick={() => setOpenFaq(openFaq === i ? null : i)}
+                    >
+                      {f.q}
+                      <span aria-hidden="true">{openFaq === i ? '−' : '+'}</span>
+                    </button>
+                    {openFaq === i && <p>{f.a}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* Final CTA */}
+          <section className="sf-lp-final">
+            <div className="sf-lp-final-media" aria-hidden="true">
+              <img
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=2200&q=85"
+                alt=""
+                loading="lazy"
+              />
+            </div>
+            <div className="sf-lp-final-scrim" aria-hidden="true" />
+            <div className="sf-lp-final-content">
+              <h2>
+                Ready for a clearer
+                <em> view of your shop?</em>
+              </h2>
+              <div className="sf-lp-hero-cta">
+                <Link to={appPath} className="sf-lp-btn sf-lp-btn-light">
+                  {ctaLabel}
+                  <ArrowRight size={16} />
+                </Link>
+                <Link to="/contact" className="sf-lp-btn sf-lp-btn-outline">
+                  Book a demo
+                </Link>
+              </div>
+            </div>
+          </section>
+        </main>
+
+        <footer className="sf-lp-footer">
+          <div className="sf-lp-wrap sf-lp-footer-grid">
+            <div>
+              <div className="sf-lp-brand">
+                <span className="sf-lp-mark">SF</span>
+                <span className="sf-lp-word">StockFlow</span>
+              </div>
+              <p>Retail POS and inventory for shops that want calm, accurate records.</p>
+            </div>
+            <div className="sf-lp-footer-links">
+              <Link to="/features">Features</Link>
+              <Link to="/pricing">Pricing</Link>
+              <Link to="/resources">Resources</Link>
+              <Link to="/contact">Contact</Link>
+              <Link to="/privacy">Privacy</Link>
+              <Link to="/terms">Terms</Link>
+              <Link to="/login">Sign in</Link>
+            </div>
           </div>
-        </section>
-
-        <section id="about" className="sf-shop-section">
-          <div className="sf-container sf-shop-layout"><div className="sf-shop-image"><img src="https://images.unsplash.com/photo-1604719312566-8912e9c8a213?auto=format&fit=crop&w=1300&q=85" alt="Well-organized neighbourhood retail shop" loading="lazy"/><span className="sf-image-caption"><i/> MADE FOR THE DAY-TO-DAY</span></div><div className="sf-shop-copy"><span className="sf-kicker">MADE FOR REAL SHOPS</span><h2>Your business.<br/><em>Your way of working.</em></h2><p>Whether you run a minimarket, cosmetics shop, electronics store or general retail business, keep the essentials connected without adding complexity.</p><ul><li><Check size={15}/> One place for sales and products</li><li><Check size={15}/> Clearer stock records</li><li><Check size={15}/> Reports to help you plan ahead</li><li><Check size={15}/> A workflow that fits your devices</li></ul><Link className="sf-text-link" to={appPath}>See StockFlow for yourself <ArrowRight size={15}/></Link></div></div>
-        </section>
-
-        <section className="sf-proof-section"><div className="sf-container sf-proof-layout"><span className="sf-proof-mark">“</span><div><span className="sf-kicker">THE STOCKFLOW APPROACH</span><blockquote>When your records are clear, running your shop feels clearer too.</blockquote><p>SALES · STOCK · CUSTOMERS · REPORTS</p></div><div className="sf-proof-image"><img src="https://images.unsplash.com/photo-1556740738-b6a63e27c4df?auto=format&fit=crop&w=800&q=85" alt="Retail business owner helping a customer" loading="lazy"/></div></div></section>
-
-        <section id="faq" className="sf-faq-section"><div className="sf-container sf-faq-layout"><div className="sf-faq-intro"><span className="sf-kicker">GOOD TO KNOW</span><h2>Questions?<br/><em>We have answers.</em></h2><p>Everything you need to know before you start using StockFlow.</p><div className="sf-faq-help"><CircleHelp size={18}/><span>Ready to get started?<small>Set up your shop and explore the workspace.</small></span></div></div><div className="sf-faq-list">{faqs.map((faq,i)=><article className={'sf-faq-item '+(openFaq===i?'is-open':'')} key={faq.q}><h3><button type="button" aria-expanded={openFaq===i} onClick={()=>setOpenFaq(openFaq===i?null:i)}>{faq.q}<ChevronDown size={17}/></button></h3><p hidden={openFaq!==i}>{faq.a}</p></article>)}</div></div></section>
-
-        <section className="sf-final-cta"><div className="sf-final-photo" aria-hidden="true"/><div className="sf-final-overlay" aria-hidden="true"/><div className="sf-final-content"><span className="sf-kicker sf-kicker-light">YOUR NEXT BUSINESS DECISION STARTS HERE</span><h2>Your shop is ready<br/>for <em>a clearer view.</em></h2><Link className="sf-button sf-button-white" to={appPath}>{ctaLabel}<ArrowRight size={16}/></Link></div></section>
-      </main>
-
-      <footer className="sf-footer"><div className="sf-container sf-footer-main"><div><Brand/><p>Know your shop. Run it better.</p></div><div className="sf-footer-links"><Link to="/features">Features</Link><Link to="/pricing">Pricing</Link><Link to="/resources">Resources</Link><Link to="/contact">Contact</Link><Link to="/privacy">Privacy</Link><Link to="/login">Sign in</Link></div><Link className="sf-footer-top" to="/">Back to top ↑</Link></div><div className="sf-container sf-footer-bottom"><span>© {new Date().getFullYear()} StockFlow. All rights reserved.</span><span>Point of sale & stock management</span></div></footer>
-    </div>
+          <div className="sf-lp-wrap sf-lp-footer-copy">
+            <span>© {new Date().getFullYear()} StockFlow</span>
+            <span>Tanzania · East Africa</span>
+          </div>
+        </footer>
+      </div>
     </>
   )
 }
