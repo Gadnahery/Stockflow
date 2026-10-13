@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import {
   ArrowDownRight, ArrowRight, BarChart3, Check, ChevronDown, CircleHelp,
   Cloud, Command, CreditCard, Menu, Package, ScanBarcode, ShieldCheck,
-  ShoppingBag, ShoppingCart, Smartphone, Sparkles, TrendingUp, Truck, X,
+  ShoppingBag, ShoppingCart, Smartphone, Sparkles, TrendingUp, Truck, Users, X,
   Zap,
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
