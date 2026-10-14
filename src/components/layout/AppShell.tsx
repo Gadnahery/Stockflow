@@ -13,8 +13,30 @@ import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
 import SubscriptionBanner from '../SubscriptionBanner'
-import { useI18n } from '@/i18n/I18nContext'
-import type { MessageKey } from '@/i18n/messages'
+
+
+const NAV_LABELS: Record<string, string> = {
+  'app.pos': 'POS',
+  'app.products': 'Products',
+  'app.customers': 'Customers',
+  'app.reports': 'Reports',
+  'app.more': 'More',
+  'app.home': 'Home',
+  'app.sales': 'Sales',
+  'app.stock': 'Stock',
+  'app.expenses': 'Expenses',
+  'app.suppliers': 'Suppliers',
+  'app.shifts': 'Shifts',
+  'app.settings': 'Settings',
+  'app.users': 'Team',
+  'app.billing': 'Billing',
+  'app.branches': 'Branches',
+  'app.sync': 'Sync',
+  'app.audit': 'Audit',
+  'app.import': 'Import',
+  'app.export': 'Export',
+}
+const t = (key: string) => NAV_LABELS[key] || key
 
 type NavItem = {
   to: string
@@ -25,32 +47,32 @@ type NavItem = {
 }
 
 const mobileNavKeys = [
-  { to: '/pos', icon: ShoppingCart, labelKey: 'app.pos' as MessageKey, end: true },
-  { to: '/products', icon: Package, labelKey: 'app.products' as MessageKey },
-  { to: '/customers', icon: Users, labelKey: 'app.customers' as MessageKey },
-  { to: '/reports', icon: BarChart3, labelKey: 'app.reports' as MessageKey },
-  { to: '/more', icon: LayoutGrid, labelKey: 'app.more' as MessageKey },
+  { to: '/pos', icon: ShoppingCart, labelKey: 'app.pos' , end: true },
+  { to: '/products', icon: Package, labelKey: 'app.products'  },
+  { to: '/customers', icon: Users, labelKey: 'app.customers'  },
+  { to: '/reports', icon: BarChart3, labelKey: 'app.reports'  },
+  { to: '/more', icon: LayoutGrid, labelKey: 'app.more'  },
 ]
 
 const desktopNavKeys = [
-  { to: '/home', icon: LayoutGrid, labelKey: 'app.home' as MessageKey, section: 'Sell' },
-  { to: '/pos', icon: ShoppingCart, labelKey: 'app.pos' as MessageKey, end: true, section: 'Sell' },
-  { to: '/sales', icon: Receipt, labelKey: 'app.sales' as MessageKey, section: 'Sell' },
-  { to: '/products', icon: Package, labelKey: 'app.products' as MessageKey, section: 'Inventory' },
-  { to: '/stock', icon: Package, labelKey: 'app.stock' as MessageKey, section: 'Inventory' },
-  { to: '/suppliers', icon: Truck, labelKey: 'app.suppliers' as MessageKey, section: 'Inventory' },
-  { to: '/customers', icon: Users, labelKey: 'app.customers' as MessageKey, section: 'People' },
-  { to: '/users', icon: Users, labelKey: 'app.team' as MessageKey, section: 'People' },
-  { to: '/expenses', icon: Wallet, labelKey: 'app.expenses' as MessageKey, section: 'Money' },
-  { to: '/shifts', icon: ClipboardList, labelKey: 'app.shifts' as MessageKey, section: 'Money' },
-  { to: '/reports', icon: BarChart3, labelKey: 'app.reports' as MessageKey, section: 'Insights' },
-  { to: '/sync', icon: CloudCog, labelKey: 'app.sync' as MessageKey, section: 'Insights' },
-  { to: '/notifications', icon: ShieldCheck, labelKey: 'app.alerts' as MessageKey, section: 'Insights' },
-  { to: '/audit', icon: ShieldCheck, labelKey: 'app.audit' as MessageKey, section: 'Insights' },
-  { to: '/branches', icon: Building2, labelKey: 'app.branches' as MessageKey, section: 'Admin' },
-  { to: '/settings', icon: Settings, labelKey: 'app.settings' as MessageKey, section: 'Admin' },
-  { to: '/billing', icon: CreditCard, labelKey: 'app.plan' as MessageKey, section: 'Admin' },
-  { to: '/more', icon: LayoutGrid, labelKey: 'app.more' as MessageKey, section: 'Admin' },
+  { to: '/home', icon: LayoutGrid, labelKey: 'app.home' , section: 'Sell' },
+  { to: '/pos', icon: ShoppingCart, labelKey: 'app.pos' , end: true, section: 'Sell' },
+  { to: '/sales', icon: Receipt, labelKey: 'app.sales' , section: 'Sell' },
+  { to: '/products', icon: Package, labelKey: 'app.products' , section: 'Inventory' },
+  { to: '/stock', icon: Package, labelKey: 'app.stock' , section: 'Inventory' },
+  { to: '/suppliers', icon: Truck, labelKey: 'app.suppliers' , section: 'Inventory' },
+  { to: '/customers', icon: Users, labelKey: 'app.customers' , section: 'People' },
+  { to: '/users', icon: Users, labelKey: 'app.team' , section: 'People' },
+  { to: '/expenses', icon: Wallet, labelKey: 'app.expenses' , section: 'Money' },
+  { to: '/shifts', icon: ClipboardList, labelKey: 'app.shifts' , section: 'Money' },
+  { to: '/reports', icon: BarChart3, labelKey: 'app.reports' , section: 'Insights' },
+  { to: '/sync', icon: CloudCog, labelKey: 'app.sync' , section: 'Insights' },
+  { to: '/notifications', icon: ShieldCheck, labelKey: 'app.alerts' , section: 'Insights' },
+  { to: '/audit', icon: ShieldCheck, labelKey: 'app.audit' , section: 'Insights' },
+  { to: '/branches', icon: Building2, labelKey: 'app.branches' , section: 'Admin' },
+  { to: '/settings', icon: Settings, labelKey: 'app.settings' , section: 'Admin' },
+  { to: '/billing', icon: CreditCard, labelKey: 'app.plan' , section: 'Admin' },
+  { to: '/more', icon: LayoutGrid, labelKey: 'app.more' , section: 'Admin' },
 ]
 
 function mobileActiveIndex(pathname: string) {
@@ -61,7 +83,7 @@ function mobileActiveIndex(pathname: string) {
   return 4
 }
 
-function pageTitleKey(pathname: string): MessageKey | null {
+function pageTitleKey(pathname: string): string | null {
   const hit = desktopNavKeys.find((n) => (n.end ? pathname === n.to : pathname.startsWith(n.to)))
   if (hit) return hit.labelKey
   if (pathname.startsWith('/account')) return 'app.account'
@@ -78,7 +100,7 @@ const SIDEBAR_W: Record<SidebarMode, string> = {
 }
 
 export default function AppShell() {
-  const { t } = useI18n()
+  
   const location = useLocation()
   const mobileNav = mobileNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))
   const desktopNav = desktopNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))
