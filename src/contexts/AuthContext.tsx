@@ -158,7 +158,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // Never strand the user on a spinner when network/auth storage is slow.
         const cachedMember = (() => { try { return JSON.parse(localStorage.getItem('sf_member_cache') || 'null') as BusinessMember | null } catch { return null } })()
         const cachedBusiness = (() => { try { return JSON.parse(localStorage.getItem('sf_business_cache') || 'null') as Business | null } catch { return null } })()
-        if (!navigator.onLine && s?.user && cachedMember?.user_id === s.user.id && cachedMember.status === 'active') {
+        if (!navigator.onLine && userRef.current && cachedMember?.user_id === userRef.current.id && cachedMember.status === 'active') {
           setMember(cachedMember)
           setBusiness(cachedBusiness)
           setPinLocked(Boolean(localStorage.getItem('sf_device_pin')))
