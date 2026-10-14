@@ -7,6 +7,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { I18nProvider } from './i18n/I18nContext'
 import { ConfirmProvider } from './components/ui/ConfirmDialog'
 import App from './App'
+import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
 import { registerServiceWorker, listenForInstallPrompt } from './lib/pwa'
 
@@ -22,14 +23,16 @@ const Router = isDesktop ? HashRouter : BrowserRouter
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <Router>
-      <I18nProvider>
-        <AuthProvider>
-          <ConfirmProvider>
-            <App />
-          </ConfirmProvider>
-        </AuthProvider>
-      </I18nProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <I18nProvider>
+          <AuthProvider>
+            <ConfirmProvider>
+              <App />
+            </ConfirmProvider>
+          </AuthProvider>
+        </I18nProvider>
+      </Router>
+    </ErrorBoundary>
   </StrictMode>,
 )

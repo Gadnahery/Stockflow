@@ -136,8 +136,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
         if (s?.user) {
           await applyMembership(s.user.id)
-          // Only restore PIN lock if we have a real member session
-          if (localStorage.getItem(PIN_LOCK_KEY) === '1') {
+          // Returning user with device PIN → always ask for PIN on open
+          const hasDevicePin = Boolean(localStorage.getItem('sf_device_pin'))
+          if (hasDevicePin || localStorage.getItem(PIN_LOCK_KEY) === '1') {
+            localStorage.setItem(PIN_LOCK_KEY, '1')
             setPinLocked(true)
           }
         } else {

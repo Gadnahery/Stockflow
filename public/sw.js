@@ -1,5 +1,5 @@
-/* StockFlow service worker — app shell offline */
-const CACHE = 'stockflow-v3'
+/* StockFlow service worker — app shell offline + update */
+const CACHE = 'stockflow-v4'
 
 const PRECACHE = [
   '/',
@@ -25,6 +25,12 @@ self.addEventListener('activate', (event) => {
   )
 })
 
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting()
+  }
+})
+
 self.addEventListener('fetch', (event) => {
   const req = event.request
   if (req.method !== 'GET') return
@@ -35,7 +41,8 @@ self.addEventListener('fetch', (event) => {
     url.hostname.includes('supabase') ||
     url.pathname.startsWith('/auth') ||
     url.pathname.includes('/rest/') ||
-    url.pathname.includes('/realtime/')
+    url.pathname.includes('/realtime/') ||
+    url.pathname.startsWith('/api/')
   ) {
     return
   }
@@ -53,7 +60,6 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Static assets: cache first
   if (
     url.origin === self.location.origin &&
     (url.pathname.startsWith('/assets/') ||

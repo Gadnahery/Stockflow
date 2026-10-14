@@ -4,7 +4,7 @@ import PinLockScreen from './PinLockScreen'
 
 function FullScreenSpinner() {
   return (
-    <div className="min-h-full flex items-center justify-center bg-[#F2F2F7]">
+    <div className="min-h-full flex items-center justify-center bg-[var(--canvas)]">
       <div className="h-10 w-10 rounded-full border-2 border-[#007AFF] border-t-transparent animate-spin" />
     </div>
   )

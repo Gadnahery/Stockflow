@@ -38,17 +38,14 @@ export default function PinLockScreen() {
   const name = member?.display_name || business?.name || 'StockFlow'
 
   return (
-    <div className="auth-canvas min-h-full flex flex-col items-center justify-center px-6 pb-10">
-      <div className="auth-blob auth-blob-a" aria-hidden />
-      <div className="auth-blob auth-blob-b" aria-hidden />
-
+    <div className="min-h-full flex flex-col items-center justify-center px-6 pb-10 bg-[var(--canvas)]">
       <div className="relative w-full max-w-[320px] page-enter">
         <div className="text-center mb-8">
-          <div className="auth-logo mx-auto mb-4 text-white text-[26px] font-semibold tracking-tight">
+          <div className="mx-auto mb-4 h-16 w-16 rounded-[20px] bg-primary text-white text-[26px] font-semibold tracking-tight flex items-center justify-center shadow-card">
             {name.charAt(0).toUpperCase()}
           </div>
-          <h1 className="text-[22px] font-semibold text-[#1C1C1E] tracking-tight">{name}</h1>
-          <p className="text-[15px] text-[#636366] mt-1">Enter PIN to unlock</p>
+          <h1 className="text-[22px] font-semibold text-ink tracking-tight">{name}</h1>
+          <p className="text-[15px] text-ink-secondary mt-1">Enter PIN to unlock</p>
         </div>
 
         <div key={shake} className={`flex justify-center gap-3.5 mb-5 ${shake ? 'shake' : ''}`}>
@@ -57,15 +54,15 @@ export default function PinLockScreen() {
               key={i}
               className={`h-3.5 w-3.5 rounded-full transition-all duration-200 ${
                 i < pin.length
-                  ? 'bg-[#007AFF] scale-110 shadow-[0_0_0_4px_rgba(0,122,255,0.2)]'
-                  : 'bg-[#D1D1D6]'
+                  ? 'bg-primary scale-110 shadow-[0_0_0_4px_rgba(0,122,255,0.2)]'
+                  : 'bg-black/15 dark:bg-white/25'
               }`}
             />
           ))}
         </div>
 
         {error && (
-          <p className="text-center text-[13px] text-[#E0333C] font-medium mb-4">{error}</p>
+          <p className="text-center text-[13px] text-red-500 font-medium mb-4">{error}</p>
         )}
 
         <div className="grid grid-cols-3 gap-3">
@@ -80,7 +77,7 @@ export default function PinLockScreen() {
                     setPin((p) => p.slice(0, -1))
                     setError('')
                   }}
-                  className="press h-[62px] rounded-[18px] flex items-center justify-center text-[#1C1C1E] bg-white/50"
+                  className="press h-[62px] rounded-[18px] flex items-center justify-center text-ink bg-white dark:bg-[#2C2C2E]"
                   aria-label="Delete"
                 >
                   <Delete size={22} strokeWidth={1.8} />
@@ -92,7 +89,7 @@ export default function PinLockScreen() {
                 key={key}
                 type="button"
                 onClick={() => press(key)}
-                className="press h-[62px] rounded-[18px] bg-white/85 shadow-soft text-[26px] font-medium text-[#1C1C1E] tabular-nums"
+                className="press h-[62px] rounded-[18px] bg-white dark:bg-[#2C2C2E] shadow-soft text-[26px] font-medium text-ink tabular-nums"
               >
                 {key}
               </button>
@@ -103,7 +100,7 @@ export default function PinLockScreen() {
         <button
           type="button"
           onClick={() => void signOut()}
-          className="mt-9 w-full text-center text-[15px] text-[#007AFF] font-semibold"
+          className="mt-9 w-full text-center text-[15px] text-primary font-semibold"
         >
           Sign out
         </button>

@@ -13,6 +13,7 @@ import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
 import SubscriptionBanner from '../SubscriptionBanner'
+import UpdateBanner from '../UpdateBanner'
 
 
 const NAV_LABELS: Record<string, string> = {
@@ -35,6 +36,12 @@ const NAV_LABELS: Record<string, string> = {
   'app.audit': 'Audit',
   'app.import': 'Import',
   'app.export': 'Export',
+  'app.team': 'Team',
+  'app.alerts': 'Alerts',
+  'app.plan': 'Billing',
+  'app.account': 'Account',
+  'app.help': 'Help',
+  'app.notifications': 'Alerts',
 }
 const t = (key: string) => NAV_LABELS[key] || key
 
@@ -433,6 +440,7 @@ export default function AppShell() {
       </div>
 
       <CommandPalette />
+      <UpdateBanner />
       <Toasts />
     </div>
   )

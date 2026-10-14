@@ -1,13 +1,35 @@
-/** Register service worker and handle install prompt (PC + phone). */
+/** Register service worker, install prompt, and update detection (PC + phone). */
 
 let deferredPrompt: any = null
 
 export function registerServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/sw.js').catch((e) => {
-      console.warn('SW register failed', e)
-    })
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((reg) => {
+        // Check for updates on load and periodically
+        reg.update().catch(() => {})
+        setInterval(() => reg.update().catch(() => {}), 60 * 60 * 1000)
+
+        if (reg.waiting) {
+          window.dispatchEvent(new CustomEvent('sf-sw-update', { detail: reg.waiting }))
+        }
+        reg.addEventListener('updatefound', () => {
+          const nw = reg.installing
+          if (!nw) return
+          nw.addEventListener('statechange', () => {
+            if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+              window.dispatchEvent(
+                new CustomEvent('sf-sw-update', { detail: reg.waiting || nw }),
+              )
+            }
+          })
+        })
+      })
+      .catch((e) => {
+        console.warn('SW register failed', e)
+      })
   })
 }
 
