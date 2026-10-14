@@ -1,5 +1,5 @@
-/* StockFlow service worker — app shell offline + update */
-const CACHE = 'stockflow-v5'
+/* StockFlow service worker v6 */
+const CACHE = 'stockflow-v6'
 
 const PRECACHE = [
   '/',
@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+      Promise.all(keys.map((k) => caches.delete(k))),
     ).then(() => self.clients.claim()),
   )
 })
@@ -28,6 +28,9 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting()
+  }
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    event.waitUntil(caches.keys().then((keys) => Promise.all(keys.map((k) => caches.delete(k)))))
   }
 })
 
@@ -47,6 +50,7 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Network-first for HTML so updates apply quickly
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req)
@@ -60,10 +64,28 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
+  // Network-first for JS/CSS so we do not stick on broken bundles
   if (
     url.origin === self.location.origin &&
     (url.pathname.startsWith('/assets/') ||
-      url.pathname.endsWith('.png') ||
+      url.pathname.endsWith('.js') ||
+      url.pathname.endsWith('.css'))
+  ) {
+    event.respondWith(
+      fetch(req)
+        .then((res) => {
+          const copy = res.clone()
+          caches.open(CACHE).then((c) => c.put(req, copy))
+          return res
+        })
+        .catch(() => caches.match(req)),
+    )
+    return
+  }
+
+  if (
+    url.origin === self.location.origin &&
+    (url.pathname.endsWith('.png') ||
       url.pathname.endsWith('.svg') ||
       url.pathname.endsWith('.json'))
   ) {

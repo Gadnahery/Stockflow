@@ -6,7 +6,7 @@ export function registerServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js')
+      .register('/sw.js?v=6')
       .then((reg) => {
         // Check for updates on load and periodically
         reg.update().catch(() => {})

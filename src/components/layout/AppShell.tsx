@@ -13,7 +13,6 @@ import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
 import SubscriptionBanner from '../SubscriptionBanner'
-import { useI18n } from '@/i18n/I18nContext'
 import UpdateBanner from '../UpdateBanner'
 
 
@@ -107,19 +106,11 @@ const SIDEBAR_W: Record<SidebarMode, string> = {
 }
 
 export default function AppShell() {
-  const { t: tI18n } = useI18n()
-  const t = (key: string) => {
-    try {
-      const v = tI18n(key as any)
-      if (v && v !== key) return v
-    } catch { /* ignore */ }
-    return NAV_LABELS[key] || key
-  }
   const location = useLocation()
-  const mobileNav = mobileNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))
-  const desktopNav = desktopNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))
+  const mobileNav = mobileNavKeys.map((n) => ({ ...n, label: NAV_LABELS[n.labelKey] || n.labelKey }))
+  const desktopNav = desktopNavKeys.map((n) => ({ ...n, label: NAV_LABELS[n.labelKey] || n.labelKey }))
   const titleKey = pageTitleKey(location.pathname)
-  const pageHeading = titleKey ? t(titleKey) : 'StockFlow'
+  const pageHeading = titleKey ? (NAV_LABELS[titleKey] || titleKey) : 'StockFlow'
 
   const navigate = useNavigate()
   const { isOnline, pendingSyncCount, cart } = usePosStore()
@@ -187,7 +178,7 @@ export default function AppShell() {
     else if (delta < -8) setTabCompact(false)
     lastTops.current.set(el, top)
   }
-  const isField = (t: EventTarget) => ['INPUT', 'SELECT', 'TEXTAREA'].includes((t as HTMLElement).tagName)
+  const isField = (el: EventTarget) => ['INPUT', 'SELECT', 'TEXTAREA'].includes((el as HTMLElement).tagName)
   const onFocusIn = (e: FocusEvent) => {
     if (isField(e.target)) {
       clearTimeout(blurTimer.current)
