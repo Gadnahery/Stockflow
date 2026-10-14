@@ -19,7 +19,7 @@ export default function ReceiptModal({ sale, onClose }: Props) {
   const share = async () => {
     const lines = [
       settings?.businessName || 'StockFlow',
-      `Receipt ${sale.receiptNumber}{sale.fiscalReceiptNumber ? ` · ${sale.fiscalReceiptNumber}` : ''}`,
+      `Receipt ${sale.receiptNumber}${sale.fiscalReceiptNumber ? ' · ' + sale.fiscalReceiptNumber : ''}`,
       sale.fiscalReceiptNumber ? `Fiscal ${sale.fiscalReceiptNumber}` : '',
       settings?.tinNumber ? `TIN ${settings.tinNumber}` : '',
       format(new Date(sale.createdAt), 'dd MMM yyyy HH:mm'),
