@@ -15,7 +15,7 @@ import { useI18n } from '../i18n/I18nContext'
 import { fmt, generateBarcode, makeSku } from '../lib/util'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 
-const UNITS = ['piece', 'kg', 'g', 'litre', 'bottle', 'packet', 'bag', 'box', 'dozen']
+const UNITS = ['piece', 'egg', 'kg', 'g', 'litre', 'ml', 'bottle', 'packet', 'bag', 'box', 'dozen', 'sachet']
 
 const emptyForm = {
   name: '', sku: '', barcode: '', price: '', cost: '', stock: '', minStock: '', category: '', unit: 'piece', packQty: '', packName: '', packPrice: '', imageUrl: '',
@@ -107,6 +107,11 @@ export default function ProductsPage() {
   }
 
   const save = async () => {
+    try {
+      if (localStorage.getItem('sf_write_allowed') === '0') {
+        return toast('Trial ended — subscribe in Plan & billing to edit products', 'error')
+      }
+    } catch { /* ignore */ }
     const name = form.name.trim()
     if (!name) return toast('Enter a product name', 'error')
     if (form.price === '' || isNaN(parseFloat(form.price))) return toast('Enter a selling price', 'error')
@@ -339,11 +344,39 @@ export default function ProductsPage() {
               <input value={form.category} onChange={(e) => set({ category: e.target.value })} list="category-list" placeholder="e.g. Beverages" className="field" />
               <datalist id="category-list">{categories.filter((c) => c !== 'All').map((c) => <option key={c} value={c} />)}</datalist>
             </Field>
-            <Field label="Unit">
+            <Field label="Unit (reja reja)">
               <select value={form.unit} onChange={(e) => set({ unit: e.target.value })} className="field appearance-none bg-no-repeat">
                 {UNITS.map((u) => <option key={u} value={u}>{u}</option>)}
               </select>
             </Field>
+          </div>
+
+          <div className="rounded-[16px] border border-black/8 bg-black/[0.02] p-3 space-y-3">
+            <div>
+              <p className="text-[14px] font-semibold text-ink">Jumla / pack (optional)</p>
+              <p className="text-[12px] text-ink-muted mt-0.5 leading-snug">
+                Example: tray of 30 eggs. Stock is counted in single pieces. Selling one tray deducts 30 from stock.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Pack name">
+                <input value={form.packName} onChange={(e) => set({ packName: e.target.value })} placeholder="Tray / Dozen / Carton" className="field" list="pack-name-list" />
+                <datalist id="pack-name-list">
+                  <option value="Tray" /><option value="Dozen" /><option value="Carton" /><option value="Box" /><option value="Pack" />
+                </datalist>
+              </Field>
+              <Field label="Pieces per pack">
+                <input value={form.packQty} onChange={(e) => set({ packQty: e.target.value })} type="number" inputMode="decimal" min="2" placeholder="e.g. 30" className="field tabular-nums" />
+              </Field>
+            </div>
+            <Field label="Pack sell price (jumla)">
+              <input value={form.packPrice} onChange={(e) => set({ packPrice: e.target.value })} type="number" inputMode="decimal" placeholder="e.g. 9500" className="field tabular-nums" />
+            </Field>
+            {form.packQty && form.packPrice && !isNaN(parseFloat(form.packQty)) && !isNaN(parseFloat(form.packPrice)) && (
+              <p className="text-[12px] text-ink-secondary">
+                1 {form.packName || 'pack'} = {form.packQty} {form.unit || 'pc'} · reja {form.price || '—'} · jumla {form.packPrice}
+              </p>
+            )}
           </div>
 
           <Field label="SKU">

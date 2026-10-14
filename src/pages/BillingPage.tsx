@@ -197,15 +197,27 @@ export default function BillingPage() {
               }`}
             >
               <div className="flex items-baseline justify-between gap-2">
-                <span className="text-[16px] font-bold">{sw ? p.nameSw : p.name}</span>
+                <div className="flex items-center gap-2">
+                  <span className="text-[16px] font-bold">{sw ? p.nameSw : p.name}</span>
+                  {p.highlight && (
+                    <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-primary text-white">
+                      {sw ? 'Maarufu' : 'Popular'}
+                    </span>
+                  )}
+                </div>
                 <span className="text-[16px] font-bold tabular-nums text-primary">
                   {fmt(p.priceTzs)} TZS
                   <span className="text-[12px] font-medium text-ink-muted">/{sw ? 'mwezi' : 'mo'}</span>
                 </span>
               </div>
-              <p className="mt-1 text-[12px] text-ink-secondary">
-                {(sw ? p.featuresSw : p.features).join(' · ')}
-              </p>
+              <ul className="mt-2 space-y-1">
+                {(sw ? p.featuresSw : p.features).map((f) => (
+                  <li key={f} className="text-[12px] text-ink-secondary flex gap-1.5">
+                    <span className="text-primary font-bold">·</span>
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
             </button>
           ))}
         </div>
@@ -216,7 +228,7 @@ export default function BillingPage() {
             {sw ? 'Bei' : 'Price'}
           </p>
           <p className="mt-1 text-[32px] font-bold tabular-nums tracking-tight">
-            {fmt(MONTHLY_PRICE_TZS)}
+            {fmt(PLANS.find((x) => x.id === planId)?.priceTzs ?? MONTHLY_PRICE_TZS)}
             <span className="text-[16px] font-semibold text-ink-secondary"> TZS</span>
             <span className="text-[15px] font-medium text-ink-muted"> / {sw ? 'mwezi' : 'month'}</span>
           </p>

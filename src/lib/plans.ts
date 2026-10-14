@@ -11,6 +11,7 @@ export interface Plan {
   seats: number | 'unlimited'
   features: string[]
   featuresSw: string[]
+  highlight?: boolean
 }
 
 export const PLANS: Plan[] = [
@@ -21,8 +22,22 @@ export const PLANS: Plan[] = [
     priceTzs: 25_000,
     branches: 1,
     seats: 5,
-    features: ['1 branch', 'Up to 5 users', 'POS, stock, reports', 'Offline + sync'],
-    featuresSw: ['Tawi 1', 'Watumiaji 5', 'POS, stoo, ripoti', 'Nje ya mtandao'],
+    features: [
+      '1 shop / branch',
+      'Up to 5 staff (PIN)',
+      'POS + stock + customers',
+      'Jumla & reja reja units',
+      'Offline sales + sync',
+      'Reports & net profit',
+    ],
+    featuresSw: [
+      'Duka / tawi 1',
+      'Wafanyakazi 5 (PIN)',
+      'POS + stoo + wateja',
+      'Jumla na reja reja',
+      'Mauzo nje ya mtandao',
+      'Ripoti na faida',
+    ],
   },
   {
     id: 'growth',
@@ -31,8 +46,21 @@ export const PLANS: Plan[] = [
     priceTzs: 45_000,
     branches: 3,
     seats: 15,
-    features: ['Up to 3 branches', 'Up to 15 users', 'Everything in Starter', 'Priority support'],
-    featuresSw: ['Matawi 3', 'Watumiaji 15', 'Yote ya Anza', 'Msaada wa haraka'],
+    highlight: true,
+    features: [
+      'Up to 3 branches',
+      'Up to 15 staff',
+      'Everything in Starter',
+      'Multi-branch stock view',
+      'Priority chat support',
+    ],
+    featuresSw: [
+      'Matawi hadi 3',
+      'Wafanyakazi 15',
+      'Yote ya Anza',
+      'Stoo kwa matawi',
+      'Msaada wa haraka',
+    ],
   },
   {
     id: 'business',
@@ -41,8 +69,20 @@ export const PLANS: Plan[] = [
     priceTzs: 75_000,
     branches: 'unlimited',
     seats: 'unlimited',
-    features: ['Unlimited branches', 'Unlimited users', 'Industry modules', 'Dedicated help'],
-    featuresSw: ['Matawi yasiyo na kikomo', 'Watumiaji wasio na kikomo', 'Moduli za sekta', 'Msaada maalum'],
+    features: [
+      'Unlimited branches',
+      'Unlimited staff',
+      'Industry modules (pharmacy, restaurant, liquor)',
+      'Advanced roles & audit',
+      'Dedicated onboarding help',
+    ],
+    featuresSw: [
+      'Matawi yasiyo na kikomo',
+      'Wafanyakazi wasio na kikomo',
+      'Moduli (duka dawa, mgahawa, pombe)',
+      'Majukumu na ukaguzi',
+      'Msaada wa kuanzisha',
+    ],
   },
 ]
 

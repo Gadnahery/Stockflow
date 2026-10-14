@@ -649,7 +649,10 @@ function ProductCard({ product, qty, onAdd }: { product: Product; qty: number; o
         <div className="px-1 pt-2.5 pb-1">
           <p className="font-semibold text-ink text-[15px] leading-snug line-clamp-2 min-h-[2.6em]">{product.name}</p>
           <div className="mt-1.5 flex items-baseline justify-between gap-1">
-            <span className="font-bold text-ink tabular-nums text-[17px] tracking-tight">{fmt(product.price)}</span>
+            <span className="font-bold text-ink tabular-nums text-[17px] tracking-tight">
+              {fmt(product.price)}
+              {hasPack ? <span className="text-[11px] font-semibold text-ink-muted ml-1">reja</span> : null}
+            </span>
             {!out && !low && <span className="text-[12px] text-ink-muted tabular-nums">{fmt(product.stock)} left</span>}
           </div>
         </div>
@@ -660,7 +663,7 @@ function ProductCard({ product, qty, onAdd }: { product: Product; qty: number; o
           onClick={() => onAdd('pack')}
           className="press mt-1 h-8 rounded-full bg-primary/10 text-primary text-[12px] font-bold"
         >
-          + {product.packName || 'Pack'} ({product.packQty})
+          Jumla: {product.packName || 'Pack'} ×{product.packQty}
           {product.packPrice != null ? ` · ${fmt(product.packPrice)}` : ''}
         </button>
       )}

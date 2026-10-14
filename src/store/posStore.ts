@@ -205,19 +205,20 @@ export const usePosStore = create<PosState>((set, get) => ({
         if (c) await db.customers.update(c.id, { balance: Math.max(0, c.balance - creditAmt), updatedAt: now })
       }
 
-      // Restock
+      // Restock (packs restore packQty * quantity base units)
       for (const item of sale.items) {
         const product = await db.products.get(item.productId)
-        if (!product) continue
+        if (!product || product.isService) continue
         const previousStock = product.stock
-        const newStock = previousStock + item.quantity
+        const restock = (item as { stockUnits?: number }).stockUnits ?? item.quantity
+        const newStock = previousStock + restock
         await db.products.update(item.productId, { stock: newStock, updatedAt: now })
         await db.stockMovements.add({
           id: uuidv4(),
           productId: item.productId,
           productName: item.name,
           type: 'return',
-          quantity: item.quantity,
+          quantity: restock,
           previousStock,
           newStock,
           referenceId: saleId,
@@ -419,7 +420,7 @@ export const usePosStore = create<PosState>((set, get) => ({
           productId: item.productId,
           productName: item.name,
           type: 'sale',
-          quantity: -item.quantity,
+          quantity: -deduct,
           previousStock,
           newStock,
           referenceId: saleId,
