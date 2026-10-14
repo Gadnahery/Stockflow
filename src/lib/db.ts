@@ -202,9 +202,9 @@ async function restoreWorkspaceSnapshot(workspaceId: string, legacyBusinessId?: 
 }
 
 /** Wipe only the active working tables after a snapshot has been saved. */
-export async function clearLocalBusinessData() {
+export async function clearLocalBusinessData(includeProducts = true) {
   await withoutSync(async () => {
-    await Promise.all(WORKSPACE_TABLES.map((name) =>
+    await Promise.all(WORKSPACE_TABLES.filter((name) => includeProducts || name !== 'products').map((name) =>
       (db as unknown as Record<string, Table<unknown, string>>)[name].clear()
     ))
   })
