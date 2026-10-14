@@ -512,6 +512,7 @@ export async function pullMissing(): Promise<number> {
         payments: payments as Payment[],
         customerId: row.customer_id || undefined,
         customerName: row.customer_name || undefined,
+        branchId: row.branch_id || undefined,
         cashierId: row.user_id || undefined,
         cashierName: row.cashier_name || undefined,
         status: (row.status as 'completed' | 'voided' | 'held') || 'completed',
