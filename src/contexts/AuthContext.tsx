@@ -108,7 +108,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         // for a slow membership request; refresh again on the next online event.
         result = await Promise.race([
           fetchMembership(uid),
-          new Promise<typeof cached>((resolve) => window.setTimeout(() => resolve(cached), 1800)),
+          new Promise<NonNullable<typeof cached>>((resolve) => window.setTimeout(() => resolve(cached), 1800)),
         ])
       } else {
         result = await fetchMembership(uid)
