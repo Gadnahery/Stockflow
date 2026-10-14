@@ -144,7 +144,7 @@ export default function PosPage() {
   }, [cart.length, holdCart, toast])
 
 
-  const add = (p: Product) => {
+  const add = (p: Product, sellAs: 'unit' | 'pack' = 'unit') => {
     if (p.stock <= 0) {
       toast(`${p.name} ${t('pos.outOfStock')}`, 'error')
       return
@@ -154,7 +154,7 @@ export default function PosPage() {
       toast(t('pos.onlyStock').replace('{n}', fmt(p.stock)).replace('{name}', p.name), 'error')
       return
     }
-    addToCart(p)
+    addToCart(p, 1, sellAs)
     haptic(10)
   }
 
@@ -341,7 +341,7 @@ export default function PosPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {filtered.map((product) => (
-                <ProductCard key={product.id} product={product} qty={qtyById.get(product.id) ?? 0} onAdd={() => add(product)} />
+                <ProductCard key={product.id} product={product} qty={qtyById.get(product.id) ?? 0} onAdd={(mode) => add(product, mode)} />
               ))}
             </div>
           )}
@@ -621,35 +621,50 @@ function Row({ label, value, danger, muted }: { label: string; value: string; da
   )
 }
 
-function ProductCard({ product, qty, onAdd }: { product: Product; qty: number; onAdd: () => void }) {
+function ProductCard({ product, qty, onAdd }: { product: Product; qty: number; onAdd: (mode?: 'unit' | 'pack') => void }) {
   const out = product.stock <= 0
   const low = !out && product.stock <= (product.minStock ?? 5)
+  const hasPack = (product.packQty || 0) > 1
   return (
-    <button
-      onClick={onAdd}
-      className="press group relative flex flex-col bg-white rounded-[22px] shadow-card p-2.5 text-left overflow-hidden"
-    >
-      <div className="relative aspect-square rounded-[16px] overflow-hidden">
-        <ProductImage name={product.name} src={product.imageUrl} className="h-full w-full" textClass="text-4xl" />
-        {qty > 0 && (
-          <span key={qty} className="bump absolute top-2 right-2 min-w-[28px] h-7 px-2 rounded-full bg-primary text-white text-[14px] font-bold flex items-center justify-center shadow-soft tabular-nums">
-            {qty}
-          </span>
-        )}
-        {(out || low) && (
-          <span className={`absolute bottom-2 left-2 text-[11px] font-bold px-2 py-0.5 rounded-full ${out ? 'bg-danger text-white' : 'bg-amber-100 text-warning'}`}>
-            {out ? 'Out of stock' : `${fmt(product.stock)} left`}
-          </span>
-        )}
-      </div>
-      <div className="px-1 pt-2.5 pb-1">
-        <p className="font-semibold text-ink text-[15px] leading-snug line-clamp-2 min-h-[2.6em]">{product.name}</p>
-        <div className="mt-1.5 flex items-baseline justify-between gap-1">
-          <span className="font-bold text-ink tabular-nums text-[17px] tracking-tight">{fmt(product.price)}</span>
-          {!out && !low && <span className="text-[12px] text-ink-muted tabular-nums">{fmt(product.stock)} left</span>}
+    <div className="group relative flex flex-col bg-white rounded-[22px] shadow-card p-2.5 text-left overflow-hidden">
+      <button
+        type="button"
+        onClick={() => onAdd('unit')}
+        disabled={out}
+        className="press flex flex-col flex-1 text-left disabled:opacity-50"
+      >
+        <div className="relative aspect-square rounded-[16px] overflow-hidden">
+          <ProductImage name={product.name} src={product.imageUrl} className="h-full w-full" textClass="text-4xl" />
+          {qty > 0 && (
+            <span key={qty} className="bump absolute top-2 right-2 min-w-[28px] h-7 px-2 rounded-full bg-primary text-white text-[14px] font-bold flex items-center justify-center shadow-soft tabular-nums">
+              {qty}
+            </span>
+          )}
+          {(out || low) && (
+            <span className={`absolute bottom-2 left-2 text-[11px] font-bold px-2 py-0.5 rounded-full ${out ? 'bg-danger text-white' : 'bg-amber-100 text-warning'}`}>
+              {out ? 'Out of stock' : `${fmt(product.stock)} left`}
+            </span>
+          )}
         </div>
-      </div>
-    </button>
+        <div className="px-1 pt-2.5 pb-1">
+          <p className="font-semibold text-ink text-[15px] leading-snug line-clamp-2 min-h-[2.6em]">{product.name}</p>
+          <div className="mt-1.5 flex items-baseline justify-between gap-1">
+            <span className="font-bold text-ink tabular-nums text-[17px] tracking-tight">{fmt(product.price)}</span>
+            {!out && !low && <span className="text-[12px] text-ink-muted tabular-nums">{fmt(product.stock)} left</span>}
+          </div>
+        </div>
+      </button>
+      {hasPack && !out && (
+        <button
+          type="button"
+          onClick={() => onAdd('pack')}
+          className="press mt-1 h-8 rounded-full bg-primary/10 text-primary text-[12px] font-bold"
+        >
+          + {product.packName || 'Pack'} ({product.packQty})
+          {product.packPrice != null ? ` · ${fmt(product.packPrice)}` : ''}
+        </button>
+      )}
+    </div>
   )
 }
 

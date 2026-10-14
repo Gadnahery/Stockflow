@@ -38,6 +38,12 @@ export interface Product {
   category?: string
   brand?: string
   unit?: string
+  /** How many base units in one pack (e.g. 30 eggs per tray). Stock is always base units. */
+  packQty?: number
+  /** Name of the pack unit, e.g. tray, dozen, carton */
+  packName?: string
+  /** Sell price for one pack (if set). Base price stays on price. */
+  packPrice?: number
   /** Compressed JPEG data URL (stored locally) */
   imageUrl?: string
   active: boolean
@@ -54,6 +60,11 @@ export interface CartItem {
   quantity: number
   discount: number
   lineTotal: number
+  /** Selling as pack vs single (reja reja) */
+  sellAs?: 'unit' | 'pack'
+  /** Base units this line will deduct from stock */
+  stockUnits?: number
+  unitLabel?: string
 }
 
 export interface Payment {

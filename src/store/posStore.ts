@@ -79,47 +79,63 @@ export const usePosStore = create<PosState>((set, get) => ({
 
   setCustomer: (id, name) => set({ selectedCustomerId: id, selectedCustomerName: name }),
 
-  addToCart: (product, qty = 1) => {
+  addToCart: (product, qty = 1, sellAs = 'unit') => {
+    const asPack = sellAs === 'pack' && (product.packQty || 0) > 1
+    const packQty = product.packQty || 1
+    const unitPrice = asPack ? (product.packPrice ?? product.price * packQty) : product.price
+    const stockPerSale = asPack ? packQty : 1
+    const unitLabel = asPack ? (product.packName || 'pack') : (product.unit || 'pc')
+    // Cart lines for pack vs unit are separate keys via name suffix in matching
     set((state) => {
-      const existing = state.cart.find((i) => i.productId === product.id)
+      const existing = state.cart.find(
+        (i) => i.productId === product.id && (i.sellAs || 'unit') === (asPack ? 'pack' : 'unit'),
+      )
       const inCart = existing?.quantity ?? 0
-      const max = Math.max(0, product.stock)
-      // Cap at available stock (0 stock → still allow 1 for count-correction workflows only if stock > 0)
-      if (max <= 0) return state
-      const nextQty = Math.min(inCart + qty, max)
+      const stockUsed = state.cart
+        .filter((i) => i.productId === product.id)
+        .reduce((s, i) => s + (i.stockUnits ?? i.quantity), 0)
+      const maxStock = Math.max(0, product.stock)
+      const remaining = maxStock - stockUsed
+      if (remaining < stockPerSale) return state
+      const canAdd = Math.floor(remaining / stockPerSale)
+      const nextQty = Math.min(inCart + qty, inCart + canAdd)
       if (nextQty <= inCart && existing) return state
       if (existing) {
         return {
           cart: state.cart.map((i) =>
-            i.productId === product.id
+            i.productId === product.id && (i.sellAs || 'unit') === (asPack ? 'pack' : 'unit')
               ? {
                   ...i,
                   quantity: nextQty,
+                  stockUnits: nextQty * stockPerSale,
                   lineTotal: nextQty * i.price - i.discount,
                 }
-              : i
+              : i,
           ),
         }
       }
-      const q = Math.min(qty, max)
+      const q = Math.min(qty, canAdd)
+      if (q <= 0) return state
       return {
         cart: [
           ...state.cart,
           {
             productId: product.id,
-            name: product.name,
+            name: asPack ? `${product.name} (${unitLabel})` : product.name,
             sku: product.sku,
             imageUrl: product.imageUrl,
-            price: product.price,
+            price: unitPrice,
             quantity: q,
             discount: 0,
-            lineTotal: product.price * q,
+            lineTotal: unitPrice * q,
+            sellAs: asPack ? 'pack' : 'unit',
+            stockUnits: q * stockPerSale,
+            unitLabel,
           },
         ],
       }
     })
   },
-
   updateQuantity: (productId, quantity) => {
     if (quantity <= 0) {
       get().removeFromCart(productId)
@@ -390,7 +406,8 @@ export const usePosStore = create<PosState>((set, get) => ({
         if (product.isService) continue // salon/restaurant service lines
 
         const previousStock = product.stock
-        const newStock = Math.max(0, previousStock - item.quantity)
+        const deduct = item.stockUnits ?? item.quantity
+        const newStock = Math.max(0, previousStock - deduct)
 
         await db.products.update(item.productId, {
           stock: newStock,

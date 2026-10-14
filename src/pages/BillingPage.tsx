@@ -15,6 +15,7 @@ import {
 } from '../lib/harakapay'
 import { computeAccess } from '../lib/entitlement'
 import { fmt } from '../lib/util'
+import { PLANS, type PlanId } from '../lib/plans'
 
 type PayPhase = 'idle' | 'sending' | 'waiting' | 'success' | 'failed'
 
@@ -24,6 +25,7 @@ export default function BillingPage() {
   const toast = useUi((s) => s.toast)
   const [seatCount, setSeatCount] = useState<number | null>(null)
   const [phone, setPhone] = useState('')
+  const [planId, setPlanId] = useState<PlanId>('starter')
   const [phase, setPhase] = useState<PayPhase>('idle')
   const [orderId, setOrderId] = useState<string | null>(null)
   const [error, setError] = useState('')
@@ -113,7 +115,7 @@ export default function BillingPage() {
     try {
       const res = await collectMobilePayment({
         phone: p,
-        amount: MONTHLY_PRICE_TZS,
+        amount: PLANS.find((p) => p.id === planId)?.priceTzs ?? MONTHLY_PRICE_TZS,
         businessId: bizId,
         description: 'StockFlow — 30 days subscription',
       })
@@ -129,7 +131,7 @@ export default function BillingPage() {
           order_id: res.order_id,
           business_id: bizId,
           user_id: session?.user?.id,
-          amount: MONTHLY_PRICE_TZS,
+          amount: PLANS.find((p) => p.id === planId)?.priceTzs ?? MONTHLY_PRICE_TZS,
           status: 'pending',
           phone: normalizeTzPhone(p),
         })
@@ -182,7 +184,33 @@ export default function BillingPage() {
           </div>
         </div>
 
-        {/* Price */}
+        
+        {/* Plans */}
+        <div className="space-y-3">
+          {PLANS.map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              onClick={() => setPlanId(p.id)}
+              className={`w-full text-left rounded-[18px] border p-4 ${
+                planId === p.id ? 'border-primary ring-1 ring-primary/30 bg-primary/5' : 'border-border bg-white'
+              }`}
+            >
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="text-[16px] font-bold">{sw ? p.nameSw : p.name}</span>
+                <span className="text-[16px] font-bold tabular-nums text-primary">
+                  {fmt(p.priceTzs)} TZS
+                  <span className="text-[12px] font-medium text-ink-muted">/{sw ? 'mwezi' : 'mo'}</span>
+                </span>
+              </div>
+              <p className="mt-1 text-[12px] text-ink-secondary">
+                {(sw ? p.featuresSw : p.features).join(' · ')}
+              </p>
+            </button>
+          ))}
+        </div>
+
+{/* Price */}
         <div className="rounded-[22px] border border-border bg-white p-6 shadow-card">
           <p className="text-[13px] font-semibold text-ink-secondary uppercase tracking-wide">
             {sw ? 'Bei' : 'Price'}
@@ -291,7 +319,7 @@ export default function BillingPage() {
                   </>
                 ) : (
                   <>
-                    {sw ? 'Lipa' : 'Pay'} {fmt(MONTHLY_PRICE_TZS)} TZS
+                    {sw ? 'Lipa' : 'Pay'} {fmt(PLANS.find((p) => p.id === planId)?.priceTzs ?? MONTHLY_PRICE_TZS)} TZS
                   </>
                 )}
               </button>

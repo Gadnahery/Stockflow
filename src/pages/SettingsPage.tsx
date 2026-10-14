@@ -10,6 +10,7 @@ import { supabase, getBusinessId } from '../lib/supabase'
 import { fmt } from '../lib/util'
 import { useI18n } from '../i18n/I18nContext'
 import { INDUSTRY_OPTIONS, type IndustryType } from '../lib/industry'
+import { applyTheme, getStoredTheme, type ThemeMode } from '../lib/theme'
 
 type BranchRow = { id: string; name: string; code: string | null }
 
@@ -38,6 +39,7 @@ export default function SettingsPage() {
     () => localStorage.getItem('branchId') || settings?.branchId || '',
   )
   const [loadingBranches, setLoadingBranches] = useState(true)
+  const [theme, setTheme] = useState<ThemeMode>(() => getStoredTheme())
 
   useEffect(() => {
     if (!settings) return
@@ -142,6 +144,36 @@ export default function SettingsPage() {
   return (
     <Screen title={t('app.settings')} subtitle={business?.name || 'Business, tax, and receipts'}>
       <div className="space-y-6 md:max-w-lg pb-8">
+
+        <section>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">
+            {locale === 'sw' ? 'Muonekano' : 'Appearance'}
+          </h2>
+          <div className="bg-white rounded-[22px] shadow-card p-4">
+            <div className="flex gap-2">
+              {([
+                ['light', locale === 'sw' ? 'Mwanga' : 'Light'],
+                ['dark', locale === 'sw' ? 'Giza' : 'Dark'],
+                ['system', locale === 'sw' ? 'Mfumo' : 'System'],
+              ] as const).map(([code, label]) => (
+                <button
+                  key={code}
+                  type="button"
+                  onClick={() => {
+                    setTheme(code)
+                    applyTheme(code)
+                  }}
+                  className={`press flex-1 h-11 rounded-full text-[14px] font-semibold ${
+                    theme === code ? 'bg-primary text-white' : 'bg-black/[0.06] text-ink-secondary'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </section>
+
         {/* Language */}
         <section>
           <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">{t('app.language')}</h2>

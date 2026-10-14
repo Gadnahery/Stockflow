@@ -351,3 +351,37 @@ button { font-family: inherit; touch-action: manipulation; }
     max-width: 56rem;
   }
 }
+
+
+/* ───────── Dark mode ───────── */
+html.dark {
+  color-scheme: dark;
+  --canvas: #000000;
+  --glass: rgba(28, 28, 30, 0.82);
+  --glass-strong: rgba(28, 28, 30, 0.94);
+  --hairline: rgba(255, 255, 255, 0.12);
+}
+html.dark body,
+html.dark #root {
+  background-color: var(--canvas);
+  color: #F5F5F7;
+}
+html.dark .page-title { color: #F5F5F7; }
+html.dark .bg-white { background-color: #1C1C1E !important; }
+html.dark .text-ink { color: #F5F5F7; }
+html.dark .text-ink-secondary { color: #A1A1A6; }
+html.dark .text-ink-muted { color: #8E8E93; }
+html.dark .border-border { border-color: rgba(255,255,255,0.12); }
+html.dark .shadow-card { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
+html.dark .field {
+  background: rgba(255,255,255,0.08) !important;
+  color: #F5F5F7;
+  border-color: rgba(255,255,255,0.12);
+}
+html.dark .tabbar { background: rgba(28,28,30,0.92); }
+html.dark .page-header { background: var(--glass); }
+html.dark .glass { background: var(--glass); }
+html.dark .bg-black\/\[0\.06\] { background-color: rgba(255,255,255,0.08) !important; }
+html.dark button.text-primary { color: #0A84FF; }
+html.dark .bg-primary { background-color: #0A84FF; }
+html.dark .rounded-full.bg-black\/\[0\.06\] { background-color: rgba(255,255,255,0.1) !important; }

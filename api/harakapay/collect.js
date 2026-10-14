@@ -1,9 +1,7 @@
-import type { VercelRequest, VercelResponse } from '@vercel/node'
-
 const BASE = 'https://harakapay.net'
-const MONTHLY_TZS = 25_000
+const MONTHLY_TZS = 25000
 
-export default async function handler(req: VercelRequest, res: VercelResponse) {
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST')
     return res.status(405).json({ success: false, error: 'Method not allowed' })
@@ -23,10 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (!phone) {
     return res.status(400).json({ success: false, error: 'Phone number required' })
   }
-  // Normalize TZ mobiles: 0712… → 255712…
-  if (phone.startsWith('0') && phone.length === 10) {
-    phone = '255' + phone.slice(1)
-  }
+  if (phone.startsWith('0') && phone.length === 10) phone = '255' + phone.slice(1)
   if (phone.startsWith('+')) phone = phone.slice(1)
 
   if (!Number.isFinite(amount) || amount < 100) {
@@ -50,11 +45,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         webhook_url: webhook,
       }),
     })
-    const data = (await r.json()) as Record<string, unknown>
+    const data = await r.json()
     if (!r.ok) {
       return res.status(r.status).json({
         success: false,
-        error: (data.error as string) || (data.message as string) || 'Collect failed',
+        error: data.error || data.message || 'Collect failed',
         data,
       })
     }

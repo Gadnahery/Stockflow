@@ -18,7 +18,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog'
 const UNITS = ['piece', 'kg', 'g', 'litre', 'bottle', 'packet', 'bag', 'box', 'dozen']
 
 const emptyForm = {
-  name: '', sku: '', barcode: '', price: '', cost: '', stock: '', minStock: '', category: '', unit: 'piece', imageUrl: '',
+  name: '', sku: '', barcode: '', price: '', cost: '', stock: '', minStock: '', category: '', unit: 'piece', packQty: '', packName: '', packPrice: '', imageUrl: '',
 }
 
 export default function ProductsPage() {
@@ -125,6 +125,9 @@ export default function ProductsPage() {
       minStock: form.minStock ? parseFloat(form.minStock) : undefined,
       category: form.category.trim() || undefined,
       unit: form.unit || 'piece',
+      packQty: form.packQty ? parseFloat(form.packQty) : undefined,
+      packName: form.packName.trim() || undefined,
+      packPrice: form.packPrice ? parseFloat(form.packPrice) : undefined,
       imageUrl: form.imageUrl || undefined,
       active: true,
       updatedAt: now,
