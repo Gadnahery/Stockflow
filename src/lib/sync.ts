@@ -137,6 +137,7 @@ async function syncProduct(product: Product, businessId: string) {
   const row: Record<string, unknown> = {
     id: product.id,
     business_id: businessId,
+    branch_id: getBranchId(),
     name: product.name,
     sku: product.sku,
     barcode: product.barcode || null,
@@ -367,7 +368,7 @@ export async function pullMissing(): Promise<number> {
 
   const [{ data: prodRows }, { data: custRows }, { data: supRows }, { data: saleRows }, { data: expRows }, { data: movRows }] =
     await Promise.all([
-      supabase.from('products').select('*').eq('business_id', businessId).gte('updated_at', since),
+      supabase.from('products').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('updated_at', since),
       supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('sales').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
