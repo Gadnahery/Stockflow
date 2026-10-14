@@ -32,7 +32,7 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
-      if (!member || !supabase) {
+      if (!navigator.onLine || !member || !supabase) {
         if (!cancelled) setBranchReady(true)
         return
       }
