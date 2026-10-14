@@ -40,7 +40,10 @@ async function ensureBusiness(): Promise<string> {
   const biz = members[0].business_id as string
   setBusinessId(biz)
   const branches = members[0].branch_ids as string[] | null
-  if (branches?.[0]) localStorage.setItem('branchId', branches[0])
+  const selectedBranch = getBranchId()
+  if (branches?.[0] && (!selectedBranch || !branches.includes(selectedBranch))) {
+    localStorage.setItem('branchId', branches[0])
+  }
   return biz
 }
 
