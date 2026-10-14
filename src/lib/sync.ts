@@ -378,7 +378,9 @@ export async function pullMissing(): Promise<number> {
       supabase.from('products').select('*').eq('business_id', businessId),
       supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
-      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(500),
+      // Always reconcile the full sales history visible to this signed-in member. A stale
+      // incremental cursor or branch switch must never make older receipts disappear.
+      supabase.from('sales').select('*').eq('business_id', businessId).order('created_at', { ascending: true }).limit(1000),
       supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(300),
       supabase.from('stock_movements').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
     ])
@@ -468,7 +470,16 @@ export async function pullMissing(): Promise<number> {
     }
 
     for (const row of saleRows ?? []) {
-      if (localSales.has(row.id)) continue
+      if (localSales.has(row.id)) {
+        // Older local rows may predate branch-aware syncing. Repair only the branch
+        // metadata; preserve the locally stored receipt, items, and pending edits.
+        const local = await db.sales.get(row.id)
+        if (local && row.branch_id && local.branchId !== row.branch_id) {
+          await db.sales.update(row.id, { branchId: row.branch_id, synced: true })
+          added++
+        }
+        continue
+      }
       const payments = Array.isArray(row.payments) ? row.payments : []
       // Fetch line items for this sale
       const { data: items } = await supabase
@@ -477,6 +488,7 @@ export async function pullMissing(): Promise<number> {
         .eq('sale_id', row.id)
       await db.sales.put({
         id: row.id,
+        branchId: row.branch_id || undefined,
         deviceId: row.device_id || 'remote',
         items: (items || []).map((it: Record<string, unknown>) => ({
           productId: String(it.product_id || ''),
