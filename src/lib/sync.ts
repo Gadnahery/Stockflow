@@ -41,7 +41,8 @@ async function ensureBusiness(): Promise<string> {
   setBusinessId(biz)
   const branches = members[0].branch_ids as string[] | null
   const selectedBranch = getBranchId()
-  if (branches?.[0] && (!selectedBranch || !branches.includes(selectedBranch))) {
+  const ownerCanUseAnyBranch = ['owner', 'business_owner', 'platform_admin'].includes(String(members[0].role))
+  if (branches?.[0] && (!selectedBranch || (!branches.includes(selectedBranch) && !ownerCanUseAnyBranch))) {
     localStorage.setItem('branchId', branches[0])
   }
   return biz

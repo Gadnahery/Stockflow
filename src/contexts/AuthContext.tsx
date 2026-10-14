@@ -35,6 +35,26 @@ const PIN_FAIL_KEY = 'sf_pin_fails'
 const LAST_ACTIVITY_KEY = 'sf_last_activity'
 const DEFAULT_IDLE_MS = 5 * 60 * 1000
 
+// Supabase persists the authenticated session in localStorage. Read it directly as a
+// last-resort boot path when offline, rather than waiting indefinitely for auth hydration.
+function readCachedAuthSession(): Session | null {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key || !key.endsWith('-auth-token')) continue
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw) as { currentSession?: Session; access_token?: string; user?: User; expires_at?: number }
+      const session = parsed.currentSession ?? (parsed.access_token && parsed.user ? parsed as Session : null)
+      if (session?.user && session.access_token) {
+        if (session.expires_at && session.expires_at * 1000 < Date.now() && navigator.onLine) continue
+        return session
+      }
+    }
+  } catch { /* invalid or unavailable cache */ }
+  return null
+}
+
 interface AuthState {
   session: Session | null
   user: User | null
@@ -104,12 +124,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!navigator.onLine && cached) {
         result = cached
       } else if (cached) {
-        // Prefer fresh cloud data, but don't leave returning users staring at a spinner
-        // for a slow membership request; refresh again on the next online event.
-        result = await Promise.race([
-          fetchMembership(uid),
-          new Promise<NonNullable<typeof cached>>((resolve) => window.setTimeout(() => resolve(cached), 1800)),
-        ])
+        // Show the last verified workspace immediately, then refresh it in the background.
+        // This prevents stale trial/billing state from remaining on screen after the cloud updated.
+        result = cached
+        void fetchMembership(uid).then(async (fresh) => {
+          if (fresh.member?.user_id !== uid) return
+          await switchToBusinessWorkspace(
+            fresh.member.business_id,
+            getBranchId(),
+            fresh.member.branch_ids?.[0] && fresh.member.branch_ids[0] === getBranchId() ? fresh.member.business_id : undefined,
+          )
+          setMember(fresh.member)
+          setBusiness(fresh.business)
+          cacheMember(fresh.member)
+          localStorage.setItem('sf_write_allowed', entitlementCanWrite(fresh.business) ? '1' : '0')
+          mirrorSessionUser(fresh.member)
+          if (fresh.member.business_id && navigator.onLine) void pullMissing().catch(() => 0)
+        }).catch(() => undefined)
       } else {
         result = await fetchMembership(uid)
       }
@@ -151,9 +182,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const boot = async () => {
       try {
-        const { data } = await supabase.auth.getSession()
+        const cachedOfflineSession = !navigator.onLine ? readCachedAuthSession() : null
+        const sessionRequest = supabase.auth.getSession()
+        const sessionResult = cachedOfflineSession
+          ? { data: { session: cachedOfflineSession } }
+          : await Promise.race([
+              sessionRequest,
+              new Promise<{ data: { session: null } }>((resolve) => window.setTimeout(() => resolve({ data: { session: null } }), 2500)),
+            ])
         if (!mounted) return
-        const s = data.session
+        const s = sessionResult.data.session
         setSession(s)
         setUser(s?.user ?? null)
         userRef.current = s?.user ?? null
