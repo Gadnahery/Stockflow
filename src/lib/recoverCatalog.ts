@@ -1,6 +1,6 @@
-import { db } from './db'
+import { db, withoutSync } from './db'
 
-const FLAG = 'sf_catalog_recovered_v1'
+const FLAG = 'sf_catalog_recovered_v2'
 
 /** One-time: un-hide products that were tagged with a branch and no longer appear. */
 export async function recoverSharedCatalog(): Promise<number> {
@@ -12,13 +12,14 @@ export async function recoverSharedCatalog(): Promise<number> {
   let n = 0
   try {
     const all = await db.products.toArray()
-    for (const p of all) {
-      if (p.branchId) {
-        await db.products.update(p.id, { branchId: undefined, updatedAt: new Date().toISOString() })
-        n++
+    await withoutSync(async () => {
+      for (const p of all) {
+        if (p.branchId) {
+          await db.products.update(p.id, { branchId: undefined })
+          n++
+        }
       }
-      // Reactivate soft-deleted only if it looks like a mistake (optional — skip)
-    }
+    })
     localStorage.setItem(FLAG, '1')
   } catch {
     /* ignore */
