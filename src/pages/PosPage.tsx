@@ -14,6 +14,7 @@ import { fmt, haptic } from '../lib/util'
 import { usePermission } from '../hooks/usePermission'
 import { useI18n } from '../i18n/I18nContext'
 import { getBranchId } from '../lib/supabase'
+import ActiveBranchChip from '../components/ActiveBranchChip'
 import { featuresFor } from '../lib/industry'
 import { format } from 'date-fns'
 
@@ -283,6 +284,7 @@ export default function PosPage() {
           <div className="flex items-center justify-between">
             <h1 className="page-title">StockFlow</h1>
             <div className="flex items-center gap-2">
+              <ActiveBranchChip />
               <span className={`flex items-center gap-1.5 text-[12px] font-semibold px-2.5 h-7 rounded-full ${isOnline ? 'bg-emerald-500/10 text-success' : 'bg-amber-500/15 text-warning'}`}>
                 {isOnline ? <Wifi size={13} /> : <WifiOff size={13} />}
                 {isOnline ? 'Online' : 'Offline'}

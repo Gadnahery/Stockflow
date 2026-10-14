@@ -14,6 +14,8 @@ import Screen from '../components/ui/Screen'
 import ProductImage from '../components/ui/ProductImage'
 import { useI18n } from '../i18n/I18nContext'
 import { fmt, fmtMoney } from '../lib/util'
+import BranchFilter from '../components/BranchFilter'
+import { matchBranch, useBranches } from '../hooks/useBranches'
 
 type Period = 'today' | '7d' | '30d'
 const PERIODS: { id: Period; labelKey: 'reports.today' | 'reports.7d' | 'reports.30d'; days: number }[] = [
@@ -30,6 +32,8 @@ export default function ReportsPage() {
   const { can } = usePermission()
   const [period, setPeriod] = useState<Period>('7d')
   const [selected, setSelected] = useState<number | null>(null)
+  const [branchFilter, setBranchFilter] = useState<string>('all')
+  const { branches } = useBranches()
 
   const salesQ = useLiveQuery(() => db.sales.toArray(), [])
   const productsQ = useLiveQuery(() => db.products.toArray(), [])
@@ -52,13 +56,19 @@ export default function ReportsPage() {
     const end = endOfDay(now)
     const prevStart = startOfDay(subDays(start, days))
     const prevEnd = endOfDay(subDays(start, 1))
+    const salesScoped = sales.filter((s) => matchBranch(s.branchId, branchFilter))
+    const expensesScoped = expenses.filter((e) => matchBranch((e as { branchId?: string }).branchId, branchFilter))
+    const productsScoped = products.filter((p) => {
+      if (branchFilter === 'all') return true
+      return !p.branchId || p.branchId === branchFilter
+    })
     const inRange = (iso: string, a: Date, b: Date) => {
       const d = new Date(iso)
       return d >= a && d <= b
     }
 
-    const completed = sales.filter((s) => s.status === 'completed')
-    const voided = sales.filter((s) => s.status === 'voided')
+    const completed = salesScoped.filter((s) => s.status === 'completed')
+    const voided = salesScoped.filter((s) => s.status === 'voided')
     const cur = completed.filter((s) => inRange(s.createdAt, start, end))
     const prev = completed.filter((s) => inRange(s.createdAt, prevStart, prevEnd))
     const curVoided = voided.filter((s) => inRange(s.createdAt, start, end))
@@ -196,11 +206,32 @@ export default function ReportsPage() {
       margin: revenue > 0 ? (grossProfit / revenue) * 100 : 0,
       netMargin: revenue > 0 ? (netProfit / revenue) * 100 : 0,
     }
-  }, [sales, products, expenses, period])
+  }, [sales, products, expenses, period, branchFilter])
 
-  const lowStock = products.filter((p) => p.active && p.stock <= (p.minStock || 0))
-  const stockValue = products.filter((p) => p.active).reduce((t, p) => t + p.stock * p.cost, 0)
-  const stockRetail = products.filter((p) => p.active).reduce((t, p) => t + p.stock * p.price, 0)
+  const productsForBranch = products.filter((p) => {
+    if (branchFilter === 'all') return true
+    return !p.branchId || p.branchId === branchFilter
+  })
+  const lowStock = productsForBranch.filter((p) => p.active && p.stock <= (p.minStock || 0))
+  const stockValue = productsForBranch.filter((p) => p.active).reduce((t, p) => t + p.stock * p.cost, 0)
+  const stockRetail = productsForBranch.filter((p) => p.active).reduce((t, p) => t + p.stock * p.price, 0)
+
+  const branchRows = useMemo(() => {
+    if (branches.length < 2) return [] as { id: string; name: string; revenue: number; orders: number; expenses: number; net: number }[]
+    const completed = sales.filter((s) => s.status === 'completed')
+    return branches
+      .map((b) => {
+        const list = completed.filter((s) => s.branchId === b.id)
+        const revenue = list.reduce((t, s) => t + s.total, 0)
+        const orders = list.length
+        const exp = expenses
+          .filter((e) => (e as { branchId?: string }).branchId === b.id)
+          .reduce((t, e) => t + e.amount, 0)
+        return { id: b.id, name: b.name, revenue, orders, expenses: exp, net: revenue - exp }
+      })
+      .sort((a, b) => b.revenue - a.revenue)
+  }, [sales, expenses, branches])
+
   const creditOutstanding = customers.reduce((t, c) => t + Math.max(0, c.balance), 0)
   const maxBucket = Math.max(...data.buckets.map((b) => b.value), 1)
   const sel = selected !== null ? data.buckets[selected] : null
@@ -227,6 +258,39 @@ export default function ReportsPage() {
             </button>
           ))}
         </div>
+          <BranchFilter value={branchFilter} onChange={setBranchFilter} className="mt-2" />
+
+        {branchRows.length > 0 && (
+          <section className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
+            <h2 className="text-[15px] font-bold text-ink">By branch</h2>
+            <p className="text-[12px] text-ink-muted -mt-1">Compare revenue and expenses across locations</p>
+            {branchRows.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                onClick={() => setBranchFilter(row.id)}
+                className="press w-full flex items-center justify-between gap-3 py-2 border-b border-border last:border-0 text-left"
+              >
+                <div className="min-w-0">
+                  <p className="text-[14px] font-semibold truncate">{row.name}</p>
+                  <p className="text-[12px] text-ink-muted">
+                    {row.orders} sales · exp {fmtMoney(row.expenses)}
+                  </p>
+                </div>
+                <div className="text-right shrink-0">
+                  <p className="text-[15px] font-bold tabular-nums">{fmtMoney(row.revenue)}</p>
+                  <p
+                    className={`text-[12px] font-semibold tabular-nums ${
+                      row.net >= 0 ? 'text-success' : 'text-danger'
+                    }`}
+                  >
+                    Net {fmtMoney(row.net)}
+                  </p>
+                </div>
+              </button>
+            ))}
+          </section>
+        )}
 
         {loading ? (
           <div className="space-y-3">

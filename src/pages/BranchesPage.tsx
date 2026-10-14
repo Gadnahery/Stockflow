@@ -108,7 +108,7 @@ export default function BranchesPage() {
     >
       <div className="space-y-4 md:max-w-lg pb-6">
         <p className="text-[14px] text-ink-secondary px-1">
-          Each branch has its own stock and sales. Products you add on this device belong to the active branch. Switch branch to sell from another location.
+          Each branch keeps its own stock, sales, and expenses. Switch the active branch on this device, then use Reports to compare locations or view all branches together.
         </p>
 
         {loading && (

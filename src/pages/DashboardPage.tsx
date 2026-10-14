@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { startOfDay, endOfDay, format } from 'date-fns'
@@ -9,11 +9,15 @@ import { db } from '../lib/db'
 import Screen from '../components/ui/Screen'
 import { usePosStore } from '../store/posStore'
 import { useAuth } from '../contexts/AuthContext'
+import BranchFilter from '../components/BranchFilter'
+import { matchBranch } from '../hooks/useBranches'
+import { getBranchId } from '../lib/supabase'
 import { fmt, fmtMoney } from '../lib/util'
 
 export default function DashboardPage() {
   const { business, member } = useAuth()
   const isOnline = usePosStore((s) => s.isOnline)
+  const [branchFilter, setBranchFilter] = useState<string>(getBranchId() || 'all')
   const pendingSyncCount = usePosStore((s) => s.pendingSyncCount)
 
   const sales = useLiveQuery(() => db.sales.where('status').equals('completed').toArray(), [])
@@ -27,16 +31,21 @@ export default function DashboardPage() {
     const b = endOfDay(new Date())
     const cur = list.filter((s) => {
       const d = new Date(s.createdAt)
-      return d >= a && d <= b
+      if (d < a || d > b) return false
+      return matchBranch(s.branchId, branchFilter)
     })
     const revenue = cur.reduce((t, s) => t + s.total, 0)
     const units = cur.reduce((t, s) => t + s.items.reduce((u, i) => u + i.quantity, 0), 0)
     return { orders: cur.length, revenue, units }
-  }, [sales])
+  }, [sales, branchFilter])
 
   const low = useMemo(
-    () => (products || []).filter((p) => p.stock <= (p.minStock ?? 0)),
-    [products],
+    () => (products || []).filter((p) => {
+      if (p.stock > (p.minStock ?? 0)) return false
+      if (branchFilter === 'all') return true
+      return !p.branchId || p.branchId === branchFilter
+    }),
+    [products, branchFilter],
   )
   const credit = useMemo(
     () => (customers || []).reduce((t, c) => t + Math.max(0, c.balance), 0),
@@ -48,16 +57,20 @@ export default function DashboardPage() {
     return (expenses || [])
       .filter((e) => {
         const d = new Date(e.createdAt)
-        return d >= a && d <= b
+        if (d < a || d > b) return false
+        return matchBranch((e as { branchId?: string }).branchId, branchFilter)
       })
       .reduce((t, e) => t + e.amount, 0)
-  }, [expenses])
+  }, [expenses, branchFilter])
 
   return (
     <Screen
       title="Home"
       subtitle={business?.name || 'Your shop today'}
     >
+      <div className="px-4 pt-2">
+        <BranchFilter value={branchFilter} onChange={setBranchFilter} />
+      </div>
       <div className="space-y-4 md:max-w-2xl pb-8">
         <div className="flex items-center gap-2 text-[13px]">
           {isOnline ? (

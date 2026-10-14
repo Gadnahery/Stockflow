@@ -11,6 +11,8 @@ import { usePermission } from '../hooks/usePermission'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { useUi } from '../store/uiStore'
 import { fmtMoney } from '../lib/util'
+import BranchFilter from '../components/BranchFilter'
+import { matchBranch } from '../hooks/useBranches'
 
 type Period = 'today' | '7d' | '30d' | 'all'
 type StatusFilter = 'all' | 'completed' | 'voided' | 'refunded'
@@ -20,6 +22,7 @@ export default function SalesPage() {
   const [query, setQuery] = useState('')
   const [period, setPeriod] = useState<Period>('7d')
   const [status, setStatus] = useState<StatusFilter>('all')
+  const [branchFilter, setBranchFilter] = useState<string>('all')
   const voidSale = usePosStore((s) => s.voidSale)
   const refundSale = usePosStore((s) => s.refundSale)
   const { can } = usePermission()
@@ -45,6 +48,7 @@ export default function SalesPage() {
     return sales.filter((s) => {
       if (status !== 'all' && s.status !== status) return false
       if (from && new Date(s.createdAt) < from) return false
+      if (!matchBranch(s.branchId, branchFilter)) return false
       if (!q) return true
       return (
         s.receiptNumber.toLowerCase().includes(q) ||
@@ -52,7 +56,7 @@ export default function SalesPage() {
         (s.customerName || '').toLowerCase().includes(q)
       )
     })
-  }, [sales, query, period, status])
+  }, [sales, query, period, status, branchFilter])
 
   const totals = useMemo(() => {
     const completed = filtered.filter((s) => s.status === 'completed')
@@ -163,6 +167,8 @@ export default function SalesPage() {
             </button>
           ))}
         </div>
+
+        <BranchFilter value={branchFilter} onChange={setBranchFilter} />
 
         {/* Status chips */}
         <div className="flex gap-2 overflow-x-auto no-scrollbar">

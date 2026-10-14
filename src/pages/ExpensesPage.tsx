@@ -4,6 +4,9 @@ import { Plus, Wallet, Trash2 } from 'lucide-react'
 import { format, subDays, startOfDay } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '../lib/db'
+import { getBranchId } from '../lib/supabase'
+import BranchFilter from '../components/BranchFilter'
+import { matchBranch } from '../hooks/useBranches'
 import type { Expense } from '../types'
 import Screen from '../components/ui/Screen'
 import Sheet from '../components/ui/Sheet'
@@ -18,6 +21,7 @@ export default function ExpensesPage() {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState({ category: 'Other', amount: '', paymentMethod: 'cash', note: '' })
+  const [branchFilter, setBranchFilter] = useState<string>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [period, setPeriod] = useState<'today' | '7d' | '30d' | 'all'>('30d')
 
@@ -32,11 +36,12 @@ export default function ExpensesPage() {
     else if (period === '7d') from = subDays(now, 7)
     else if (period === '30d') from = subDays(now, 30)
     return expenses.filter((e) => {
+      if (!matchBranch((e as { branchId?: string }).branchId, branchFilter)) return false
       if (categoryFilter !== 'all' && e.category !== categoryFilter) return false
       if (from && new Date(e.createdAt) < from) return false
       return true
     })
-  }, [expenses, categoryFilter, period])
+  }, [expenses, categoryFilter, period, branchFilter])
 
   const total = filtered.reduce((s, e) => s + e.amount, 0)
 
@@ -94,6 +99,7 @@ export default function ExpensesPage() {
       })
     } else {
       const expense: Expense = {
+        branchId: getBranchId() || undefined,
         id: uuidv4(),
         category: form.category,
         amount,
@@ -117,7 +123,9 @@ export default function ExpensesPage() {
   }
 
   return (
-    <Screen
+    <>
+      <div className="px-4 pt-2"><BranchFilter value={branchFilter} onChange={setBranchFilter} /></div>
+      <Screen
       title="Expenses"
       subtitle={`${fmtMoney(total)} in view`}
       action={
@@ -282,5 +290,6 @@ export default function ExpensesPage() {
         </div>
       </Sheet>
     </Screen>
+    </>
   )
 }

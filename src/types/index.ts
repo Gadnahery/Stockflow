@@ -172,6 +172,8 @@ export interface Expense {
   paymentMethod: string
   note?: string
   userId?: UUID
+  /** Branch that recorded this expense */
+  branchId?: UUID
   createdAt: string
   synced: boolean
 }
