@@ -218,7 +218,10 @@ export async function clearLocalBusinessData(includeProducts = true) {
  * images and larger offline datasets do not hit localStorage's small quota.
  */
 export async function switchToBusinessWorkspace(businessId: string | null, branchId: string | null = null, legacyBusinessId?: string) {
-  const workspaceId = businessId ? `${businessId}:${branchId || 'default'}` : null
+  // Product catalogue and offline records are shared across branches of one business.
+  // Branch identity is stored separately for sales/reporting; including branchId here
+  // creates a different IndexedDB workspace and makes the catalogue appear to vanish.
+  const workspaceId = businessId ? `${businessId}:shared` : null
   const prev = localStorage.getItem(WORKSPACE_KEY)
   if (!businessId || !workspaceId) {
     // Sign-out is not data deletion. Leave the last workspace stored locally.
@@ -228,6 +231,36 @@ export async function switchToBusinessWorkspace(businessId: string | null, branc
 
   const previousBusinessId = prev?.split(':')[0]
   const sameBusiness = previousBusinessId === businessId
+
+  // One-time migration from older per-branch snapshots to a shared business workspace.
+  // Preserve the currently loaded records and merge in records saved under sibling branches.
+  if (prev && sameBusiness && prev !== workspaceId) {
+    await saveWorkspaceSnapshot(workspaceId, true)
+    const snapshots = await db.workspaceSnapshots.toArray()
+    const siblingSnapshots = snapshots.filter((snapshot) =>
+      snapshot.id.startsWith(`${businessId}:`) && snapshot.id !== workspaceId,
+    )
+    const merged = await db.workspaceSnapshots.get(workspaceId)
+    if (merged) {
+      for (const snapshot of siblingSnapshots) {
+        for (const name of WORKSPACE_TABLES) {
+          const currentRows = merged.data[name] ?? []
+          const incomingRows = snapshot.data[name] ?? []
+          const byId = new Map<string, unknown>()
+          for (const row of [...currentRows, ...incomingRows]) {
+            const id = (row as { id?: unknown }).id
+            if (id != null) byId.set(String(id), row)
+          }
+          merged.data[name] = [...byId.values()]
+        }
+      }
+      merged.savedAt = new Date().toISOString()
+      await db.workspaceSnapshots.put(merged)
+    }
+    localStorage.setItem(WORKSPACE_KEY, workspaceId)
+    return { switched: true, restored: true }
+  }
+
   if (prev) await saveWorkspaceSnapshot(prev, !sameBusiness)
   // Product catalogue is shared within a business, but isolated between businesses.
   await clearLocalBusinessData(!sameBusiness)
