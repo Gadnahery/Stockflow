@@ -183,8 +183,9 @@ async function saveWorkspaceSnapshot(workspaceId: string) {
 }
 
 /** Restore only the target business' saved offline data. */
-async function restoreWorkspaceSnapshot(workspaceId: string) {
+async function restoreWorkspaceSnapshot(workspaceId: string, legacyBusinessId?: string) {
   const snapshot = await db.workspaceSnapshots.get(workspaceId)
+    ?? (legacyBusinessId ? await db.workspaceSnapshots.get(legacyBusinessId) : undefined)
   if (!snapshot) return false
   await withoutSync(async () => {
     for (const name of WORKSPACE_TABLES) {
@@ -194,6 +195,9 @@ async function restoreWorkspaceSnapshot(workspaceId: string) {
       if (rows.length) await table.bulkPut(rows)
     }
   })
+  if (snapshot.id !== workspaceId) {
+    await db.workspaceSnapshots.put({ ...snapshot, id: workspaceId, savedAt: new Date().toISOString() })
+  }
   return true
 }
 
@@ -224,7 +228,7 @@ export async function switchToBusinessWorkspace(businessId: string | null, branc
   await clearLocalBusinessData()
   localStorage.setItem(WORKSPACE_KEY, workspaceId)
 
-  const restored = await restoreWorkspaceSnapshot(workspaceId)
+  const restored = await restoreWorkspaceSnapshot(workspaceId, businessId)
   if (!restored) {
     const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
     localStorage.setItem('deviceId', deviceId)
