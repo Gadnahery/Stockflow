@@ -104,12 +104,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!navigator.onLine && cached) {
         result = cached
       } else if (cached) {
-        // Prefer fresh cloud data, but don't leave returning users staring at a spinner
-        // for a slow membership request; refresh again on the next online event.
-        result = await Promise.race([
-          fetchMembership(uid),
-          new Promise<NonNullable<typeof cached>>((resolve) => window.setTimeout(() => resolve(cached), 1800)),
-        ])
+        // Show the last verified workspace immediately, then refresh it in the background.
+        // This prevents stale trial/billing state from remaining on screen after the cloud updated.
+        result = cached
+        void fetchMembership(uid).then(async (fresh) => {
+          if (fresh.member?.user_id !== uid) return
+          await switchToBusinessWorkspace(
+            fresh.member.business_id,
+            getBranchId(),
+            fresh.member.branch_ids?.[0] && fresh.member.branch_ids[0] === getBranchId() ? fresh.member.business_id : undefined,
+          )
+          setMember(fresh.member)
+          setBusiness(fresh.business)
+          cacheMember(fresh.member)
+          localStorage.setItem('sf_write_allowed', entitlementCanWrite(fresh.business) ? '1' : '0')
+          mirrorSessionUser(fresh.member)
+          if (fresh.member.business_id && navigator.onLine) void pullMissing().catch(() => 0)
+        }).catch(() => undefined)
       } else {
         result = await fetchMembership(uid)
       }
