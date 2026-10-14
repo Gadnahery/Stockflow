@@ -15,6 +15,8 @@ import {
   createBusiness as rpcCreateBusiness,
   acceptInvite as rpcAcceptInvite,
   cacheMember,
+  getCachedMember,
+  getCachedBusiness,
   clearBusinessId,
   setBusinessId,
   getBranchId,
@@ -93,7 +95,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applyMembership = useCallback(async (uid: string) => {
     try {
-      const { member: m, business: b } = await fetchMembership(uid)
+      const cachedMember = getCachedMember()
+      const cachedBusiness = getCachedBusiness()
+      const cached = cachedMember?.status === 'active' && cachedMember.user_id === uid
+        ? { member: cachedMember, business: cachedBusiness?.id === cachedMember.business_id ? cachedBusiness : null }
+        : null
+      let result: { member: BusinessMember | null; business: Business | null }
+      if (!navigator.onLine && cached) {
+        result = cached
+      } else if (cached) {
+        // Prefer fresh cloud data, but don't leave returning users staring at a spinner
+        // for a slow membership request; refresh again on the next online event.
+        result = await Promise.race([
+          fetchMembership(uid),
+          new Promise<typeof cached>((resolve) => window.setTimeout(() => resolve(cached), 1800)),
+        ])
+      } else {
+        result = await fetchMembership(uid)
+      }
+      const { member: m, business: b } = result
       // Isolate IndexedDB per business — never show another shop's products/customers
       await switchToBusinessWorkspace(
         m?.business_id ?? null,
