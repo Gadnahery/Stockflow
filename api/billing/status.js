@@ -27,7 +27,7 @@ export default async function handler(req, res) {
   const { data: authData, error: authError } = await userClient.auth.getUser()
   if (authError || !authData.user) return res.status(401).json({ success: false, error: 'Invalid session' })
   const admin = createClient(url, serviceKey, { auth: { persistSession: false } })
-  const { data: attempt } = await admin.from('billing_payment_attempts').select('id, provider_reference, status, invoice_id').eq('id', attemptId).maybeSingle()
+  const { data: attempt } = await admin.from('billing_payment_attempts').select('id, provider_reference, status, invoice_id, amount_tzs').eq('id', attemptId).maybeSingle()
   if (!attempt) return res.status(404).json({ success: false, error: 'Payment attempt not found' })
   const { data: invoice } = await admin.from('billing_invoices').select('id, invoice_number, business_id, plan_id, amount_tzs, status').eq('id', attempt.invoice_id).maybeSingle()
   if (!invoice) return res.status(404).json({ success: false, error: 'Invoice not found' })
