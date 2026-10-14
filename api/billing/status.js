@@ -1,30 +1,9 @@
 import { createClient } from '@supabase/supabase-js'
 
-async function confirmCompleted(admin, attempt, invoice, providerPayment) {
-  const paidAmount = Number(providerPayment?.amount)
-  if (providerPayment?.status !== 'completed' || paidAmount !== Number(invoice.amount_tzs)) {
-    return { success: false, pending: providerPayment?.status === 'pending', error: providerPayment?.status === 'completed' ? 'Payment amount did not match invoice' : 'Payment is not completed yet' }
-  }
-  const now = new Date()
-  const { data: plan } = await admin.from('billing_plans').select('id, interval').eq('id', invoice.plan_id).maybeSingle()
-  if (!plan) return { success: false, error: 'Invoice plan could not be found' }
-  const { data: current } = await admin.from('business_subscriptions').select('current_period_end').eq('business_id', invoice.business_id).maybeSingle()
-  const existingEnd = current?.current_period_end ? new Date(current.current_period_end) : null
-  const periodStart = existingEnd && existingEnd.getTime() > now.getTime() ? existingEnd : now
-  const periodEnd = new Date(periodStart)
-  if (plan.interval === 'year') periodEnd.setFullYear(periodEnd.getFullYear() + 1)
-  else periodEnd.setMonth(periodEnd.getMonth() + 1)
-
-  // Persist the subscription first. If that fails, invoice remains pending and can be retried.
-  const { error: subscriptionError } = await admin.from('business_subscriptions').upsert({
-    business_id: invoice.business_id, plan_id: invoice.plan_id, status: 'active',
-    current_period_start: periodStart.toISOString(), current_period_end: periodEnd.toISOString(), updated_at: now.toISOString(),
-  }, { onConflict: 'business_id' })
-  if (subscriptionError) return { success: false, error: 'Payment was confirmed, but subscription status needs reconciliation' }
-  const { error: attemptError } = await admin.from('billing_payment_attempts').update({ status: 'completed', confirmed_at: now.toISOString() }).eq('id', attempt.id)
-  const { error: invoiceError } = await admin.from('billing_invoices').update({ status: 'paid', paid_at: now.toISOString() }).eq('id', invoice.id)
-  if (attemptError || invoiceError) return { success: false, error: 'Subscription is active; invoice records need reconciliation' }
-  return { success: true, status: 'paid', invoice_number: invoice.invoice_number, paid_at: now.toISOString() }
+async function confirmCompleted(admin, attempt) {
+  const { data, error } = await admin.rpc('finalize_billing_payment', { p_attempt_id: attempt.id })
+  if (error) return { success: false, error: 'Payment was verified, but billing settlement needs retry' }
+  return data
 }
 
 export default async function handler(req, res) {
@@ -68,8 +47,8 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, status: 'failed', error: 'Payment failed. You can start a new attempt.' })
     }
     if (payment.status !== 'completed') return res.status(200).json({ success: true, status: 'pending', message: 'Payment is still pending on your phone.' })
-    const result = await confirmCompleted(admin, attempt, invoice, payment)
-    return res.status(result.success ? 200 : 409).json(result)
+    const result = await confirmCompleted(admin, attempt)
+    return res.status(result?.success ? 200 : 409).json(result || { success: false, error: 'Could not settle billing payment' })
   } catch {
     return res.status(502).json({ success: false, error: 'Could not verify payment status right now' })
   }
