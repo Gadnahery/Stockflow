@@ -39,7 +39,7 @@ export default function ProductsPage() {
   const galleryRef = useRef<HTMLInputElement>(null)
 
   const productsQ = useLiveQuery(
-    () => db.products.filter((p) => p.active).toArray().then((arr) => arr.sort((a, b) => a.name.localeCompare(b.name))),
+    () => db.products.filter((p) => p.active !== false).toArray().then((arr) => arr.sort((a, b) => a.name.localeCompare(b.name))),
     []
   )
   const products = useMemo(() => productsQ ?? [], [productsQ])
@@ -135,7 +135,7 @@ export default function ProductsPage() {
       packQty: form.packQty ? parseFloat(form.packQty) : undefined,
       packName: form.packName.trim() || undefined,
       packPrice: form.packPrice ? parseFloat(form.packPrice) : undefined,
-      branchId: getBranchId() || undefined,
+      // Shared catalog by default (branch isolation is on sales/reports, not product list)
       imageUrl: form.imageUrl || undefined,
       active: true,
       updatedAt: now,

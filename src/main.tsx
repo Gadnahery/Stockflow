@@ -9,6 +9,7 @@ import { ConfirmProvider } from './components/ui/ConfirmDialog'
 import App from './App'
 import ErrorBoundary from './components/ErrorBoundary'
 import './index.css'
+import { recoverSharedCatalog } from './lib/recoverCatalog'
 import { registerServiceWorker, listenForInstallPrompt } from './lib/pwa'
 
 registerServiceWorker()
@@ -21,6 +22,7 @@ const isDesktop =
 
 const Router = isDesktop ? HashRouter : BrowserRouter
 
+void recoverSharedCatalog()
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

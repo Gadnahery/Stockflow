@@ -208,10 +208,8 @@ export default function ReportsPage() {
     }
   }, [sales, products, expenses, period, branchFilter])
 
-  const productsForBranch = products.filter((p) => {
-    if (branchFilter === 'all') return true
-    return !p.branchId || p.branchId === branchFilter
-  })
+  // Stock catalog is shared; only sales/expenses are branch-scoped in reports
+  const productsForBranch = products
   const lowStock = productsForBranch.filter((p) => p.active && p.stock <= (p.minStock || 0))
   const stockValue = productsForBranch.filter((p) => p.active).reduce((t, p) => t + p.stock * p.cost, 0)
   const stockRetail = productsForBranch.filter((p) => p.active).reduce((t, p) => t + p.stock * p.price, 0)

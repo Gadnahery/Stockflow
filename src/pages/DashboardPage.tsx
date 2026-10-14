@@ -40,12 +40,8 @@ export default function DashboardPage() {
   }, [sales, branchFilter])
 
   const low = useMemo(
-    () => (products || []).filter((p) => {
-      if (p.stock > (p.minStock ?? 0)) return false
-      if (branchFilter === 'all') return true
-      return !p.branchId || p.branchId === branchFilter
-    }),
-    [products, branchFilter],
+    () => (products || []).filter((p) => p.stock <= (p.minStock ?? 0)),
+    [products],
   )
   const credit = useMemo(
     () => (customers || []).reduce((t, c) => t + Math.max(0, c.balance), 0),

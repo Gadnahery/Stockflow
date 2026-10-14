@@ -54,18 +54,11 @@ export default function PosPage() {
   const [discMode, setDiscMode] = useState<'amount' | 'percent'>('amount')
   const [showHeld, setShowHeld] = useState(false)
 
-  const branchId = getBranchId()
+  // Catalog is shared across branches so existing products never disappear.
+  // Sales still store branchId for reports; stock is business-wide unless we add per-branch stock later.
   const productsQ = useLiveQuery(
-    () =>
-      db.products
-        .filter((p) => {
-          if (!p.active) return false
-          // Per-branch catalog: this branch, or shared products (no branchId)
-          if (!branchId) return true
-          return !p.branchId || p.branchId === branchId
-        })
-        .toArray(),
-    [catalogTick, branchId],
+    () => db.products.filter((p) => p.active !== false).toArray(),
+    [catalogTick],
   )
   const products = useMemo(() => productsQ ?? [], [productsQ])
   const loading = productsQ === undefined
@@ -287,7 +280,7 @@ export default function PosPage() {
               <ActiveBranchChip />
               <span className={`flex items-center gap-1.5 text-[12px] font-semibold px-2.5 h-7 rounded-full ${isOnline ? 'bg-emerald-500/10 text-success' : 'bg-amber-500/15 text-warning'}`}>
                 {isOnline ? <Wifi size={13} /> : <WifiOff size={13} />}
-                {isOnline ? 'Online' : 'Offline'}
+                {isOnline ? t('common.online') : t('common.offline')}
               </span>
               {held.length > 0 && (
                 <button onClick={() => setShowHeld(true)} className="press text-[12px] font-semibold bg-amber-100 text-warning px-2.5 h-7 inline-flex items-center rounded-full tabular-nums">Held {held.length}</button>
@@ -350,7 +343,7 @@ export default function PosPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="text-center mt-16">
-              <p className="text-[17px] font-semibold text-ink">No products found</p>
+              <p className="text-[17px] font-semibold text-ink">{t('products.empty')}</p>
               <p className="text-[15px] text-ink-secondary mt-1">Try a different name, or scan the barcode.</p>
             </div>
           ) : (
@@ -703,7 +696,7 @@ function CartPanel({
     <>
       <div className="px-6 pt-7 pb-4 flex items-end justify-between gap-2">
         <div className="min-w-0">
-          <h2 className="text-[24px] font-bold tracking-tight text-ink">Current sale</h2>
+          <h2 className="text-[24px] font-bold tracking-tight text-ink">{t('pos.cart')}</h2>
           <p className="text-[14px] text-ink-secondary">
             {cart.length} {cart.length === 1 ? 'item' : 'items'}
             {(heldCount ?? 0) > 0 && (
