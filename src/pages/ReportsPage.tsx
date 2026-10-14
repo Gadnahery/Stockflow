@@ -57,11 +57,6 @@ export default function ReportsPage() {
     const prevStart = startOfDay(subDays(start, days))
     const prevEnd = endOfDay(subDays(start, 1))
     const salesScoped = sales.filter((s) => matchBranch(s.branchId, branchFilter))
-    const expensesScoped = expenses.filter((e) => matchBranch((e as { branchId?: string }).branchId, branchFilter))
-    const productsScoped = products.filter((p) => {
-      if (branchFilter === 'all') return true
-      return !p.branchId || p.branchId === branchFilter
-    })
     const inRange = (iso: string, a: Date, b: Date) => {
       const d = new Date(iso)
       return d >= a && d <= b

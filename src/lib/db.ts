@@ -217,7 +217,7 @@ export async function clearLocalBusinessData(includeProducts = true) {
  * switches accounts. Snapshots live in IndexedDB, not localStorage, so product
  * images and larger offline datasets do not hit localStorage's small quota.
  */
-export async function switchToBusinessWorkspace(businessId: string | null, branchId: string | null = null, legacyBusinessId?: string) {
+export async function switchToBusinessWorkspace(businessId: string | null, _branchId: string | null = null, legacyBusinessId?: string) {
   // Product catalogue and offline records are shared across branches of one business.
   // Branch identity is stored separately for sales/reporting; including branchId here
   // creates a different IndexedDB workspace and makes the catalogue appear to vanish.
