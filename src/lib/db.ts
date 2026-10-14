@@ -218,7 +218,10 @@ export async function clearLocalBusinessData(includeProducts = true) {
  * images and larger offline datasets do not hit localStorage's small quota.
  */
 export async function switchToBusinessWorkspace(businessId: string | null, branchId: string | null = null, legacyBusinessId?: string) {
-  const workspaceId = businessId ? `${businessId}:${branchId || 'default'}` : null
+  // Product catalogue and offline records are shared across branches of one business.
+  // Branch identity is stored separately for sales/reporting; including branchId here
+  // creates a different IndexedDB workspace and makes the catalogue appear to vanish.
+  const workspaceId = businessId ? `${businessId}:shared` : null
   const prev = localStorage.getItem(WORKSPACE_KEY)
   if (!businessId || !workspaceId) {
     // Sign-out is not data deletion. Leave the last workspace stored locally.
