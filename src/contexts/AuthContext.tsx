@@ -35,6 +35,26 @@ const PIN_FAIL_KEY = 'sf_pin_fails'
 const LAST_ACTIVITY_KEY = 'sf_last_activity'
 const DEFAULT_IDLE_MS = 5 * 60 * 1000
 
+// Supabase persists the authenticated session in localStorage. Read it directly as a
+// last-resort boot path when offline, rather than waiting indefinitely for auth hydration.
+function readCachedAuthSession(): Session | null {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key || !key.endsWith('-auth-token')) continue
+      const raw = localStorage.getItem(key)
+      if (!raw) continue
+      const parsed = JSON.parse(raw) as { currentSession?: Session; access_token?: string; user?: User; expires_at?: number }
+      const session = parsed.currentSession ?? (parsed.access_token && parsed.user ? parsed as Session : null)
+      if (session?.user && session.access_token) {
+        if (session.expires_at && session.expires_at * 1000 < Date.now() && navigator.onLine) continue
+        return session
+      }
+    }
+  } catch { /* invalid or unavailable cache */ }
+  return null
+}
+
 interface AuthState {
   session: Session | null
   user: User | null
@@ -162,9 +182,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const boot = async () => {
       try {
-        const { data } = await supabase.auth.getSession()
+        const cachedOfflineSession = !navigator.onLine ? readCachedAuthSession() : null
+        const sessionRequest = supabase.auth.getSession()
+        const sessionResult = cachedOfflineSession
+          ? { data: { session: cachedOfflineSession } }
+          : await Promise.race([
+              sessionRequest,
+              new Promise<{ data: { session: null } }>((resolve) => window.setTimeout(() => resolve({ data: { session: null } }), 2500)),
+            ])
         if (!mounted) return
-        const s = data.session
+        const s = sessionResult.data.session
         setSession(s)
         setUser(s?.user ?? null)
         userRef.current = s?.user ?? null
