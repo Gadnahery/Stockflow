@@ -7,7 +7,9 @@ import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { setActiveBranchId } from '../lib/branch'
-import { db } from '../lib/db'
+import { db, switchToBusinessWorkspace } from '../lib/db'
+import { useI18n } from '../i18n/I18nContext'
+import { pullMissing } from '../lib/sync'
 
 type BranchRow = {
   id: string
@@ -18,6 +20,8 @@ type BranchRow = {
 
 export default function BranchesPage() {
   const { member, business } = useAuth()
+  const { locale } = useI18n()
+  const sw = locale === 'sw'
   const { can } = usePermission()
   const toast = useUi((s) => s.toast)
   const [branches, setBranches] = useState<BranchRow[]>([])
@@ -66,6 +70,11 @@ export default function BranchesPage() {
         .select('id, name, code, business_id')
         .single()
       if (error) throw error
+      // Keep the owner's permitted branch list in sync so the selection survives reloads.
+      if (member?.id && (member.role === 'business_owner' || member.role === 'owner')) {
+        const nextIds = Array.from(new Set([...(member.branch_ids || []), data.id]))
+        await supabase.from('business_members').update({ branch_ids: nextIds }).eq('id', member.id)
+      }
       await db.branches.put({
         id: data.id,
         name: data.name,
@@ -74,26 +83,33 @@ export default function BranchesPage() {
       setShow(false)
       setName('')
       setCode('')
-      toast('Branch created', 'success')
+      toast(sw ? 'Tawi limeundwa' : 'Branch created', 'success')
       await load()
     } catch (e) {
-      toast((e as Error).message || 'Could not create branch', 'error')
+      toast((e as Error).message || (sw ? 'Imeshindikana kuunda tawi' : 'Could not create branch'), 'error')
     } finally {
       setBusy(false)
     }
   }
 
-  const setActive = (id: string) => {
-    setActiveBranchId(id)
-    toast('Active branch updated', 'success')
-    // force re-render
-    setBranches((b) => [...b])
+  const setActive = async (id: string) => {
+    const bizId = getBusinessId() || member?.business_id
+    try {
+      // Save the previous branch's offline data before loading this branch's catalogue.
+      if (bizId) await switchToBusinessWorkspace(bizId, id, member?.branch_ids?.[0] === id ? bizId : undefined)
+      setActiveBranchId(id)
+      await pullMissing().catch(() => 0)
+      toast(sw ? 'Tawi linalotumika limebadilishwa' : 'Active branch updated', 'success')
+      setBranches((b) => [...b])
+    } catch {
+      toast(sw ? 'Imeshindikana kubadilisha tawi kwa usalama. Data yako imehifadhiwa.' : 'Could not switch branch safely. Your saved data has been kept.', 'error')
+    }
   }
 
   return (
     <Screen
-      title="Branches"
-      subtitle={business?.name || 'Locations'}
+      title={sw ? 'Matawi' : 'Branches'}
+      subtitle={business?.name || (sw ? 'Maeneo' : 'Locations')}
       action={
         canManage ? (
           <button
@@ -101,14 +117,14 @@ export default function BranchesPage() {
             onClick={() => setShow(true)}
             className="press h-9 px-3.5 rounded-full bg-primary text-white text-[14px] font-semibold flex items-center gap-1.5"
           >
-            <Plus size={16} /> Add
+            <Plus size={16} /> {sw ? 'Ongeza' : 'Add'}
           </button>
         ) : undefined
       }
     >
       <div className="space-y-4 md:max-w-lg pb-6">
         <p className="text-[14px] text-ink-secondary px-1">
-          Each branch keeps its own stock, sales, and expenses. Switch the active branch on this device, then use Reports to compare locations or view all branches together.
+           {sw ? 'Orodha ya bidhaa inashirikishwa kati ya matawi yote. Mauzo na gharama hubaki kwenye tawi yalipotokea.' : 'The product catalogue is shared across all branches. Sales and expenses remain assigned to the branch where they happen.'}
         </p>
 
         {loading && (
@@ -122,8 +138,8 @@ export default function BranchesPage() {
         {!loading && branches.length === 0 && (
           <div className="rounded-[22px] bg-white shadow-card px-6 py-10 text-center">
             <Building2 className="mx-auto text-ink-muted" size={28} />
-            <p className="mt-3 text-[16px] font-semibold">No branches yet</p>
-            <p className="text-[14px] text-ink-secondary mt-1">Create Main or add another location.</p>
+            <p className="mt-3 text-[16px] font-semibold">{sw ? 'Bado hakuna matawi' : 'No branches yet'}</p>
+            <p className="text-[14px] text-ink-secondary mt-1">{sw ? 'Unda tawi kuu au ongeza eneo jingine.' : 'Create Main or add another location.'}</p>
           </div>
         )}
 
@@ -149,7 +165,7 @@ export default function BranchesPage() {
                   </span>
                   {active && (
                     <span className="text-success flex items-center gap-1 text-[13px] font-semibold">
-                      <Check size={16} /> Active
+                      <Check size={16} /> {sw ? 'Linalotumika' : 'Active'}
                     </span>
                   )}
                 </button>
@@ -162,7 +178,7 @@ export default function BranchesPage() {
       <Sheet
         open={show}
         onClose={() => setShow(false)}
-        title="New branch"
+        title={sw ? 'Tawi jipya' : 'New branch'}
         footer={
           <button
             type="button"
@@ -170,17 +186,17 @@ export default function BranchesPage() {
             onClick={() => void create()}
             className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold disabled:opacity-50"
           >
-            {busy ? 'Creating…' : 'Create branch'}
+            {busy ? (sw ? 'Inaandaa…' : 'Creating…') : (sw ? 'Unda tawi' : 'Create branch')}
           </button>
         }
       >
         <div className="space-y-3.5">
           <div>
-            <label className="auth-label">Name</label>
+            <label className="auth-label">{sw ? 'Jina' : 'Name'}</label>
             <input className="field w-full" value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Kariakoo branch" />
           </div>
           <div>
-            <label className="auth-label">Code</label>
+            <label className="auth-label">{sw ? 'Kodi' : 'Code'}</label>
             <input className="field w-full" value={code} onChange={(e) => setCode(e.target.value)} placeholder="e.g. KAR" />
           </div>
         </div>

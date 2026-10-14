@@ -1,5 +1,5 @@
-/* StockFlow service worker v6 */
-const CACHE = 'stockflow-v6'
+/* StockFlow service worker v7 — offline-first app shell */
+const CACHE = 'stockflow-v7'
 
 const PRECACHE = [
   '/',
@@ -20,7 +20,7 @@ self.addEventListener('install', (event) => {
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((keys) =>
-      Promise.all(keys.map((k) => caches.delete(k))),
+      Promise.all(keys.filter((k) => k.startsWith('stockflow-') && k !== CACHE).map((k) => caches.delete(k))),
     ).then(() => self.clients.claim()),
   )
 })
@@ -50,16 +50,16 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Network-first for HTML so updates apply quickly
+  // App shell is cache-first so installed users can launch without a data bundle.
   if (req.mode === 'navigate') {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone()
-          caches.open(CACHE).then((c) => c.put('/index.html', copy))
+      caches.match('/index.html').then((cached) => {
+        const network = fetch(req).then((res) => {
+          if (res.ok) caches.open(CACHE).then((cache) => cache.put('/index.html', res.clone()))
           return res
         })
-        .catch(() => caches.match('/index.html').then((r) => r || caches.match('/'))),
+        return cached || network.catch(() => caches.match('/'))
+      }),
     )
     return
   }

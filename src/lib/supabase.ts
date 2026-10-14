@@ -46,6 +46,7 @@ const BUSINESS_ID_KEY = 'businessId'
 const BRANCH_ID_KEY = 'branchId'
 const MEMBER_CACHE_KEY = 'sf_member_cache'
 const ENTITLEMENT_KEY = 'sf_entitlement'
+const BUSINESS_CACHE_KEY = 'sf_business_cache'
 
 export function getBusinessId(): string | null {
   return localStorage.getItem(BUSINESS_ID_KEY)
@@ -65,6 +66,20 @@ export function getBranchId(): string | null {
 
 export function setBranchId(id: string) {
   localStorage.setItem(BRANCH_ID_KEY, id)
+}
+
+export function cacheBusiness(business: Business | null) {
+  try {
+    if (business) localStorage.setItem(BUSINESS_CACHE_KEY, JSON.stringify(business))
+    else localStorage.removeItem(BUSINESS_CACHE_KEY)
+  } catch { /* ignore storage failures */ }
+}
+
+export function getCachedBusiness(): Business | null {
+  try {
+    const raw = localStorage.getItem(BUSINESS_CACHE_KEY)
+    return raw ? JSON.parse(raw) as Business : null
+  } catch { return null }
 }
 
 export function cacheMember(member: BusinessMember | null) {
@@ -109,12 +124,20 @@ export async function fetchMembership(userId: string): Promise<{
     .limit(1)
 
   if (error || !members?.length) {
+    if (error) {
+      const cachedMember = getCachedMember()
+      const cachedBusiness = getCachedBusiness()
+      if (cachedMember?.status === 'active') return { member: cachedMember, business: cachedBusiness }
+    }
     return { member: null, business: null }
   }
 
   const member = members[0] as BusinessMember
   setBusinessId(member.business_id)
-  if (member.branch_ids?.length) setBranchId(member.branch_ids[0])
+  if (member.branch_ids?.length) {
+    const selected = getBranchId()
+    if (!selected || !member.branch_ids.includes(selected)) setBranchId(member.branch_ids[0])
+  }
   cacheMember(member)
 
   const { data: biz } = await supabase
@@ -123,7 +146,9 @@ export async function fetchMembership(userId: string): Promise<{
     .eq('id', member.business_id)
     .maybeSingle()
 
-  return { member, business: (biz as Business) ?? null }
+  const business = (biz as Business) ?? getCachedBusiness()
+  if (business) cacheBusiness(business)
+  return { member, business }
 }
 
 export async function createBusiness(name: string, phone?: string, address?: string) {
