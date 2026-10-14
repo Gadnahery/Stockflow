@@ -1,11 +1,9 @@
-import { useI18n } from '../../i18n/I18nContext'
 import { useState, type FormEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import AuthShell from '../../components/auth/AuthShell'
 
 export default function ForgotPasswordPage() {
-  const { t, locale, setLocale } = useI18n()
   const { resetPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [error, setError] = useState('')

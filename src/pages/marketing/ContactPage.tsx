@@ -1,10 +1,8 @@
-import { useI18n } from '../../i18n/I18nContext'
 import { useState, type FormEvent } from 'react'
 import Seo from '../../marketing/Seo'
 import { breadcrumbJsonLd } from '../../lib/seo'
 
 export default function ContactPage() {
-  const { t } = useI18n()
   const [name, setName] = useState('')
   const [business, setBusiness] = useState('')
   const [email, setEmail] = useState('')

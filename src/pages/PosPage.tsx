@@ -680,6 +680,7 @@ function CartPanel({
   heldCount?: number
   onShowHeld?: () => void
 }) {
+  const { t } = useI18n()
   return (
     <>
       <div className="px-6 pt-7 pb-4 flex items-end justify-between gap-2">

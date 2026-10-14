@@ -5,14 +5,12 @@ import { Cloud, CloudOff, RefreshCw, Trash2 } from 'lucide-react'
 import { db, clearLocalBusinessData } from '../lib/db'
 import Screen from '../components/ui/Screen'
 import { useConfirm } from '../components/ui/ConfirmDialog'
-import { processOutbox, pullMissing, syncNow, getLastSyncAt, getLastPullAt } from '../lib/sync'
+import { syncNow, getLastSyncAt, getLastPullAt } from '../lib/sync'
 import { usePosStore } from '../store/posStore'
 import { useUi } from '../store/uiStore'
 import { useAuth } from '../contexts/AuthContext'
-import { useI18n } from '../i18n/I18nContext'
 
 export default function SyncStatusPage() {
-  const { t } = useI18n()
   const confirm = useConfirm()
   const toast = useUi((s) => s.toast)
   const isOnline = usePosStore((s) => s.isOnline)

@@ -11,14 +11,12 @@ import { useConfirm } from '../components/ui/ConfirmDialog'
 import { useUi } from '../store/uiStore'
 import { fmtMoney } from '../lib/util'
 import ReceiptModal from '../components/ReceiptModal'
-import { useI18n } from '../i18n/I18nContext'
 
 const emptyForm = { name: '', phone: '', email: '', address: '', creditLimit: '0', notes: '' }
 
 type Filter = 'all' | 'owing' | 'credit'
 
 export default function CustomersPage() {
-  const { t } = useI18n()
   const confirm = useConfirm()
   const toast = useUi((s) => s.toast)
   const [query, setQuery] = useState('')

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Download, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { canInstall, isStandalone, promptInstall } from '../lib/pwa'
 import { usePosStore } from '../store/posStore'
 

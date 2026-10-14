@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { Routes, Route, useLocation } from 'react-router-dom'
 import { ensureSeedData } from './lib/db'
 import { startSyncLoop, processOutbox, startRealtime, pullMissing } from './lib/sync'
 import { usePosStore } from './store/posStore'
@@ -38,7 +38,6 @@ import LandingPage from './pages/LandingPage'
 
 
 import MarketingLayout from './marketing/MarketingLayout'
-import HomePage from './pages/marketing/HomePage'
 import FeaturesPage from './pages/marketing/FeaturesPage'
 import PricingPage from './pages/marketing/PricingPage'
 import AboutPage from './pages/marketing/AboutPage'

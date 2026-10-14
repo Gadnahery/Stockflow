@@ -10,7 +10,7 @@ import { useUi } from '../store/uiStore'
 import { syncNow as runSync } from '../lib/sync'
 import { usePermission } from '../hooks/usePermission'
 import { useAuth } from '../contexts/AuthContext'
-import { promptInstall, isStandalone, canInstall } from '../lib/pwa'
+import { promptInstall, isStandalone } from '../lib/pwa'
 import { useI18n } from '../i18n/I18nContext'
 import type { MessageKey } from '../i18n/messages'
 
@@ -132,7 +132,6 @@ export default function MorePage() {
                     <span className="flex items-center">
                       <span className="flex-1 min-w-0">
                         <span className="block text-[16px] font-medium text-ink">{t(item.labelKey)}</span>
-                        <span className="block text-[13px] text-ink-muted">{item.desc}</span>
                       </span>
                       <ChevronRight size={18} className="text-ink-muted/70 shrink-0" />
                     </span>

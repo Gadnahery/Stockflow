@@ -15,7 +15,7 @@ interface PosState {
   selectedCustomerName: string | null
 
   setSearchQuery: (q: string) => void
-  addToCart: (product: Product, qty?: number) => void
+  addToCart: (product: Product, qty?: number, sellAs?: 'unit' | 'pack') => void
   updateQuantity: (productId: string, quantity: number) => void
   removeFromCart: (productId: string) => void
   clearCart: () => void

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Play, Square, Clock, ArrowDownUp } from 'lucide-react'
+import { Play, Square, Clock } from 'lucide-react'
 import { format } from 'date-fns'
 import { db } from '../lib/db'
 import type { CashSession } from '../types'
@@ -9,10 +9,8 @@ import Sheet from '../components/ui/Sheet'
 import { fmtMoney } from '../lib/util'
 import { useUi } from '../store/uiStore'
 import { v4 as uuidv4 } from 'uuid'
-import { useI18n } from '../i18n/I18nContext'
 
 export default function ShiftsPage() {
-  const { t } = useI18n()
   const toast = useUi((s) => s.toast)
   const sessions = useLiveQuery(() => db.cashSessions.orderBy('openedAt').reverse().toArray(), [])
   const loading = sessions === undefined
@@ -83,7 +81,6 @@ export default function ShiftsPage() {
       return
     }
     const now = new Date().toISOString()
-    const signed = cashDir === 'in' ? amount : -amount
     const row = {
       id: uuidv4(),
       category: cashDir === 'in' ? 'Cash in' : 'Cash out',

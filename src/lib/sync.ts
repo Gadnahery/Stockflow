@@ -5,10 +5,8 @@
  */
 import { db, withoutSync } from './db'
 import { supabase, supabaseConfigured, getBusinessId, setBusinessId } from './supabase'
-import type { AuditLog, Sale, Product, Customer, Supplier, Expense, StockMovement, PurchaseOrder, CashSession, OutboxEvent } from '../types'
+import type { AuditLog, Payment, Sale, Product, Customer, Supplier, Expense, StockMovement, PurchaseOrder, CashSession, OutboxEvent } from '../types'
 
-const DEFAULT_BUSINESS_ID = 'a0000000-0000-4000-8000-000000000001'
-const DEFAULT_BRANCH_ID = 'b0000000-0000-4000-8000-000000000001'
 const IMAGE_BUCKET = 'product-images'
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
@@ -485,7 +483,7 @@ export async function pullMissing(): Promise<number> {
         discount: Number(row.discount_total) || 0,
         tax: Number(row.tax_total) || 0,
         total: Number(row.total) || 0,
-        payments: payments as { method: string; amount: number }[],
+        payments: payments as Payment[],
         customerId: row.customer_id || undefined,
         customerName: row.customer_name || undefined,
         cashierId: row.user_id || undefined,

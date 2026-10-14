@@ -69,7 +69,8 @@ export default function ProductsPage() {
     setForm({
       name: p.name, sku: p.sku, barcode: p.barcode || '', price: String(p.price), cost: String(p.cost),
       stock: String(p.stock), minStock: p.minStock != null ? String(p.minStock) : '', category: p.category || '',
-      unit: p.unit || 'piece', imageUrl: p.imageUrl || '',
+      unit: p.unit || 'piece', packQty: p.packQty != null ? String(p.packQty) : '', packName: p.packName || '',
+      packPrice: p.packPrice != null ? String(p.packPrice) : '', imageUrl: p.imageUrl || '',
     })
     setShowForm(true)
   }

@@ -9,12 +9,10 @@ import Screen from '../components/ui/Screen'
 import Sheet from '../components/ui/Sheet'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { fmtMoney } from '../lib/util'
-import { useI18n } from '../i18n/I18nContext'
 
 const emptySupplier = { name: '', phone: '', email: '', address: '', notes: '' }
 
 export default function SuppliersPage() {
-  const { t } = useI18n()
   const confirm = useConfirm()
   const [tab, setTab] = useState<'suppliers' | 'purchases'>('suppliers')
   const [query, setQuery] = useState('')

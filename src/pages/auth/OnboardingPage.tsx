@@ -1,4 +1,3 @@
-import { useI18n } from '../../i18n/I18nContext'
 import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth, setDevicePin } from '../../contexts/AuthContext'
@@ -6,7 +5,6 @@ import AuthShell from '../../components/auth/AuthShell'
 import { haptic } from '../../lib/util'
 
 export default function OnboardingPage() {
-  const { t, locale, setLocale } = useI18n()
   const { createBusiness, member, session, loading, signOut } = useAuth()
   const navigate = useNavigate()
   const [name, setName] = useState('')

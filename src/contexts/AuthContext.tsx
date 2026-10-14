@@ -15,7 +15,6 @@ import {
   createBusiness as rpcCreateBusiness,
   acceptInvite as rpcAcceptInvite,
   cacheMember,
-  getCachedMember,
   clearBusinessId,
   setBusinessId,
   type BusinessMember,
@@ -95,7 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { member: m, business: b } = await fetchMembership(uid)
       // Isolate IndexedDB per business — never show another shop's products/customers
-      const { switched } = await switchToBusinessWorkspace(m?.business_id ?? null)
+      await switchToBusinessWorkspace(m?.business_id ?? null)
       setMember(m)
       setBusiness(b)
       cacheMember(m)
