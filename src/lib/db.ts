@@ -174,21 +174,23 @@ const WORKSPACE_TABLES = [
 ] as const
 
 /** Preserve each business' offline data before changing workspaces. */
-async function saveWorkspaceSnapshot(workspaceId: string) {
+async function saveWorkspaceSnapshot(workspaceId: string, includeProducts = true) {
   const data: Record<string, unknown[]> = {}
   for (const name of WORKSPACE_TABLES) {
+    if (!includeProducts && name === 'products') continue
     data[name] = await (db as unknown as Record<string, Table<unknown, string>>)[name].toArray()
   }
   await db.workspaceSnapshots.put({ id: workspaceId, data, savedAt: new Date().toISOString() })
 }
 
 /** Restore only the target business' saved offline data. */
-async function restoreWorkspaceSnapshot(workspaceId: string, legacyBusinessId?: string) {
+async function restoreWorkspaceSnapshot(workspaceId: string, legacyBusinessId?: string, includeProducts = true) {
   const snapshot = await db.workspaceSnapshots.get(workspaceId)
     ?? (legacyBusinessId ? await db.workspaceSnapshots.get(legacyBusinessId) : undefined)
   if (!snapshot) return false
   await withoutSync(async () => {
     for (const name of WORKSPACE_TABLES) {
+      if (!includeProducts && name === 'products') continue
       const table = (db as unknown as Record<string, Table<unknown, string>>)[name]
       await table.clear()
       const rows = snapshot.data[name] ?? []
