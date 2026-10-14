@@ -133,7 +133,7 @@ export async function fetchMembership(userId: string): Promise<{
   }
   cacheMember(member)
 
-  const { data: biz, error: businessError } = await supabase
+  const { data: biz } = await supabase
     .from('businesses')
     .select('id, name, slug')
     .eq('id', member.business_id)
