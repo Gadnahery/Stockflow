@@ -13,8 +13,8 @@ import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
 import SubscriptionBanner from '../SubscriptionBanner'
-import { useI18n } from '../../i18n/I18nContext'
-import type { MessageKey } from '../../i18n/messages'
+import { useI18n } from '@/i18n/I18nContext'
+import type { MessageKey } from '@/i18n/messages'
 
 type NavItem = {
   to: string

@@ -1,11 +1,12 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { fileURLToPath } from 'url'
 
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const electron = process.env.ELECTRON === '1'
 
 export default defineConfig({
-  // Relative asset paths for Electron file://; absolute for Vercel web
   base: electron ? './' : '/',
   plugins: [react()],
   resolve: {
