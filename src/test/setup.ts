@@ -1,6 +1,7 @@
 import 'fake-indexeddb/auto'
 
-// jsdom gaps used by the app
+// jsdom gaps used by the app (skipped in node-environment tests)
+if (typeof window !== 'undefined') {
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (q: string) => ({ matches: false, media: q, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent: () => false }),
@@ -13,3 +14,4 @@ Element.prototype.scrollTo = () => undefined
 Element.prototype.scrollIntoView = () => undefined
 URL.createObjectURL = () => 'blob:test'
 URL.revokeObjectURL = () => undefined
+}

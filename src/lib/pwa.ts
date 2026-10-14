@@ -4,9 +4,10 @@ let deferredPrompt: any = null
 
 export function registerServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return
+  if (import.meta.env.DEV) return // never cache while developing
   window.addEventListener('load', () => {
     navigator.serviceWorker
-      .register('/sw.js?v=8')
+      .register('/sw.js', { updateViaCache: 'none' })
       .then((reg) => {
         // Check for updates on load and periodically
         reg.update().catch(() => {})

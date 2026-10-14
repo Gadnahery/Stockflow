@@ -8,13 +8,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite --host",
-    "build": "vite build",
+    "build": "vite build && node scripts/verify-sw.mjs",
     "preview": "vite preview",
     "typecheck": "tsc -p tsconfig.app.json --noEmit",
     "electron:dev": "concurrently -k \"vite --host\" \"wait-on http://127.0.0.1:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .\"",
     "dist:win": "cross-env ELECTRON=1 vite build && electron-builder --win nsis --x64",
     "dist:win:dir": "cross-env ELECTRON=1 vite build && electron-builder --win dir --x64",
-    "test": "vitest run"
+    "test": "vitest run",
+    "verify:sw": "node scripts/verify-sw.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.47.0",
