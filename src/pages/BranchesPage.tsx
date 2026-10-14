@@ -100,6 +100,9 @@ export default function BranchesPage() {
       // Save the previous branch's offline data before loading this branch's catalogue.
       if (bizId) await switchToBusinessWorkspace(bizId, id, member?.branch_ids?.[0] === id ? bizId : undefined)
       setActiveBranchId(id)
+      // Notify all branch-aware screens immediately; the branch ID is stored outside
+      // React state, so subscribers otherwise can keep displaying the previous branch.
+      window.dispatchEvent(new Event('sf-branch-change'))
       await pullMissing().catch(() => 0)
       await refreshMembership()
       toast(sw ? 'Tawi linalotumika limebadilishwa' : 'Active branch updated', 'success')

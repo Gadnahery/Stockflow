@@ -26,8 +26,11 @@ export function useBranches() {
       .eq('business_id', bizId)
       .order('name')
     let list = (data as BranchRow[]) || []
+    // Owners/admins manage the whole business and must be able to switch to
+    // every branch, even when their legacy branch_ids array only lists the first one.
+    const unrestricted = ['owner', 'business_owner', 'platform_admin'].includes(String(member?.role))
     const allowed = member?.branch_ids
-    if (allowed && allowed.length > 0) {
+    if (!unrestricted && allowed && allowed.length > 0) {
       list = list.filter((b) => allowed.includes(b.id))
     }
     setBranches(list)
