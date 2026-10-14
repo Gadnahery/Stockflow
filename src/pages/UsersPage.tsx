@@ -87,8 +87,12 @@ export default function UsersPage() {
   const [error, setError] = useState('')
   const [showInvite, setShowInvite] = useState(false)
   const [busy, setBusy] = useState(false)
+  /** invite = share link | create = owner sets email + password */
+  const [addMode, setAddMode] = useState<'create' | 'invite'>('create')
   const [form, setForm] = useState({
     email: '',
+    password: '',
+    displayName: '',
     role: 'cashier',
     permissions: [...ROLE_PRESETS.cashier] as Permission[],
   })
@@ -171,6 +175,66 @@ export default function UsersPage() {
     }))
   }
 
+  const resetForm = () =>
+    setForm({
+      email: '',
+      password: '',
+      displayName: '',
+      role: 'cashier',
+      permissions: [...ROLE_PRESETS.cashier],
+    })
+
+  /** Owner creates email + password; staff signs in and is already on this shop */
+  const createStaffAccount = async () => {
+    const email = form.email.trim().toLowerCase()
+    const password = form.password
+    if (!email || !email.includes('@')) {
+      toast('Enter a valid email', 'error')
+      return
+    }
+    if (password.length < 6) {
+      toast('Password must be at least 6 characters', 'error')
+      return
+    }
+    const bizId = getBusinessId() || me?.business_id
+    if (!bizId || !supabase) return
+    if (members.length >= FREE_SEATS) {
+      toast(`Team limit (${FREE_SEATS}). Remove someone or upgrade.`, 'error')
+      return
+    }
+    setBusy(true)
+    try {
+      const { data: sess } = await supabase.auth.getSession()
+      const access = sess.session?.access_token
+      if (!access) throw new Error('Not signed in')
+      const r = await fetch('/api/staff/create', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${access}`,
+        },
+        body: JSON.stringify({
+          email,
+          password,
+          display_name: form.displayName.trim() || email.split('@')[0],
+          role: form.role,
+          permissions: form.permissions,
+          business_id: bizId,
+        }),
+      })
+      const data = await r.json()
+      if (!r.ok || !data.success) throw new Error(data.error || 'Could not create staff')
+      toast('Staff account created — they can sign in with that email and password', 'success')
+      setShowInvite(false)
+      resetForm()
+      await load()
+    } catch (e: unknown) {
+      toast(e instanceof Error ? e.message : 'Could not create staff', 'error')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const sendInvite = async () => {
     const email = form.email.trim().toLowerCase()
     if (!email || !email.includes('@')) {
@@ -183,10 +247,12 @@ export default function UsersPage() {
     try {
       const token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '').slice(0, 8)
       if (members.length >= FREE_SEATS) {
-        toast(`Free plan allows ${FREE_SEATS} team members. Remove someone or upgrade later.`, 'error')
+        toast(`Team limit (${FREE_SEATS}). Remove someone or upgrade.`, 'error')
         setBusy(false)
         return
       }
+      const expires = new Date()
+      expires.setDate(expires.getDate() + 14)
       const { error: insErr } = await supabase.from('invites').insert({
         business_id: bizId,
         email,
@@ -195,19 +261,19 @@ export default function UsersPage() {
         branch_ids: me?.branch_ids || [],
         token,
         invited_by: me?.user_id,
+        expires_at: expires.toISOString(),
       })
       if (insErr) throw insErr
 
-      // Best-effort: copy invite link for the owner to share (email SMTP may not be branded yet)
       const link = `${window.location.origin}/accept-invite?token=${token}`
       try {
         await navigator.clipboard.writeText(link)
-        toast('Invite created — link copied to clipboard', 'success')
+        toast('Invite link copied — send it to your staff (valid 14 days)', 'success')
       } catch {
-        toast(`Invite created. Link: ${link}`, 'success')
+        toast(`Invite link: ${link}`, 'success')
       }
       setShowInvite(false)
-      setForm({ email: '', role: 'cashier', permissions: [...ROLE_PRESETS.cashier] })
+      resetForm()
       await load()
     } catch (e: unknown) {
       toast(e instanceof Error ? e.message : 'Could not create invite', 'error')
@@ -426,7 +492,7 @@ export default function UsersPage() {
 
         <p className="text-[12px] text-ink-muted px-1 flex items-start gap-1.5">
           <Shield size={14} className="mt-0.5 shrink-0" />
-          Invites create a link the staff member opens after signing up. Email delivery depends on Supabase Auth SMTP configuration.
+          Easiest: create an account with email and password, then tell your cashier those details. Or send an invite link (valid 14 days).
         </p>
       </div>
 
@@ -440,12 +506,49 @@ export default function UsersPage() {
           />
           <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white rounded-t-[28px] sm:rounded-[28px] shadow-float">
             <div className="flex items-center justify-between px-5 py-4 border-b border-border sticky top-0 bg-white z-10">
-              <h2 className="text-[20px] font-bold tracking-tight">Invite staff</h2>
+              <h2 className="text-[20px] font-bold tracking-tight">Add staff</h2>
               <button type="button" onClick={() => setShowInvite(false)} className="p-1 text-ink-muted" aria-label="Close">
                 <X size={20} />
               </button>
             </div>
             <div className="p-5 space-y-4">
+              <div className="flex gap-2 p-1 rounded-full bg-black/[0.05]">
+                <button
+                  type="button"
+                  onClick={() => setAddMode('create')}
+                  className={`flex-1 h-9 rounded-full text-[13px] font-semibold ${
+                    addMode === 'create' ? 'bg-white text-ink shadow-soft' : 'text-ink-secondary'
+                  }`}
+                >
+                  Create account
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAddMode('invite')}
+                  className={`flex-1 h-9 rounded-full text-[13px] font-semibold ${
+                    addMode === 'invite' ? 'bg-white text-ink shadow-soft' : 'text-ink-secondary'
+                  }`}
+                >
+                  Invite link
+                </button>
+              </div>
+
+              <p className="text-[12px] text-ink-muted leading-snug">
+                {addMode === 'create'
+                  ? 'You set their email and password. They sign in and already belong to this shop.'
+                  : 'Copy a link and send it (WhatsApp/SMS). They sign up or sign in, then join this shop.'}
+              </p>
+
+              <div>
+                <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Name</label>
+                <input
+                  type="text"
+                  value={form.displayName}
+                  onChange={(e) => setForm({ ...form, displayName: e.target.value })}
+                  className="field w-full"
+                  placeholder="e.g. Asha"
+                />
+              </div>
               <div>
                 <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Email</label>
                 <input
@@ -457,6 +560,19 @@ export default function UsersPage() {
                   placeholder="cashier@example.com"
                 />
               </div>
+              {addMode === 'create' && (
+                <div>
+                  <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Password</label>
+                  <input
+                    type="password"
+                    autoComplete="new-password"
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    className="field w-full"
+                    placeholder="At least 6 characters"
+                  />
+                </div>
+              )}
               <div>
                 <label className="block text-[13px] font-semibold text-ink-secondary mb-1.5">Role</label>
                 <select
@@ -474,7 +590,7 @@ export default function UsersPage() {
               </div>
               <div>
                 <label className="block text-[13px] font-semibold text-ink-secondary mb-2">Permissions</label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                   {ALL_PERMISSIONS.map((p) => (
                     <label key={p.key} className="flex items-center gap-2 text-[13px] cursor-pointer">
                       <input
@@ -491,10 +607,14 @@ export default function UsersPage() {
               <button
                 type="button"
                 disabled={busy}
-                onClick={() => void sendInvite()}
+                onClick={() => void (addMode === 'create' ? createStaffAccount() : sendInvite())}
                 className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold disabled:opacity-60"
               >
-                {busy ? 'Creating…' : 'Create invite link'}
+                {busy
+                  ? 'Please wait…'
+                  : addMode === 'create'
+                    ? 'Create staff account'
+                    : 'Create invite link'}
               </button>
             </div>
           </div>

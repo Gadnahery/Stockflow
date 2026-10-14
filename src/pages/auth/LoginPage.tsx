@@ -1,5 +1,5 @@
 import { useState, useEffect, type FormEvent } from 'react'
-import { Link, useNavigate, useLocation } from 'react-router-dom'
+import { Link, useNavigate, useLocation, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import AuthShell from '../../components/auth/AuthShell'
 import { haptic } from '../../lib/util'
@@ -18,7 +18,12 @@ export default function LoginPage() {
   const { t, locale, setLocale } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
-  const from = (location.state as { from?: string })?.from || '/pos'
+  const [search] = useSearchParams()
+  const nextParam = search.get('next') || ''
+  const from =
+    (nextParam.startsWith('/') ? nextParam : '') ||
+    (location.state as { from?: string })?.from ||
+    '/pos'
 
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')

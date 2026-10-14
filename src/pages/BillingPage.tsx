@@ -350,13 +350,6 @@ export default function BillingPage() {
               {sw ? 'Ghairi' : 'Cancel'}
             </button>
           )}
-
-          <p className="mt-4 flex items-start gap-2 text-[11px] text-ink-muted leading-relaxed">
-            <Shield size={14} className="shrink-0 mt-0.5" />
-            {sw
-              ? 'Malipo hufanywa kupitia HarakaPay. Funguo za API zinabaki kwenye seva — hazitumwi kwenye simu yako.'
-              : 'Payments run through HarakaPay. API keys stay on the server — never in your browser.'}
-          </p>
         </div>
 
         <p className="text-[13px] text-ink-muted text-center">

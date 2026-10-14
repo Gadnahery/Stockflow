@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import AuthShell from '../../components/auth/AuthShell'
 import { haptic } from '../../lib/util'
@@ -7,6 +7,9 @@ import { haptic } from '../../lib/util'
 export default function SignupPage() {
   const { signUp } = useAuth()
   const navigate = useNavigate()
+  const [search] = useSearchParams()
+  const nextParam = search.get('next') || ''
+  const afterSignup = nextParam.startsWith('/') ? nextParam : '/onboarding'
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -34,7 +37,7 @@ export default function SignupPage() {
       const { needsVerification } = await signUp(email.trim(), password, fullName.trim())
       haptic(25)
       if (needsVerification) setDone(true)
-      else navigate('/onboarding', { replace: true })
+      else navigate(afterSignup, { replace: true })
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign up failed')
       haptic(50)
