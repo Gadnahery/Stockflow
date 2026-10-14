@@ -6,19 +6,24 @@ async function confirmCompleted(admin, attempt, invoice, providerPayment) {
     return { success: false, pending: providerPayment?.status === 'pending', error: providerPayment?.status === 'completed' ? 'Payment amount did not match invoice' : 'Payment is not completed yet' }
   }
   const now = new Date()
-  const periodEnd = new Date(now)
   const { data: plan } = await admin.from('billing_plans').select('id, interval').eq('id', invoice.plan_id).maybeSingle()
   if (!plan) return { success: false, error: 'Invoice plan could not be found' }
+  const { data: current } = await admin.from('business_subscriptions').select('current_period_end').eq('business_id', invoice.business_id).maybeSingle()
+  const existingEnd = current?.current_period_end ? new Date(current.current_period_end) : null
+  const periodStart = existingEnd && existingEnd.getTime() > now.getTime() ? existingEnd : now
+  const periodEnd = new Date(periodStart)
   if (plan.interval === 'year') periodEnd.setFullYear(periodEnd.getFullYear() + 1)
   else periodEnd.setMonth(periodEnd.getMonth() + 1)
 
-  await admin.from('billing_payment_attempts').update({ status: 'completed', confirmed_at: now.toISOString() }).eq('id', attempt.id)
-  await admin.from('billing_invoices').update({ status: 'paid', paid_at: now.toISOString() }).eq('id', invoice.id)
-  const { error } = await admin.from('business_subscriptions').upsert({
+  // Persist the subscription first. If that fails, invoice remains pending and can be retried.
+  const { error: subscriptionError } = await admin.from('business_subscriptions').upsert({
     business_id: invoice.business_id, plan_id: invoice.plan_id, status: 'active',
-    current_period_start: now.toISOString(), current_period_end: periodEnd.toISOString(), updated_at: now.toISOString(),
+    current_period_start: periodStart.toISOString(), current_period_end: periodEnd.toISOString(), updated_at: now.toISOString(),
   }, { onConflict: 'business_id' })
-  if (error) return { success: false, error: 'Payment was confirmed, but subscription status needs reconciliation' }
+  if (subscriptionError) return { success: false, error: 'Payment was confirmed, but subscription status needs reconciliation' }
+  const { error: attemptError } = await admin.from('billing_payment_attempts').update({ status: 'completed', confirmed_at: now.toISOString() }).eq('id', attempt.id)
+  const { error: invoiceError } = await admin.from('billing_invoices').update({ status: 'paid', paid_at: now.toISOString() }).eq('id', invoice.id)
+  if (attemptError || invoiceError) return { success: false, error: 'Subscription is active; invoice records need reconciliation' }
   return { success: true, status: 'paid', invoice_number: invoice.invoice_number, paid_at: now.toISOString() }
 }
 
