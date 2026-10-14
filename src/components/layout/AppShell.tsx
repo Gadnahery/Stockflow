@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ShoppingCart, Package, Users, BarChart3, LayoutGrid, Lock, Wifi, WifiOff,
   PanelLeft, PanelLeftClose, Search, Plus, Receipt, Wallet, Truck, ClipboardList,
-  Settings, CloudCog, ShieldCheck, Building2,
+  Settings, CloudCog, ShieldCheck, Building2, CreditCard,
 } from 'lucide-react'
 import { useEffect, useRef, type UIEvent, type FocusEvent } from 'react'
 import clsx from 'clsx'
@@ -29,6 +29,7 @@ const NAV_LABELS: Record<string, string> = {
   'app.shifts': 'Shifts',
   'app.settings': 'Settings',
   'app.users': 'Team',
+  'app.billing': 'Billing',
   'app.branches': 'Branches',
   'app.sync': 'Sync',
   'app.audit': 'Audit',
@@ -74,6 +75,7 @@ const desktopNavKeys = [
   { to: '/audit', icon: ShieldCheck, labelKey: 'app.audit' , section: 'Insights' },
   { to: '/branches', icon: Building2, labelKey: 'app.branches' , section: 'Admin' },
   { to: '/settings', icon: Settings, labelKey: 'app.settings' , section: 'Admin' },
+  { to: '/billing', icon: CreditCard, labelKey: 'app.billing' , section: 'Admin' },
   { to: '/more', icon: LayoutGrid, labelKey: 'app.more' , section: 'Admin' },
 ]
 
