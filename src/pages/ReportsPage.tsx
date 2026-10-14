@@ -107,15 +107,16 @@ export default function ReportsPage() {
       })
     })
 
-    const periodExpenses = expenses
+    const expensesScoped = expenses.filter((e) => matchBranch((e as typeof e & { branchId?: string }).branchId, branchFilter))
+    const periodExpenses = expensesScoped
       .filter((e) => inRange(e.createdAt, start, end))
       .reduce((t, e) => t + e.amount, 0)
-    const prevExpenses = expenses
+    const prevExpenses = expensesScoped
       .filter((e) => inRange(e.createdAt, prevStart, prevEnd))
       .reduce((t, e) => t + e.amount, 0)
 
     const expensesByCat = new Map<string, number>()
-    expenses
+    expensesScoped
       .filter((e) => inRange(e.createdAt, start, end))
       .forEach((e) => {
         expensesByCat.set(e.category, (expensesByCat.get(e.category) ?? 0) + e.amount)
