@@ -215,7 +215,7 @@ export async function clearLocalBusinessData() {
  * switches accounts. Snapshots live in IndexedDB, not localStorage, so product
  * images and larger offline datasets do not hit localStorage's small quota.
  */
-export async function switchToBusinessWorkspace(businessId: string | null, branchId: string | null = null) {
+export async function switchToBusinessWorkspace(businessId: string | null, branchId: string | null = null, legacyBusinessId?: string) {
   const workspaceId = businessId ? `${businessId}:${branchId || 'default'}` : null
   const prev = localStorage.getItem(WORKSPACE_KEY)
   if (!businessId || !workspaceId) {
@@ -228,7 +228,7 @@ export async function switchToBusinessWorkspace(businessId: string | null, branc
   await clearLocalBusinessData()
   localStorage.setItem(WORKSPACE_KEY, workspaceId)
 
-  const restored = await restoreWorkspaceSnapshot(workspaceId, businessId)
+  const restored = await restoreWorkspaceSnapshot(workspaceId, legacyBusinessId)
   if (!restored) {
     const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
     localStorage.setItem('deviceId', deviceId)
