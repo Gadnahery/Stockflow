@@ -1,28 +1,16 @@
-import { db, withoutSync } from './db'
+import { db } from './db'
 
 const FLAG = 'sf_catalog_recovered_v2'
 
-/** One-time: un-hide products that were tagged with a branch and no longer appear. */
+/** Mark the one-time catalog recovery as complete. Product records are shared by business
+ * and the Product type has no branchId; do not mutate product rows during recovery. */
 export async function recoverSharedCatalog(): Promise<number> {
   try {
-    if (localStorage.getItem(FLAG) === '1') return 0
+    if (localStorage.getItem(FLAG) !== '1') localStorage.setItem(FLAG, '1')
   } catch {
-    return 0
+    // Storage may be unavailable in private browsing; recovery is safe to retry.
   }
-  let n = 0
-  try {
-    const all = await db.products.toArray()
-    await withoutSync(async () => {
-      for (const p of all) {
-        if (p.branchId) {
-          await db.products.update(p.id, { branchId: undefined })
-          n++
-        }
-      }
-    })
-    localStorage.setItem(FLAG, '1')
-  } catch {
-    /* ignore */
-  }
-  return n
+  // The catalog is now shared at query time, so no per-product branch rewrite is needed.
+  await db.products.count().catch(() => 0)
+  return 0
 }
