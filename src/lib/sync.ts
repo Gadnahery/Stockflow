@@ -368,7 +368,7 @@ export async function pullMissing(): Promise<number> {
 
   const [{ data: prodRows }, { data: custRows }, { data: supRows }, { data: saleRows }, { data: expRows }, { data: movRows }] =
     await Promise.all([
-      supabase.from('products').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('updated_at', since),
+      supabase.from('products').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(500),
