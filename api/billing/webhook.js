@@ -32,22 +32,9 @@ export default async function handler(req, res) {
     }
     const { data: plan } = await admin.from('billing_plans').select('id, interval').eq('id', invoice.plan_id).maybeSingle()
     if (!plan) return res.status(200).json({ ok: true, error: 'Plan missing' })
-    const now = new Date()
-    const { data: current } = await admin.from('business_subscriptions').select('current_period_end').eq('business_id', invoice.business_id).maybeSingle()
-    const existingEnd = current?.current_period_end ? new Date(current.current_period_end) : null
-    const periodStart = existingEnd && existingEnd.getTime() > now.getTime() ? existingEnd : now
-    const end = new Date(periodStart)
-    if (plan.interval === 'year') end.setFullYear(end.getFullYear() + 1)
-    else end.setMonth(end.getMonth() + 1)
-
-    const { error: subscriptionError } = await admin.from('business_subscriptions').upsert({
-      business_id: invoice.business_id, plan_id: invoice.plan_id, status: 'active',
-      current_period_start: periodStart.toISOString(), current_period_end: end.toISOString(), updated_at: now.toISOString(),
-    }, { onConflict: 'business_id' })
-    if (subscriptionError) return res.status(500).json({ ok: false, error: 'Subscription reconciliation failed' })
-    await admin.from('billing_payment_attempts').update({ status: 'completed', confirmed_at: now.toISOString() }).eq('id', attempt.id)
-    await admin.from('billing_invoices').update({ status: 'paid', paid_at: now.toISOString() }).eq('id', invoice.id)
-    return res.status(200).json({ ok: true, processed: true })
+    const { data: settled, error: settlementError } = await admin.rpc('finalize_billing_payment', { p_attempt_id: attempt.id })
+    if (settlementError || !settled?.success) return res.status(500).json({ ok: false, error: 'Subscription reconciliation failed' })
+    return res.status(200).json({ ok: true, processed: true, already_processed: Boolean(settled.already_processed) })
   } catch {
     return res.status(502).json({ ok: false, error: 'Provider verification failed' })
   }
