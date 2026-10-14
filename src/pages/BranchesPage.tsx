@@ -67,6 +67,11 @@ export default function BranchesPage() {
         .select('id, name, code, business_id')
         .single()
       if (error) throw error
+      // Keep the owner's permitted branch list in sync so the selection survives reloads.
+      if (member?.id && (member.role === 'business_owner' || member.role === 'owner')) {
+        const nextIds = Array.from(new Set([...(member.branch_ids || []), data.id]))
+        await supabase.from('business_members').update({ branch_ids: nextIds }).eq('id', member.id)
+      }
       await db.branches.put({
         id: data.id,
         name: data.name,
