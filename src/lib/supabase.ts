@@ -124,7 +124,7 @@ export async function fetchMembership(userId: string): Promise<{
     .limit(1)
 
   if (error || !members?.length) {
-    if (!navigator.onLine && error) {
+    if (error) {
       const cachedMember = getCachedMember()
       const cachedBusiness = getCachedBusiness()
       if (cachedMember?.status === 'active') return { member: cachedMember, business: cachedBusiness }
