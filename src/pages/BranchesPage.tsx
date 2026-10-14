@@ -7,7 +7,7 @@ import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { setActiveBranchId } from '../lib/branch'
-import { db } from '../lib/db'
+import { db, switchToBusinessWorkspace } from '../lib/db'
 
 type BranchRow = {
   id: string
@@ -83,11 +83,17 @@ export default function BranchesPage() {
     }
   }
 
-  const setActive = (id: string) => {
-    setActiveBranchId(id)
-    toast('Active branch updated', 'success')
-    // force re-render
-    setBranches((b) => [...b])
+  const setActive = async (id: string) => {
+    const bizId = getBusinessId() || member?.business_id
+    try {
+      // Save the previous branch's offline data before loading this branch's catalogue.
+      if (bizId) await switchToBusinessWorkspace(bizId, id)
+      setActiveBranchId(id)
+      toast('Active branch updated', 'success')
+      setBranches((b) => [...b])
+    } catch {
+      toast('Could not switch branch safely. Your saved data has been kept.', 'error')
+    }
   }
 
   return (
