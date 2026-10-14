@@ -41,7 +41,7 @@ create table if not exists public.billing_invoices (
 );
 
 create index if not exists billing_invoices_business_created_idx
-  on public.billing_invoices (business_id, created_at desc);
+  on public.billing_invoices (business_id, issued_at desc);
 
 create table if not exists public.billing_payment_attempts (
   id uuid primary key default gen_random_uuid(),
