@@ -124,7 +124,7 @@ export default function BranchesPage() {
     >
       <div className="space-y-4 md:max-w-lg pb-6">
         <p className="text-[14px] text-ink-secondary px-1">
-           {sw ? 'Kila tawi lina bidhaa, bei, stoku, mauzo na gharama zake. Badilisha tawi linalotumika kwenye kifaa hiki.' : 'Each branch keeps its own products, prices, stock, sales, and expenses. Switch the active branch on this device.'}
+           {sw ? 'Orodha ya bidhaa inashirikishwa kati ya matawi yote. Mauzo na gharama hubaki kwenye tawi yalipotokea.' : 'The product catalogue is shared across all branches. Sales and expenses remain assigned to the branch where they happen.'}
         </p>
 
         {loading && (
