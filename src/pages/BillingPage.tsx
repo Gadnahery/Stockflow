@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Check, Crown, Loader2, Smartphone, Shield } from 'lucide-react'
+import { Check, Crown, Loader2, Smartphone } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Screen from '../components/ui/Screen'
 import { useAuth } from '../contexts/AuthContext'
