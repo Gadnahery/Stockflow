@@ -353,39 +353,116 @@ button { font-family: inherit; touch-action: manipulation; }
 }
 
 
-/* ───────── Dark mode ───────── */
+/* ───────── Dark mode (coherent surfaces) ───────── */
 html.dark {
   color-scheme: dark;
-  --canvas: #000000;
-  --glass: rgba(28, 28, 30, 0.82);
-  --glass-strong: rgba(28, 28, 30, 0.94);
-  --hairline: rgba(255, 255, 255, 0.12);
+  --canvas: #0B0B0D;
+  --glass: rgba(22, 22, 24, 0.88);
+  --glass-strong: rgba(28, 28, 30, 0.96);
+  --hairline: rgba(255, 255, 255, 0.1);
+  --card: #161618;
+  --elevated: #1C1C1E;
+  --ink: #F5F5F7;
+  --ink-secondary: #A1A1A6;
+  --ink-muted: #8E8E93;
 }
+
 html.dark body,
 html.dark #root {
-  background-color: var(--canvas);
-  color: #F5F5F7;
+  background-color: var(--canvas) !important;
+  color: var(--ink);
 }
-html.dark .page-title { color: #F5F5F7; }
-html.dark .bg-white { background-color: #1C1C1E !important; }
-html.dark .text-ink { color: #F5F5F7; }
-html.dark .text-ink-secondary { color: #A1A1A6; }
-html.dark .text-ink-muted { color: #8E8E93; }
-html.dark .border-border { border-color: rgba(255,255,255,0.12); }
-html.dark .shadow-card { box-shadow: 0 1px 3px rgba(0,0,0,0.4); }
-html.dark .field {
-  background: rgba(255,255,255,0.08) !important;
-  color: #F5F5F7;
-  border-color: rgba(255,255,255,0.12);
-}
-html.dark .tabbar { background: rgba(28,28,30,0.92); }
-html.dark .page-header { background: var(--glass); }
-html.dark .glass { background: var(--glass); }
-html.dark .bg-black\/\[0\.06\] { background-color: rgba(255,255,255,0.08) !important; }
-html.dark button.text-primary { color: #0A84FF; }
-html.dark .bg-primary { background-color: #0A84FF; }
-html.dark .rounded-full.bg-black\/\[0\.06\] { background-color: rgba(255,255,255,0.1) !important; }
 
+html.dark .bg-surface-secondary,
+html.dark .bg-\[\#F2F2F7\],
+html.dark .min-h-full {
+  background-color: var(--canvas) !important;
+}
+
+html.dark .bg-white,
+html.dark .bg-white\/80,
+html.dark .bg-white\/85,
+html.dark .bg-white\/90 {
+  background-color: var(--card) !important;
+}
+
+html.dark .page-title,
+html.dark .text-ink,
+html.dark h1, html.dark h2, html.dark h3 {
+  color: var(--ink) !important;
+}
+html.dark .text-ink-secondary { color: var(--ink-secondary) !important; }
+html.dark .text-ink-muted { color: var(--ink-muted) !important; }
+html.dark .border-border,
+html.dark .border-black\/5,
+html.dark .border-black\/8 { border-color: var(--hairline) !important; }
+html.dark .shadow-card {
+  box-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 8px 24px rgba(0,0,0,0.45) !important;
+}
+html.dark .shadow-soft {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.35) !important;
+}
+
+html.dark .field,
+html.dark input.field,
+html.dark select.field,
+html.dark textarea.field {
+  background: var(--elevated) !important;
+  color: var(--ink) !important;
+  border-color: var(--hairline) !important;
+}
+html.dark .field::placeholder { color: var(--ink-muted); }
+
+html.dark .tabbar {
+  background: rgba(28, 28, 30, 0.94) !important;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5), 0 0 0 0.5px rgba(255,255,255,0.08) !important;
+}
+html.dark .tabbar-item { color: var(--ink-muted); }
+html.dark .tabbar-item[data-active="true"] { color: #0A84FF; }
+html.dark .tab-fade { background: linear-gradient(to top, var(--canvas), transparent); }
+
+html.dark .page-header,
+html.dark .glass {
+  background: var(--glass) !important;
+  border-color: var(--hairline);
+}
+
+html.dark .bg-black\/\[0\.05\],
+html.dark .bg-black\/\[0\.06\],
+html.dark .bg-black\/\[0\.04\],
+html.dark .bg-black\/\[0\.02\] {
+  background-color: rgba(255,255,255,0.08) !important;
+}
+html.dark .hover\:bg-black\/\[0\.05\]:hover,
+html.dark .hover\:bg-black\/\[0\.04\]:hover {
+  background-color: rgba(255,255,255,0.1) !important;
+}
+
+html.dark .bg-primary { background-color: #0A84FF !important; }
+html.dark .text-primary,
+html.dark button.text-primary { color: #0A84FF !important; }
+html.dark .bg-primary\/10 { background-color: rgba(10, 132, 255, 0.18) !important; }
+
+html.dark .bg-emerald-50 { background-color: rgba(30, 158, 84, 0.15) !important; }
+html.dark .bg-amber-50 { background-color: rgba(201, 106, 0, 0.15) !important; }
+html.dark .bg-red-50 { background-color: rgba(224, 51, 60, 0.15) !important; }
+html.dark .text-success { color: #30D158 !important; }
+html.dark .text-warning { color: #FF9F0A !important; }
+html.dark .text-danger { color: #FF453A !important; }
+
+html.dark .skeleton { background: linear-gradient(90deg, #1C1C1E, #2C2C2E, #1C1C1E) !important; }
+
+html.dark header.border-b {
+  background: rgba(22, 22, 24, 0.9) !important;
+  border-color: var(--hairline) !important;
+}
+
+/* Sheets / modals */
+html.dark .sheet-head,
+html.dark [class*="rounded-t-\[28px\]"] {
+  background: var(--card) !important;
+  color: var(--ink);
+}
 
 /* ───────── Auth always light (ignore global dark) ───────── */
 html.dark .auth-canvas {
@@ -406,9 +483,5 @@ html.dark .auth-card .field {
 }
 html.dark .auth-label { color: #636366 !important; }
 html.dark .auth-link { color: #007AFF !important; }
-html.dark .auth-canvas h1,
-html.dark .auth-canvas p { color: inherit; }
 html.dark .auth-canvas h1 { color: #1C1C1E !important; }
-html.dark .auth-canvas .text-\[\#1C1C1E\],
-html.dark .auth-canvas .text-\[\#636366\] { color: #1C1C1E; }
-html.dark .auth-canvas p.text-\[\#636366\] { color: #636366 !important; }
+html.dark .auth-canvas p { color: #636366 !important; }

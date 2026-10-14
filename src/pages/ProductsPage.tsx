@@ -2,6 +2,7 @@ import { useMemo, useRef, useState, type ReactNode } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Search, Plus, X, Trash2, ScanLine, Camera, ImagePlus, Sparkles, Package } from 'lucide-react'
 import { v4 as uuidv4 } from 'uuid'
+import { getBranchId } from '../lib/supabase'
 import { db, audit } from '../lib/db'
 import type { Product } from '../types'
 import { usePermission } from '../hooks/usePermission'
@@ -134,6 +135,7 @@ export default function ProductsPage() {
       packQty: form.packQty ? parseFloat(form.packQty) : undefined,
       packName: form.packName.trim() || undefined,
       packPrice: form.packPrice ? parseFloat(form.packPrice) : undefined,
+      branchId: getBranchId() || undefined,
       imageUrl: form.imageUrl || undefined,
       active: true,
       updatedAt: now,

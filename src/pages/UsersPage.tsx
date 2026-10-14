@@ -95,6 +95,7 @@ export default function UsersPage() {
     displayName: '',
     role: 'cashier',
     permissions: [...ROLE_PRESETS.cashier] as Permission[],
+    branchIds: [] as string[],
   })
 
   const allowed = can('MANAGE_USERS')
@@ -182,6 +183,7 @@ export default function UsersPage() {
       displayName: '',
       role: 'cashier',
       permissions: [...ROLE_PRESETS.cashier],
+      branchIds: [],
     })
 
   /** Owner creates email + password; staff signs in and is already on this shop */
@@ -220,6 +222,7 @@ export default function UsersPage() {
           role: form.role,
           permissions: form.permissions,
           business_id: bizId,
+          branch_ids: form.branchIds || [],
         }),
       })
       const data = await r.json()

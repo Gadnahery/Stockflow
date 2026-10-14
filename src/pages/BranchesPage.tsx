@@ -6,6 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
+import { setActiveBranchId } from '../lib/branch'
 import { db } from '../lib/db'
 
 type BranchRow = {
@@ -83,7 +84,7 @@ export default function BranchesPage() {
   }
 
   const setActive = (id: string) => {
-    localStorage.setItem('branchId', id)
+    setActiveBranchId(id)
     toast('Active branch updated', 'success')
     // force re-render
     setBranches((b) => [...b])
@@ -107,7 +108,7 @@ export default function BranchesPage() {
     >
       <div className="space-y-4 md:max-w-lg pb-6">
         <p className="text-[14px] text-ink-secondary px-1">
-          Each branch shares the same business catalogue. Choose which branch this device uses for sales.
+          Each branch has its own stock and sales. Products you add on this device belong to the active branch. Switch branch to sell from another location.
         </p>
 
         {loading && (

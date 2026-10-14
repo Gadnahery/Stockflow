@@ -34,6 +34,7 @@ export default async function handler(req, res) {
   const role = String(body.role || 'cashier')
   const permissions = Array.isArray(body.permissions) ? body.permissions : []
   const businessId = String(body.business_id || '')
+  const branchIds = Array.isArray(body.branch_ids) ? body.branch_ids.filter(Boolean) : []
 
   if (!email || !email.includes('@')) {
     return res.status(400).json({ success: false, error: 'Valid email required' })
@@ -106,6 +107,7 @@ export default async function handler(req, res) {
         permissions,
         status: 'active',
         display_name: displayName,
+        branch_ids: branchIds,
       })
       .eq('id', existingMem.id)
   } else {
@@ -116,6 +118,7 @@ export default async function handler(req, res) {
       permissions,
       status: 'active',
       display_name: displayName,
+      branch_ids: branchIds,
     })
     if (insErr) {
       return res.status(400).json({ success: false, error: insErr.message })

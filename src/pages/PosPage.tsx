@@ -13,6 +13,7 @@ import { useTabCompact } from '../hooks/useTabCompact'
 import { fmt, haptic } from '../lib/util'
 import { usePermission } from '../hooks/usePermission'
 import { useI18n } from '../i18n/I18nContext'
+import { getBranchId } from '../lib/supabase'
 import { featuresFor } from '../lib/industry'
 import { format } from 'date-fns'
 
@@ -52,7 +53,19 @@ export default function PosPage() {
   const [discMode, setDiscMode] = useState<'amount' | 'percent'>('amount')
   const [showHeld, setShowHeld] = useState(false)
 
-  const productsQ = useLiveQuery(() => db.products.filter((p) => p.active).toArray(), [catalogTick])
+  const branchId = getBranchId()
+  const productsQ = useLiveQuery(
+    () =>
+      db.products
+        .filter((p) => {
+          if (!p.active) return false
+          // Per-branch catalog: this branch, or shared products (no branchId)
+          if (!branchId) return true
+          return !p.branchId || p.branchId === branchId
+        })
+        .toArray(),
+    [catalogTick, branchId],
+  )
   const products = useMemo(() => productsQ ?? [], [productsQ])
   const loading = productsQ === undefined
   const customers = useLiveQuery(() => db.customers.orderBy('name').toArray(), []) || []

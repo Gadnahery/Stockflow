@@ -1,6 +1,10 @@
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import PinLockScreen from './PinLockScreen'
+import BranchPicker from './BranchPicker'
+import { needsBranchPicker } from '../lib/branch'
+import { supabase, getBusinessId } from '../lib/supabase'
+import { useEffect, useState } from 'react'
 
 function FullScreenSpinner() {
   return (
@@ -22,6 +26,33 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
   const { session, loading, pinLocked, member } = useAuth()
   const location = useLocation()
   const path = location.pathname
+  const [branchReady, setBranchReady] = useState(false)
+  const [branchCount, setBranchCount] = useState(0)
+
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      if (!member || !supabase) {
+        if (!cancelled) setBranchReady(true)
+        return
+      }
+      const bizId = getBusinessId() || member.business_id
+      if (!bizId) {
+        if (!cancelled) setBranchReady(true)
+        return
+      }
+      const { count } = await supabase
+        .from('branches')
+        .select('id', { count: 'exact', head: true })
+        .eq('business_id', bizId)
+      const n = count || 0
+      if (!cancelled) {
+        setBranchCount(n)
+        if (!needsBranchPicker(n, member.branch_ids)) setBranchReady(true)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [member?.business_id, member?.branch_ids, member])
 
   if (loading) return <FullScreenSpinner />
 
@@ -36,9 +67,12 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
     return <Navigate to="/onboarding" replace />
   }
 
-  // PIN lock only after membership is known (in-app)
   if (pinLocked && member && !onOnboarding) {
     return <PinLockScreen />
+  }
+
+  if (member && !onOnboarding && !branchReady && needsBranchPicker(branchCount, member.branch_ids)) {
+    return <BranchPicker onDone={() => setBranchReady(true)} />
   }
 
   return <>{children}</>
