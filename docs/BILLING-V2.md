@@ -4,7 +4,7 @@
 
 Billing v2 is designed to be non-blocking: billing state must never disable POS, sales, inventory, reports, or access to business data. Workspace access and write permissions continue to come from authenticated membership and role permissions.
 
-The portal uses three configured monthly plans: Starter (TZS 25,000), Growth (TZS 45,000), and Business Pro (TZS 75,000). Review plan features and prices before publicly marketing them; keep a plan inactive if it is not approved.
+The portal uses three configured monthly plans: Starter (TZS 25,000), Growth (TZS 45,000), and Business Pro (TZS 75,000). The owner/admin can start a 7-day Starter trial without entering payment details. Trial expiry is informational and never locks POS or other business operations.
 
 ## Database setup
 
@@ -14,6 +14,7 @@ Apply `supabase/migrations/20261014_billing_v2.sql` to the configured Supabase p
 - `business_subscriptions`: current plan and billing period.
 - `billing_invoices`: immutable amount due and invoice status.
 - `billing_payment_attempts`: provider reference, phone, and verification status.
+- `business_subscriptions.trial_ends_at`: the end of a non-blocking seven-day trial.
 
 Authenticated users can read only active plans and billing records for a business they belong to. There are no client-side insert/update policies for invoices, subscriptions, or payment attempts; writes use the server-side service role. The settlement RPC locks the invoice and payment attempt so duplicate status checks/webhooks cannot extend a subscription twice.
 
