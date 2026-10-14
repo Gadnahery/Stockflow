@@ -155,7 +155,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setPinLocked(false)
         }
       } catch {
-        // ignore boot errors — show login
+        // Never strand the user on a spinner when network/auth storage is slow.
+        const cachedMember = (() => { try { return JSON.parse(localStorage.getItem('sf_member_cache') || 'null') as BusinessMember | null } catch { return null } })()
+        const cachedBusiness = (() => { try { return JSON.parse(localStorage.getItem('sf_business_cache') || 'null') as Business | null } catch { return null } })()
+        if (!navigator.onLine && s?.user && cachedMember?.user_id === s.user.id && cachedMember.status === 'active') {
+          setMember(cachedMember)
+          setBusiness(cachedBusiness)
+          setPinLocked(Boolean(localStorage.getItem('sf_device_pin')))
+        }
       } finally {
         if (mounted) {
           booted.current = true
@@ -168,8 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, next) => {
       if (!mounted) return
-      // Ignore the duplicate INITIAL_SESSION — boot() already handled it
-      if (event === 'INITIAL_SESSION' && booted.current) return
+      // getSession() in boot() owns initial hydration; handling INITIAL_SESSION here too
+      // can trigger a second network membership lookup and leave the app on a spinner.
+      if (event === 'INITIAL_SESSION') return
 
       setSession(next)
       setUser(next?.user ?? null)
