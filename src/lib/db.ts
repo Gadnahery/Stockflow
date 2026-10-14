@@ -226,11 +226,14 @@ export async function switchToBusinessWorkspace(businessId: string | null, branc
   }
   if (prev === workspaceId) return { switched: false }
 
-  if (prev) await saveWorkspaceSnapshot(prev)
-  await clearLocalBusinessData()
+  const previousBusinessId = prev?.split(':')[0]
+  const sameBusiness = previousBusinessId === businessId
+  if (prev) await saveWorkspaceSnapshot(prev, !sameBusiness)
+  // Product catalogue is shared within a business, but isolated between businesses.
+  await clearLocalBusinessData(!sameBusiness)
   localStorage.setItem(WORKSPACE_KEY, workspaceId)
 
-  const restored = await restoreWorkspaceSnapshot(workspaceId, legacyBusinessId)
+  const restored = await restoreWorkspaceSnapshot(workspaceId, legacyBusinessId, !sameBusiness)
   if (!restored) {
     const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
     localStorage.setItem('deviceId', deviceId)
