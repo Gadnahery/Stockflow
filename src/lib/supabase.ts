@@ -149,14 +149,17 @@ export async function fetchMembership(userId: string): Promise<{
   }
   cacheMember(member)
 
-  const { data: biz } = await supabase
+  const { data: biz, error: businessError } = await supabase
     .from('businesses')
     .select('id, name, slug, trial_ends_at, paid_until, subscription_status, last_payment_order_id, last_payment_at')
     .eq('id', member.business_id)
     .maybeSingle()
 
-  const business = (biz as Business) ?? getCachedBusiness()
+  const cachedBusiness = getCachedBusiness()
+  const business = (biz as Business) ?? (cachedBusiness?.id === member.business_id ? cachedBusiness : null)
   if (business) cacheBusiness(business)
+  // Do not retain another workspace's stale entitlement when business details are unavailable.
+  if (businessError && business?.id !== member.business_id) localStorage.removeItem('sf_write_allowed')
   return { member, business }
 }
 
