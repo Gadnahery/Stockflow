@@ -378,8 +378,8 @@ export async function pullMissing(): Promise<number> {
       supabase.from('products').select('*').eq('business_id', businessId),
       supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
-      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(500),
-      supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(300),
+      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).order('created_at', { ascending: false }).limit(500),
+      supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).order('created_at', { ascending: false }).limit(300),
       supabase.from('stock_movements').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
     ])
 
@@ -468,13 +468,31 @@ export async function pullMissing(): Promise<number> {
     }
 
     for (const row of saleRows ?? []) {
-      if (localSales.has(row.id)) continue
-      const payments = Array.isArray(row.payments) ? row.payments : []
-      // Fetch line items for this sale
+      // Always hydrate line items, even when the sale header already exists locally.
+      // Workspace restores can leave a header without its original item rows.
       const { data: items } = await supabase
         .from('sale_items')
         .select('*')
         .eq('sale_id', row.id)
+      if (localSales.has(row.id)) {
+        const existing = await db.sales.get(row.id)
+        if (existing && (!existing.items || existing.items.length === 0) && (items?.length ?? 0) > 0) {
+          await db.sales.update(row.id, {
+            items: (items || []).map((it: Record<string, unknown>) => ({
+              productId: String(it.product_id || ''),
+              name: String(it.product_name || ''),
+              sku: '',
+              price: Number(it.unit_price) || 0,
+              quantity: Number(it.quantity) || 0,
+              discount: Number(it.discount_amount) || 0,
+              lineTotal: Number(it.line_total) || 0,
+            })),
+          })
+          added++
+        }
+        continue
+      }
+      const payments = Array.isArray(row.payments) ? row.payments : []
       await db.sales.put({
         id: row.id,
         deviceId: row.device_id || 'remote',
