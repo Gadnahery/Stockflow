@@ -9,7 +9,7 @@ import type { Permission } from '../types'
 import { v4 as uuidv4 } from 'uuid'
 import { useI18n } from '../i18n/I18nContext'
 
-const FREE_SEATS = 10
+const seatLimitFor = (code: string | null) => code === 'business-pro-monthly' ? 50 : code === 'growth-monthly' ? 15 : 5
 
 const ALL_PERMISSIONS: { key: Permission; label: string }[] = [
   { key: 'CREATE_SALE', label: 'Create sales' },
@@ -82,6 +82,7 @@ export default function UsersPage() {
   const { member: me, business } = useAuth()
   const toast = useUi((s) => s.toast)
   const [members, setMembers] = useState<MemberRow[]>([])
+  const [seatLimit, setSeatLimit] = useState(5)
   const [invites, setInvites] = useState<InviteRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -139,6 +140,10 @@ export default function UsersPage() {
         }
       }
       setMembers(rows)
+
+      const { data: subscription } = await supabase.from('business_subscriptions').select('plan:billing_plans(code)').eq('business_id', bizId).maybeSingle()
+      const planCode = (subscription?.plan as unknown as { code?: string } | null)?.code || 'starter-monthly'
+      setSeatLimit(seatLimitFor(planCode))
 
       const { data: inv, error: iErr } = await supabase
         .from('invites')
@@ -200,8 +205,8 @@ export default function UsersPage() {
     }
     const bizId = getBusinessId() || me?.business_id
     if (!bizId || !supabase) return
-    if (members.length >= FREE_SEATS) {
-      toast(`Team limit (${FREE_SEATS}). Remove someone or upgrade.`, 'error')
+    if (members.length + invites.length >= seatLimit) {
+      toast(`Team limit (${seatLimit} members, including the owner). Remove a member/invite or upgrade.`, 'error')
       return
     }
     setBusy(true)
@@ -249,8 +254,8 @@ export default function UsersPage() {
     setBusy(true)
     try {
       const token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '').slice(0, 8)
-      if (members.length >= FREE_SEATS) {
-        toast(`Team limit (${FREE_SEATS}). Remove someone or upgrade.`, 'error')
+      if (members.length + invites.length >= seatLimit) {
+        toast(`Team limit (${seatLimit} members, including the owner). Remove a member/invite or upgrade.`, 'error')
         setBusy(false)
         return
       }

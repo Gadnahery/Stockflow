@@ -60,6 +60,16 @@ export default function BranchesPage() {
     if (!bizId || !supabase || !name.trim()) return
     setBusy(true)
     try {
+      const [{ data: currentBranches, error: branchCountError }, { data: subscription }] = await Promise.all([
+        supabase.from('branches').select('id').eq('business_id', bizId),
+        supabase.from('business_subscriptions').select('plan:billing_plans(code)').eq('business_id', bizId).maybeSingle(),
+      ])
+      if (branchCountError) throw branchCountError
+      const planCode = (subscription?.plan as unknown as { code?: string } | null)?.code || 'starter-monthly'
+      const branchLimit = planCode === 'business-pro-monthly' ? Number.POSITIVE_INFINITY : planCode === 'growth-monthly' ? 3 : 1
+      if ((currentBranches || []).length >= branchLimit) {
+        throw new Error(`Your plan allows ${branchLimit === Number.POSITIVE_INFINITY ? 'unlimited' : branchLimit} branch${branchLimit === 1 ? '' : 'es'}. Upgrade to add another branch.`)
+      }
       const { data, error } = await supabase
         .from('branches')
         .insert({
