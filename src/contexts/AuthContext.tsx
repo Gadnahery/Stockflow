@@ -173,7 +173,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   useEffect(() => {
+    // Offline startup must not depend on a live Supabase client. Hydrate the
+    // saved session + membership first so the local PIN screen and IndexedDB POS
+    // remain available in airplane mode, including after a full app restart.
     if (!supabaseConfigured || !supabase) {
+      if (!navigator.onLine) {
+        const cachedSession = readCachedAuthSession()
+        let cachedMember: BusinessMember | null = null
+        let cachedBusiness: Business | null = null
+        try { cachedMember = JSON.parse(localStorage.getItem('sf_member_cache') || 'null') } catch { /* ignore corrupt cache */ }
+        try { cachedBusiness = JSON.parse(localStorage.getItem('sf_business_cache') || 'null') } catch { /* ignore corrupt cache */ }
+        if (cachedSession?.user && cachedMember?.user_id === cachedSession.user.id && cachedMember.status === 'active') {
+          setSession(cachedSession)
+          setUser(cachedSession.user)
+          userRef.current = cachedSession.user
+          setMember(cachedMember)
+          setBusiness(cachedBusiness?.id === cachedMember.business_id ? cachedBusiness : null)
+          setOfflineMode(true)
+          mirrorSessionUser(cachedMember)
+          const hasPin = Boolean(localStorage.getItem('sf_device_pin'))
+          setPinLocked(hasPin || localStorage.getItem(PIN_LOCK_KEY) === '1')
+          if (hasPin) localStorage.setItem(PIN_LOCK_KEY, '1')
+        }
+      }
       setLoading(false)
       return
     }
