@@ -12,7 +12,7 @@ const IMAGE_BUCKET = 'product-images'
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const isUuid = (v: unknown): v is string => typeof v === 'string' && UUID_RE.test(v)
 const MAX_OUTBOX_RETRIES = 12
-const LAST_PULL_KEY = 'sf_last_pull'
+const lastPullKey = () => `sf_last_pull:${getBusinessId() || 'none'}:${getBranchId() || 'none'}`
 const LAST_SYNC_KEY = 'sf_last_sync'
 
 async function ensureBusiness(): Promise<string> {
@@ -359,7 +359,7 @@ export async function pullMissing(): Promise<number> {
 
   let since = '1970-01-01T00:00:00.000Z'
   try {
-    const s = localStorage.getItem(LAST_PULL_KEY)
+    const s = localStorage.getItem(lastPullKey())
     if (s) since = s
   } catch { /* ignore */ }
 
@@ -371,8 +371,8 @@ export async function pullMissing(): Promise<number> {
       supabase.from('products').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('updated_at', since),
       supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
-      supabase.from('sales').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
-      supabase.from('expenses').select('*').eq('business_id', businessId).gte('created_at', since).limit(300),
+      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(500),
+      supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(300),
       supabase.from('stock_movements').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
     ])
 
@@ -533,7 +533,7 @@ export async function pullMissing(): Promise<number> {
     }
   })
 
-  try { localStorage.setItem(LAST_PULL_KEY, nowIso) } catch { /* ignore */ }
+  try { localStorage.setItem(lastPullKey(), nowIso) } catch { /* ignore */ }
   return added
 }
 
@@ -591,5 +591,5 @@ export function getLastSyncAt(): string | null {
 }
 
 export function getLastPullAt(): string | null {
-  try { return localStorage.getItem(LAST_PULL_KEY) } catch { return null }
+  try { return localStorage.getItem(lastPullKey()) } catch { return null }
 }
