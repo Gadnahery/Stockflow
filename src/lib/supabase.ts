@@ -114,7 +114,10 @@ export async function fetchMembership(userId: string): Promise<{
 
   const member = members[0] as BusinessMember
   setBusinessId(member.business_id)
-  if (member.branch_ids?.length) setBranchId(member.branch_ids[0])
+  if (member.branch_ids?.length) {
+    const selected = getBranchId()
+    if (!selected || !member.branch_ids.includes(selected)) setBranchId(member.branch_ids[0])
+  }
   cacheMember(member)
 
   const { data: biz } = await supabase
