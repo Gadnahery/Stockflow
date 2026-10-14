@@ -16,6 +16,7 @@ import OnboardingPage from './pages/auth/OnboardingPage'
 import AcceptInvitePage from './pages/auth/AcceptInvitePage'
 import AccountPage from './pages/auth/AccountPage'
 import HelpPage from './pages/HelpPage'
+import BillingPage from './pages/BillingPage'
 import BranchesPage from './pages/BranchesPage'
 import PosPage from './pages/PosPage'
 import DashboardPage from './pages/DashboardPage'
@@ -140,6 +141,7 @@ function App() {
         <Route path="/account" element={<AccountPage />} />
         <Route path="/branches" element={<BranchesPage />} />
         <Route path="/help" element={<HelpPage />} />
+        <Route path="/billing" element={<BillingPage />} />
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
