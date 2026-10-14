@@ -353,19 +353,14 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
 /* ───────── pull ───────── */
 
 /**
- * Bring in products and customers created on other devices.
- * Only adds what is missing locally — existing local rows (and their live stock) are never overwritten.
+ * Restore cloud data after workspace/branch changes.
+ * Pull full business catalog and selected-branch history because local IndexedDB can be replaced
+ * while a saved incremental cursor remains newer than the records we still need.
  */
 export async function pullMissing(): Promise<number> {
   if (!supabaseConfigured || !navigator.onLine) return 0
   const businessId = getBusinessId()
   if (!businessId) return 0
-
-  let since = '1970-01-01T00:00:00.000Z'
-  try {
-    const s = localStorage.getItem(lastPullKey())
-    if (s) since = s
-  } catch { /* ignore */ }
 
   const nowIso = new Date().toISOString()
   let added = 0
@@ -376,11 +371,11 @@ export async function pullMissing(): Promise<number> {
       // a branch/workspace switch can clear local IndexedDB while the incremental cursor
       // still points to a recent timestamp, which otherwise hides older products forever.
       supabase.from('products').select('*').eq('business_id', businessId),
-      supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
-      supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
-      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(500),
-      supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(300),
-      supabase.from('stock_movements').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
+      supabase.from('customers').select('*').eq('business_id', businessId),
+      supabase.from('suppliers').select('*').eq('business_id', businessId),
+      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).order('created_at', { ascending: true }),
+      supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).order('created_at', { ascending: true }),
+      supabase.from('stock_movements').select('*').eq('business_id', businessId).order('created_at', { ascending: true }),
     ])
 
   const localProducts = new Set((await db.products.toCollection().primaryKeys()) as string[])
