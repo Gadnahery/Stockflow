@@ -95,7 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       const { member: m, business: b } = await fetchMembership(uid)
       // Isolate IndexedDB per business — never show another shop's products/customers
-      await switchToBusinessWorkspace(m?.business_id ?? null, getBranchId())
+      await switchToBusinessWorkspace(
+        m?.business_id ?? null,
+        getBranchId(),
+        m?.branch_ids?.[0] && m.branch_ids[0] === getBranchId() ? m.business_id : undefined,
+      )
       setMember(m)
       setBusiness(b)
       cacheMember(m)
