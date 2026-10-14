@@ -1,5 +1,5 @@
-/* StockFlow service worker v8 — fast offline-first app shell */
-const CACHE = 'stockflow-v8'
+/* StockFlow service worker v9 — offline-first app shell with user-confirmed updates */
+const CACHE = 'stockflow-v9'
 
 const PRECACHE = [
   '/',
@@ -13,7 +13,7 @@ const PRECACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)).then(() => self.skipWaiting()),
+    caches.open(CACHE).then((cache) => cache.addAll(PRECACHE)),
   )
 })
 
