@@ -19,7 +19,7 @@ type BranchRow = {
 }
 
 export default function BranchesPage() {
-  const { member, business } = useAuth()
+  const { member, business, refreshMembership } = useAuth()
   const { locale } = useI18n()
   const sw = locale === 'sw'
   const { can } = usePermission()
@@ -73,7 +73,9 @@ export default function BranchesPage() {
       // Keep the owner's permitted branch list in sync so the selection survives reloads.
       if (member?.id && (member.role === 'business_owner' || member.role === 'owner')) {
         const nextIds = Array.from(new Set([...(member.branch_ids || []), data.id]))
-        await supabase.from('business_members').update({ branch_ids: nextIds }).eq('id', member.id)
+        const { error: memberUpdateError } = await supabase.from('business_members').update({ branch_ids: nextIds }).eq('id', member.id)
+        if (memberUpdateError) throw memberUpdateError
+        await refreshMembership()
       }
       await db.branches.put({
         id: data.id,
@@ -99,6 +101,7 @@ export default function BranchesPage() {
       if (bizId) await switchToBusinessWorkspace(bizId, id, member?.branch_ids?.[0] === id ? bizId : undefined)
       setActiveBranchId(id)
       await pullMissing().catch(() => 0)
+      await refreshMembership()
       toast(sw ? 'Tawi linalotumika limebadilishwa' : 'Active branch updated', 'success')
       setBranches((b) => [...b])
     } catch {
