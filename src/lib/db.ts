@@ -231,6 +231,36 @@ export async function switchToBusinessWorkspace(businessId: string | null, branc
 
   const previousBusinessId = prev?.split(':')[0]
   const sameBusiness = previousBusinessId === businessId
+
+  // One-time migration from older per-branch snapshots to a shared business workspace.
+  // Preserve the currently loaded records and merge in records saved under sibling branches.
+  if (prev && sameBusiness && prev !== workspaceId) {
+    await saveWorkspaceSnapshot(workspaceId, true)
+    const snapshots = await db.workspaceSnapshots.toArray()
+    const siblingSnapshots = snapshots.filter((snapshot) =>
+      snapshot.id.startsWith(`${businessId}:`) && snapshot.id !== workspaceId,
+    )
+    const merged = await db.workspaceSnapshots.get(workspaceId)
+    if (merged) {
+      for (const snapshot of siblingSnapshots) {
+        for (const name of WORKSPACE_TABLES) {
+          const currentRows = merged.data[name] ?? []
+          const incomingRows = snapshot.data[name] ?? []
+          const byId = new Map<string, unknown>()
+          for (const row of [...currentRows, ...incomingRows]) {
+            const id = (row as { id?: unknown }).id
+            if (id != null) byId.set(String(id), row)
+          }
+          merged.data[name] = [...byId.values()]
+        }
+      }
+      merged.savedAt = new Date().toISOString()
+      await db.workspaceSnapshots.put(merged)
+    }
+    localStorage.setItem(WORKSPACE_KEY, workspaceId)
+    return { switched: true, restored: true }
+  }
+
   if (prev) await saveWorkspaceSnapshot(prev, !sameBusiness)
   // Product catalogue is shared within a business, but isolated between businesses.
   await clearLocalBusinessData(!sameBusiness)
