@@ -15,6 +15,7 @@ import {
   createBusiness as rpcCreateBusiness,
   acceptInvite as rpcAcceptInvite,
   cacheMember,
+  cacheBusiness,
   getCachedMember,
   getCachedBusiness,
   clearBusinessId,
@@ -137,6 +138,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setMember(fresh.member)
           setBusiness(fresh.business)
           cacheMember(fresh.member)
+          cacheBusiness(fresh.business)
           localStorage.setItem('sf_write_allowed', entitlementCanWrite(fresh.business) ? '1' : '0')
           mirrorSessionUser(fresh.member)
           if (fresh.member.business_id && navigator.onLine) void pullMissing().catch(() => 0)
