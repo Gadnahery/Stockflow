@@ -93,7 +93,7 @@ export default function BranchesPage() {
     const bizId = getBusinessId() || member?.business_id
     try {
       // Save the previous branch's offline data before loading this branch's catalogue.
-      if (bizId) await switchToBusinessWorkspace(bizId, id)
+      if (bizId) await switchToBusinessWorkspace(bizId, id, member?.branch_ids?.[0] === id ? bizId : undefined)
       setActiveBranchId(id)
       await pullMissing().catch(() => 0)
       toast('Active branch updated', 'success')
