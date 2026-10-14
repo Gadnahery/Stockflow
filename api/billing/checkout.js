@@ -73,10 +73,10 @@ export default async function handler(req, res) {
       }),
     })
     const provider = await response.json()
-    if (!response.ok || !provider.order_id) {
-      await admin.from('billing_payment_attempts').update({ status: 'failed', metadata: { provider_error: provider.error || provider.message || 'Collect failed' } }).eq('id', attempt.id)
+    if (!response.ok || provider.success !== true || !provider.order_id || Number(provider.amount) !== amount) {
+      await admin.from('billing_payment_attempts').update({ status: 'failed', metadata: { provider_error: provider.error || provider.message || 'Payment provider rejected the request or returned a mismatched amount' } }).eq('id', attempt.id)
       await admin.from('billing_invoices').update({ status: 'failed' }).eq('id', invoice.id)
-      return res.status(502).json({ success: false, error: provider.error || provider.message || 'Payment request failed' })
+      return res.status(502).json({ success: false, error: provider.error || provider.message || 'Payment request failed or provider amount did not match the selected plan' })
     }
     await admin.from('billing_payment_attempts').update({
       provider_reference: String(provider.order_id), status: 'pending',

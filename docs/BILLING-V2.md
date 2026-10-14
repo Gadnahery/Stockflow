@@ -4,7 +4,7 @@
 
 Billing v2 is designed to be non-blocking: billing state must never disable POS, sales, inventory, reports, or access to business data. Workspace access and write permissions continue to come from authenticated membership and role permissions.
 
-The portal is intentionally non-chargeable until at least one active plan is configured in the database. No price is seeded by default because prices must be confirmed before customers can be charged.
+The portal uses three configured monthly plans: Starter (TZS 25,000), Growth (TZS 45,000), and Business Pro (TZS 75,000). The owner/admin can start a 7-day Starter trial without entering payment details. Trial expiry is informational and never locks POS or other business operations.
 
 ## Database setup
 
@@ -14,27 +14,15 @@ Apply `supabase/migrations/20261014_billing_v2.sql` to the configured Supabase p
 - `business_subscriptions`: current plan and billing period.
 - `billing_invoices`: immutable amount due and invoice status.
 - `billing_payment_attempts`: provider reference, phone, and verification status.
+- `business_subscriptions.trial_ends_at`: the end of a non-blocking seven-day trial.
 
 Authenticated users can read only active plans and billing records for a business they belong to. There are no client-side insert/update policies for invoices, subscriptions, or payment attempts; writes use the server-side service role. The settlement RPC locks the invoice and payment attempt so duplicate status checks/webhooks cannot extend a subscription twice.
 
 ## Configure a plan
 
-After pricing is approved, an operator with trusted database access can add an active plan. Example structure (replace the values before running):
+Plans are stored in `billing_plans` and can be adjusted by an operator with trusted database access. The active plan codes are `starter-monthly`, `growth-monthly`, and `business-pro-monthly`.
 
-```sql
-insert into public.billing_plans (code, name, description, amount_tzs, interval, features, is_active)
-values (
-  'standard-monthly',
-  'Standard',
-  'StockFlow for one business',
-  0, -- replace with the approved integer TZS amount before setting is_active=true
-  'month',
-  '["POS sales", "Inventory", "Reports"]'::jsonb,
-  false
-);
-```
-
-The database rejects zero amounts, so replace the example amount with an approved amount before executing. Keep `is_active=false` until the plan and price are approved. To activate it, update the row through trusted admin tooling.
+To update plans, use trusted admin tooling and keep the `features` list aligned with features that are actually available in the app.
 
 ## Required server environment
 
@@ -52,4 +40,5 @@ The checkout endpoint gets the price from the active plan row; it does not trust
 
 - The provider is currently HarakaPay; the schema is provider-neutral so another provider can be added without replacing the billing records.
 - This module does not automatically block or make the POS read-only if an invoice expires or payment fails.
-- Before production charging, confirm the approved prices, verify the HarakaPay response schema against a sandbox/test order, apply the migration, and test success, failure, duplicate webhook, amount mismatch, and interrupted-network cases.
+- Configure `HARAKAPAY_API_KEY` only as a server-side Vercel environment variable. If a key has been pasted into chat or source control, rotate it before live use.
+- Before production charging, verify the HarakaPay response schema against a test order, and test success, failure, duplicate webhook, amount mismatch, and interrupted-network cases.

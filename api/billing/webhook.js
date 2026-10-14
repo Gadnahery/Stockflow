@@ -27,8 +27,15 @@ export default async function handler(req, res) {
     const response = await fetch('https://harakapay.net/api/v1/status/' + encodeURIComponent(orderId), { headers: { 'X-API-Key': apiKey } })
     const data = await response.json()
     const payment = data.payment || data
-    if (!response.ok || payment.status !== 'completed' || Number(payment.amount) !== Number(invoice.amount_tzs) || Number(attempt.amount_tzs) !== Number(invoice.amount_tzs)) {
-      return res.status(200).json({ ok: true, verified: false })
+    if (!response.ok) return res.status(502).json({ ok: false, error: 'Provider status could not be verified' })
+    if (payment.status === 'failed') {
+      await admin.from('billing_payment_attempts').update({ status: 'failed' }).eq('id', attempt.id)
+      await admin.from('billing_invoices').update({ status: 'failed' }).eq('id', invoice.id).eq('status', 'pending')
+      return res.status(200).json({ ok: true, processed: true, status: 'failed' })
+    }
+    if (payment.status !== 'completed') return res.status(200).json({ ok: true, processed: false, status: 'pending' })
+    if (Number(payment.amount) !== Number(invoice.amount_tzs) || Number(attempt.amount_tzs) !== Number(invoice.amount_tzs)) {
+      return res.status(200).json({ ok: true, verified: false, reason: 'amount_mismatch' })
     }
     const { data: plan } = await admin.from('billing_plans').select('id, interval').eq('id', invoice.plan_id).maybeSingle()
     if (!plan) return res.status(200).json({ ok: true, error: 'Plan missing' })

@@ -24,6 +24,7 @@ type Invoice = {
 type Subscription = {
   status: string
   current_period_end: string | null
+  trial_ends_at: string | null
   plan: { name: string } | null
 }
 
@@ -50,7 +51,7 @@ export default function BillingPage() {
     const [planRes, invoiceRes, subRes] = await Promise.all([
       supabase.from('billing_plans').select('id, code, name, description, amount_tzs, interval, features').eq('is_active', true).order('amount_tzs'),
       supabase.from('billing_invoices').select('id, invoice_number, amount_tzs, status, issued_at, paid_at').eq('business_id', business.id).order('issued_at', { ascending: false }).limit(10),
-      supabase.from('business_subscriptions').select('status, current_period_end, plan:billing_plans(name)').eq('business_id', business.id).maybeSingle(),
+      supabase.from('business_subscriptions').select('status, current_period_end, trial_ends_at, plan:billing_plans(name)').eq('business_id', business.id).maybeSingle(),
     ])
     if (planRes.error || invoiceRes.error || subRes.error) {
       setError('Billing records could not be loaded. Confirm the Billing v2 database migration has been applied.')
@@ -65,6 +66,24 @@ export default function BillingPage() {
   }, [business?.id, selectedPlan])
 
   useEffect(() => { void load() }, [load])
+
+  const startTrial = async () => {
+    if (!business?.id || !session?.access_token) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const response = await fetch('/api/billing/start-trial', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + session.access_token },
+        body: JSON.stringify({ business_id: business.id }),
+      })
+      const data = await response.json()
+      if (!response.ok || !data.success) throw new Error(data.error || 'Could not start trial')
+      setNotice(data.message)
+      await load()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not start trial')
+    } finally { setBusy(false) }
+  }
 
   const startPayment = async () => {
     if (!business?.id || !session?.access_token || !selectedPlan) return
@@ -112,13 +131,28 @@ export default function BillingPage() {
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-ink">{subscription?.plan?.name || 'Billing account'}</h2>
               <p className="mt-1 text-sm text-ink-secondary">
-                {subscription?.status === 'active' ? 'Active plan · current period ends ' + date(subscription.current_period_end) : 'Your workspace remains available. Billing status does not lock sales, stock, reports, or other business operations.'}
+                {subscription?.status === 'active'
+                  ? 'Active plan · current period ends ' + date(subscription.current_period_end)
+                  : subscription?.status === 'trialing'
+                    ? (subscription.trial_ends_at && new Date(subscription.trial_ends_at).getTime() > Date.now()
+                      ? '7-day trial · ends ' + date(subscription.trial_ends_at)
+                      : 'Trial period ended · choose a plan when ready')
+                    : 'Your workspace remains available. Billing status does not lock sales, stock, reports, or other business operations.'}
               </p>
             </div>
             <button type="button" onClick={() => void load()} className="press inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-ink-secondary" aria-label="Refresh billing"><RefreshCw size={16} /></button>
           </div>
         </section>
 
+        {!loading && !subscription && canManage && (
+          <section className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="font-bold text-ink">Try StockFlow free for 7 days</h3>
+              <p className="mt-1 text-sm text-ink-secondary">No payment is requested to start. Your sales and business tools will not be locked when the trial ends.</p>
+            </div>
+            <button type="button" disabled={busy} onClick={() => void startTrial()} className="press inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Please wait…' : 'Start free trial'}</button>
+          </section>
+        )}
         {error && <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{error}</div>}
         {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</div>}
 
