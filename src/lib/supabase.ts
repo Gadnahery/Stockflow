@@ -116,6 +116,15 @@ export async function fetchMembership(userId: string): Promise<{
 }> {
   if (!supabaseConfigured || !supabase) return { member: null, business: null }
 
+  // On launch without internet, use the last verified session's local business cache immediately.
+  if (!navigator.onLine) {
+    const cachedMember = getCachedMember()
+    if (cachedMember?.status === 'active' && cachedMember.user_id === userId) {
+      return { member: cachedMember, business: getCachedBusiness() }
+    }
+    return { member: null, business: null }
+  }
+
   const { data: members, error } = await supabase
     .from('business_members')
     .select('id, business_id, user_id, role, permissions, branch_ids, status, display_name, pin_hash, last_seen_at')
