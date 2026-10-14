@@ -1,5 +1,5 @@
 /* StockFlow service worker — app shell offline + update */
-const CACHE = 'stockflow-v4'
+const CACHE = 'stockflow-v5'
 
 const PRECACHE = [
   '/',

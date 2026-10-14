@@ -154,7 +154,6 @@ export default function SettingsPage() {
               {([
                 ['light', locale === 'sw' ? 'Mwanga' : 'Light'],
                 ['dark', locale === 'sw' ? 'Giza' : 'Dark'],
-                ['system', locale === 'sw' ? 'Mfumo' : 'System'],
               ] as const).map(([code, label]) => (
                 <button
                   key={code}

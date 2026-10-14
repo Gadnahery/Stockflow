@@ -13,6 +13,7 @@ import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
 import SubscriptionBanner from '../SubscriptionBanner'
+import { useI18n } from '@/i18n/I18nContext'
 import UpdateBanner from '../UpdateBanner'
 
 
@@ -43,7 +44,6 @@ const NAV_LABELS: Record<string, string> = {
   'app.help': 'Help',
   'app.notifications': 'Alerts',
 }
-const t = (key: string) => NAV_LABELS[key] || key
 
 type NavItem = {
   to: string
@@ -107,7 +107,14 @@ const SIDEBAR_W: Record<SidebarMode, string> = {
 }
 
 export default function AppShell() {
-  
+  const { t: tI18n } = useI18n()
+  const t = (key: string) => {
+    try {
+      const v = tI18n(key as any)
+      if (v && v !== key) return v
+    } catch { /* ignore */ }
+    return NAV_LABELS[key] || key
+  }
   const location = useLocation()
   const mobileNav = mobileNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))
   const desktopNav = desktopNavKeys.map((n) => ({ ...n, label: t(n.labelKey) }))

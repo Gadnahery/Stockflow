@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react'
 
-/** Shared chrome for login / signup / onboarding — calm iOS-style canvas + glass card */
+/** Shared chrome for login / signup / onboarding — always light, readable */
 export default function AuthShell({
   children,
   title,
@@ -26,11 +26,17 @@ export default function AuthShell({
               <circle cx="18" cy="20" r="1.4" />
             </svg>
           </div>
-          <h1 className="text-[28px] sm:text-[30px] font-bold tracking-tight text-[#1C1C1E] leading-tight">
+          <h1
+            className="text-[28px] sm:text-[30px] font-bold tracking-tight leading-tight"
+            style={{ color: '#1C1C1E' }}
+          >
             {title}
           </h1>
           {subtitle && (
-            <p className="mt-2 text-[15px] text-[#636366] leading-snug max-w-[320px] mx-auto">
+            <p
+              className="mt-2 text-[15px] leading-snug max-w-[320px] mx-auto"
+              style={{ color: '#636366' }}
+            >
               {subtitle}
             </p>
           )}
@@ -38,7 +44,11 @@ export default function AuthShell({
 
         <div className="auth-card">{children}</div>
 
-        {footer && <div className="mt-6 text-center text-[15px] text-[#636366] space-y-3">{footer}</div>}
+        {footer && (
+          <div className="mt-6 text-center text-[15px] space-y-3" style={{ color: '#636366' }}>
+            {footer}
+          </div>
+        )}
       </div>
     </div>
   )
