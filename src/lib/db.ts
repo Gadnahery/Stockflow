@@ -174,17 +174,17 @@ const WORKSPACE_TABLES = [
 ] as const
 
 /** Preserve each business' offline data before changing workspaces. */
-async function saveWorkspaceSnapshot(businessId: string) {
+async function saveWorkspaceSnapshot(workspaceId: string) {
   const data: Record<string, unknown[]> = {}
   for (const name of WORKSPACE_TABLES) {
     data[name] = await (db as unknown as Record<string, Table<unknown, string>>)[name].toArray()
   }
-  await db.workspaceSnapshots.put({ id: businessId, data, savedAt: new Date().toISOString() })
+  await db.workspaceSnapshots.put({ id: workspaceId, data, savedAt: new Date().toISOString() })
 }
 
 /** Restore only the target business' saved offline data. */
-async function restoreWorkspaceSnapshot(businessId: string) {
-  const snapshot = await db.workspaceSnapshots.get(businessId)
+async function restoreWorkspaceSnapshot(workspaceId: string) {
+  const snapshot = await db.workspaceSnapshots.get(workspaceId)
   if (!snapshot) return false
   await withoutSync(async () => {
     for (const name of WORKSPACE_TABLES) {
@@ -211,19 +211,20 @@ export async function clearLocalBusinessData() {
  * switches accounts. Snapshots live in IndexedDB, not localStorage, so product
  * images and larger offline datasets do not hit localStorage's small quota.
  */
-export async function switchToBusinessWorkspace(businessId: string | null) {
+export async function switchToBusinessWorkspace(businessId: string | null, branchId: string | null = null) {
+  const workspaceId = businessId ? `${businessId}:${branchId || 'default'}` : null
   const prev = localStorage.getItem(WORKSPACE_KEY)
-  if (!businessId) {
+  if (!businessId || !workspaceId) {
     // Sign-out is not data deletion. Leave the last workspace stored locally.
     return { switched: false }
   }
-  if (prev === businessId) return { switched: false }
+  if (prev === workspaceId) return { switched: false }
 
   if (prev) await saveWorkspaceSnapshot(prev)
   await clearLocalBusinessData()
-  localStorage.setItem(WORKSPACE_KEY, businessId)
+  localStorage.setItem(WORKSPACE_KEY, workspaceId)
 
-  const restored = await restoreWorkspaceSnapshot(businessId)
+  const restored = await restoreWorkspaceSnapshot(workspaceId)
   if (!restored) {
     const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
     localStorage.setItem('deviceId', deviceId)
