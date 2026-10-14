@@ -143,7 +143,10 @@ export async function fetchMembership(userId: string): Promise<{
 
   const member = members[0] as BusinessMember
   setBusinessId(member.business_id)
-  if (member.branch_ids?.length) {
+  // Owners can switch among all business branches. Do not reset their selected branch
+  // to branch_ids[0] during every membership refresh.
+  const isOwner = ['owner', 'business_owner', 'platform_admin'].includes(String(member.role))
+  if (!isOwner && member.branch_ids?.length) {
     const selected = getBranchId()
     if (!selected || !member.branch_ids.includes(selected)) setBranchId(member.branch_ids[0])
   }
