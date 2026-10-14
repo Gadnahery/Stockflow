@@ -47,6 +47,9 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: false, status: 'failed', error: 'Payment failed. You can start a new attempt.' })
     }
     if (payment.status !== 'completed') return res.status(200).json({ success: true, status: 'pending', message: 'Payment is still pending on your phone.' })
+    if (Number(payment.amount) !== Number(invoice.amount_tzs) || Number(attempt.amount_tzs) !== Number(invoice.amount_tzs)) {
+      return res.status(409).json({ success: false, error: 'Payment amount did not match invoice' })
+    }
     const result = await confirmCompleted(admin, attempt)
     return res.status(result?.success ? 200 : 409).json(result || { success: false, error: 'Could not settle billing payment' })
   } catch {
