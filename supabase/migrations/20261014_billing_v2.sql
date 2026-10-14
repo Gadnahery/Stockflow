@@ -153,3 +153,79 @@ begin
   return v_biz;
 end;
 $$;
+
+
+-- Atomic, idempotent settlement. The caller must verify the provider payment first.
+create or replace function public.finalize_billing_payment(p_attempt_id uuid)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_attempt public.billing_payment_attempts%rowtype;
+  v_invoice public.billing_invoices%rowtype;
+  v_plan public.billing_plans%rowtype;
+  v_period_end timestamptz;
+  v_period_start timestamptz;
+  v_now timestamptz := now();
+begin
+  select * into v_attempt
+  from public.billing_payment_attempts
+  where id = p_attempt_id
+  for update;
+
+  if not found then raise exception 'Payment attempt not found'; end if;
+
+  select * into v_invoice
+  from public.billing_invoices
+  where id = v_attempt.invoice_id
+  for update;
+
+  if not found then raise exception 'Invoice not found'; end if;
+  if v_invoice.status = 'paid' then
+    return jsonb_build_object('success', true, 'status', 'paid', 'invoice_number', v_invoice.invoice_number, 'already_processed', true);
+  end if;
+  if v_attempt.amount_tzs <> v_invoice.amount_tzs then raise exception 'Payment amount does not match invoice'; end if;
+
+  select * into v_plan from public.billing_plans where id = v_invoice.plan_id;
+  if not found then raise exception 'Billing plan not found'; end if;
+
+  select current_period_end into v_period_end
+  from public.business_subscriptions
+  where business_id = v_invoice.business_id
+  for update;
+
+  v_period_start := greatest(v_now, coalesce(v_period_end, v_now));
+  if v_plan.interval = 'year' then
+    v_period_end := v_period_start + interval '1 year';
+  else
+    v_period_end := v_period_start + interval '1 month';
+  end if;
+
+  insert into public.business_subscriptions (
+    business_id, plan_id, status, current_period_start, current_period_end, updated_at
+  ) values (
+    v_invoice.business_id, v_invoice.plan_id, 'active', v_period_start, v_period_end, v_now
+  )
+  on conflict (business_id) do update set
+    plan_id = excluded.plan_id,
+    status = 'active',
+    current_period_start = excluded.current_period_start,
+    current_period_end = excluded.current_period_end,
+    updated_at = excluded.updated_at;
+
+  update public.billing_payment_attempts
+  set status = 'completed', confirmed_at = v_now
+  where id = v_attempt.id;
+
+  update public.billing_invoices
+  set status = 'paid', paid_at = v_now
+  where id = v_invoice.id;
+
+  return jsonb_build_object('success', true, 'status', 'paid', 'invoice_number', v_invoice.invoice_number, 'paid_at', v_now);
+end;
+$$;
+
+revoke all on function public.finalize_billing_payment(uuid) from public, anon, authenticated;
+grant execute on function public.finalize_billing_payment(uuid) to service_role;
