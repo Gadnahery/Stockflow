@@ -353,8 +353,9 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
 /* ───────── pull ───────── */
 
 /**
- * Bring in products and customers created on other devices.
- * Only adds what is missing locally — existing local rows (and their live stock) are never overwritten.
+ * Restore cloud records missing from this device. Sales are fetched from the full active-branch history,
+ * not the incremental cursor, so a cleared/replaced browser database can recover older sales and reports.
+ * Only adds missing sales; existing local rows are never overwritten.
  */
 export async function pullMissing(): Promise<number> {
   if (!supabaseConfigured || !navigator.onLine) return 0
@@ -378,7 +379,7 @@ export async function pullMissing(): Promise<number> {
       supabase.from('products').select('*').eq('business_id', businessId),
       supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
-      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(500),
+      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).order('created_at', { ascending: true }).limit(1000),
       supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).gte('created_at', since).limit(300),
       supabase.from('stock_movements').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
     ])
@@ -492,6 +493,7 @@ export async function pullMissing(): Promise<number> {
         tax: Number(row.tax_total) || 0,
         total: Number(row.total) || 0,
         payments: payments as Payment[],
+        branchId: row.branch_id || undefined,
         customerId: row.customer_id || undefined,
         customerName: row.customer_name || undefined,
         cashierId: row.user_id || undefined,
