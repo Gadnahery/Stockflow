@@ -8,6 +8,7 @@ import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { setActiveBranchId } from '../lib/branch'
 import { db, switchToBusinessWorkspace } from '../lib/db'
+import { pullMissing } from '../lib/sync'
 
 type BranchRow = {
   id: string
@@ -89,6 +90,7 @@ export default function BranchesPage() {
       // Save the previous branch's offline data before loading this branch's catalogue.
       if (bizId) await switchToBusinessWorkspace(bizId, id)
       setActiveBranchId(id)
+      await pullMissing().catch(() => 0)
       toast('Active branch updated', 'success')
       setBranches((b) => [...b])
     } catch {
