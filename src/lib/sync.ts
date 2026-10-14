@@ -362,12 +362,6 @@ export async function pullMissing(): Promise<number> {
   const businessId = getBusinessId()
   if (!businessId) return 0
 
-  let since = '1970-01-01T00:00:00.000Z'
-  try {
-    const s = localStorage.getItem(lastPullKey())
-    if (s) since = s
-  } catch { /* ignore */ }
-
   const nowIso = new Date().toISOString()
   let added = 0
 
