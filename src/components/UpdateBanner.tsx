@@ -4,9 +4,16 @@ import { RefreshCw } from 'lucide-react'
 /** Shown when a new service worker is waiting — one-tap update for installed PWA */
 export default function UpdateBanner() {
   const [waiting, setWaiting] = useState<ServiceWorker | null>(null)
+  const [updating, setUpdating] = useState(false)
+  const [online, setOnline] = useState(navigator.onLine)
 
   useEffect(() => {
     if (!('serviceWorker' in navigator)) return
+
+    const onOnline = () => setOnline(true)
+    const onOffline = () => setOnline(false)
+    window.addEventListener('online', onOnline)
+    window.addEventListener('offline', onOffline)
 
     const onUpdate = (e: Event) => {
       const sw = (e as CustomEvent).detail as ServiceWorker | null
@@ -39,6 +46,8 @@ export default function UpdateBanner() {
 
     return () => {
       window.removeEventListener('sf-sw-update', onUpdate)
+      window.removeEventListener('online', onOnline)
+      window.removeEventListener('offline', onOffline)
       navigator.serviceWorker.removeEventListener('controllerchange', onController)
     }
   }, [])
@@ -51,18 +60,19 @@ export default function UpdateBanner() {
         <RefreshCw size={18} className="shrink-0" />
         <div className="flex-1 min-w-0">
           <p className="text-[14px] font-semibold">Update available</p>
-          <p className="text-[12px] text-white/80">New version of StockFlow is ready.</p>
+          <p className="text-[12px] text-white/80">{online ? "A new version is ready. Update now to refresh StockFlow." : "A new version is ready. Connect to the internet to update safely."}</p>
         </div>
         <button
           type="button"
           className="press shrink-0 h-9 px-3 rounded-full bg-white text-primary text-[13px] font-bold"
+          disabled={!online || updating}
           onClick={() => {
+            if (!online || updating) return
+            setUpdating(true)
             waiting.postMessage({ type: 'SKIP_WAITING' })
-            // fallback reload if controllerchange is slow
-            setTimeout(() => window.location.reload(), 800)
           }}
         >
-          Update
+          {updating ? 'Updating…' : online ? 'Update' : 'Connect to update'}
         </button>
       </div>
     </div>
