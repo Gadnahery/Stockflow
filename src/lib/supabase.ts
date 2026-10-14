@@ -116,6 +116,15 @@ export async function fetchMembership(userId: string): Promise<{
 }> {
   if (!supabaseConfigured || !supabase) return { member: null, business: null }
 
+  // On launch without internet, use the last verified session's local business cache immediately.
+  if (!navigator.onLine) {
+    const cachedMember = getCachedMember()
+    if (cachedMember?.status === 'active' && cachedMember.user_id === userId) {
+      return { member: cachedMember, business: getCachedBusiness() }
+    }
+    return { member: null, business: null }
+  }
+
   const { data: members, error } = await supabase
     .from('business_members')
     .select('id, business_id, user_id, role, permissions, branch_ids, status, display_name, pin_hash, last_seen_at')
@@ -140,14 +149,17 @@ export async function fetchMembership(userId: string): Promise<{
   }
   cacheMember(member)
 
-  const { data: biz } = await supabase
+  const { data: biz, error: businessError } = await supabase
     .from('businesses')
     .select('id, name, slug, trial_ends_at, paid_until, subscription_status, last_payment_order_id, last_payment_at')
     .eq('id', member.business_id)
     .maybeSingle()
 
-  const business = (biz as Business) ?? getCachedBusiness()
+  const cachedBusiness = getCachedBusiness()
+  const business = (biz as Business) ?? (cachedBusiness?.id === member.business_id ? cachedBusiness : null)
   if (business) cacheBusiness(business)
+  // Do not retain another workspace's stale entitlement when business details are unavailable.
+  if (businessError && business?.id !== member.business_id) localStorage.removeItem('sf_write_allowed')
   return { member, business }
 }
 

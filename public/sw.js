@@ -1,5 +1,5 @@
-/* StockFlow service worker v7 — offline-first app shell */
-const CACHE = 'stockflow-v7'
+/* StockFlow service worker v8 — fast offline-first app shell */
+const CACHE = 'stockflow-v8'
 
 const PRECACHE = [
   '/',
@@ -64,7 +64,8 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // Network-first for JS/CSS so we do not stick on broken bundles
+  // Cache-first for app bundles: launch immediately offline or on a slow mobile network.
+  // Refresh cached assets in the background for the next launch.
   if (
     url.origin === self.location.origin &&
     (url.pathname.startsWith('/assets/') ||
@@ -72,13 +73,13 @@ self.addEventListener('fetch', (event) => {
       url.pathname.endsWith('.css'))
   ) {
     event.respondWith(
-      fetch(req)
-        .then((res) => {
-          const copy = res.clone()
-          caches.open(CACHE).then((c) => c.put(req, copy))
+      caches.match(req).then((cached) => {
+        const refresh = fetch(req).then((res) => {
+          if (res.ok) caches.open(CACHE).then((cache) => cache.put(req, res.clone()))
           return res
-        })
-        .catch(() => caches.match(req)),
+        }).catch(() => cached)
+        return cached || refresh
+      }),
     )
     return
   }

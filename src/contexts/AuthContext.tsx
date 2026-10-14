@@ -15,6 +15,8 @@ import {
   createBusiness as rpcCreateBusiness,
   acceptInvite as rpcAcceptInvite,
   cacheMember,
+  getCachedMember,
+  getCachedBusiness,
   clearBusinessId,
   setBusinessId,
   getBranchId,
@@ -93,7 +95,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const applyMembership = useCallback(async (uid: string) => {
     try {
-      const { member: m, business: b } = await fetchMembership(uid)
+      const cachedMember = getCachedMember()
+      const cachedBusiness = getCachedBusiness()
+      const cached = cachedMember?.status === 'active' && cachedMember.user_id === uid
+        ? { member: cachedMember, business: cachedBusiness?.id === cachedMember.business_id ? cachedBusiness : null }
+        : null
+      let result: { member: BusinessMember | null; business: Business | null }
+      if (!navigator.onLine && cached) {
+        result = cached
+      } else if (cached) {
+        // Prefer fresh cloud data, but don't leave returning users staring at a spinner
+        // for a slow membership request; refresh again on the next online event.
+        result = await Promise.race([
+          fetchMembership(uid),
+          new Promise<NonNullable<typeof cached>>((resolve) => window.setTimeout(() => resolve(cached), 1800)),
+        ])
+      } else {
+        result = await fetchMembership(uid)
+      }
+      const { member: m, business: b } = result
       // Isolate IndexedDB per business — never show another shop's products/customers
       await switchToBusinessWorkspace(
         m?.business_id ?? null,
@@ -155,7 +175,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setPinLocked(false)
         }
       } catch {
-        // ignore boot errors — show login
+        // Never strand the user on a spinner when network/auth storage is slow.
+        const cachedMember = (() => { try { return JSON.parse(localStorage.getItem('sf_member_cache') || 'null') as BusinessMember | null } catch { return null } })()
+        const cachedBusiness = (() => { try { return JSON.parse(localStorage.getItem('sf_business_cache') || 'null') as Business | null } catch { return null } })()
+        if (!navigator.onLine && userRef.current && cachedMember?.user_id === userRef.current.id && cachedMember.status === 'active') {
+          setMember(cachedMember)
+          setBusiness(cachedBusiness)
+          setPinLocked(Boolean(localStorage.getItem('sf_device_pin')))
+        }
       } finally {
         if (mounted) {
           booted.current = true
@@ -168,8 +195,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange(async (event, next) => {
       if (!mounted) return
-      // Ignore the duplicate INITIAL_SESSION — boot() already handled it
-      if (event === 'INITIAL_SESSION' && booted.current) return
+      // getSession() in boot() owns initial hydration; handling INITIAL_SESSION here too
+      // can trigger a second network membership lookup and leave the app on a spinner.
+      if (event === 'INITIAL_SESSION') return
 
       setSession(next)
       setUser(next?.user ?? null)
