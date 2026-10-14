@@ -17,6 +17,7 @@ export class StockFlowDB extends Dexie {
   branches!: Table<Branch, string>
   settings!: Table<AppSettings, string>
   auditLogs!: Table<AuditLog, string>
+  workspaceSnapshots!: Table<{ id: string; data: Record<string, unknown[]>; savedAt: string }, string>
 
   constructor() {
     super('StockFlowDB')
@@ -63,6 +64,22 @@ export class StockFlowDB extends Dexie {
       branches: 'id, name, active',
       settings: 'id',
       auditLogs: 'id, action, entityType, createdAt',
+    })
+    this.version(5).stores({
+      products: 'id, sku, barcode, name, category, active',
+      sales: 'id, createdAt, synced, receiptNumber, status, cashierId, shiftId',
+      stockMovements: 'id, productId, type, createdAt, synced, referenceId',
+      customers: 'id, name, phone',
+      suppliers: 'id, name, phone',
+      purchases: 'id, supplierId, status, createdAt, synced',
+      cashSessions: 'id, userId, status, openedAt',
+      expenses: 'id, category, createdAt, synced',
+      outbox: 'id, type, createdAt',
+      users: 'id, pin, role, active',
+      branches: 'id, name, active',
+      settings: 'id',
+      auditLogs: 'id, action, entityType, createdAt',
+      workspaceSnapshots: 'id, savedAt',
     })
   }
 }
@@ -150,60 +167,83 @@ export async function ensureSeedData() {
 
 const WORKSPACE_KEY = 'sf_workspace_id'
 
-/** Wipe local catalogue/sales so one shop never sees another shop's data. */
+const WORKSPACE_TABLES = [
+  'products', 'sales', 'stockMovements', 'customers', 'suppliers',
+  'purchases', 'cashSessions', 'expenses', 'outbox', 'users',
+  'branches', 'settings', 'auditLogs',
+] as const
+
+/** Preserve each business' offline data before changing workspaces. */
+async function saveWorkspaceSnapshot(businessId: string) {
+  const data: Record<string, unknown[]> = {}
+  for (const name of WORKSPACE_TABLES) {
+    data[name] = await (db as unknown as Record<string, Table<unknown, string>>)[name].toArray()
+  }
+  await db.workspaceSnapshots.put({ id: businessId, data, savedAt: new Date().toISOString() })
+}
+
+/** Restore only the target business' saved offline data. */
+async function restoreWorkspaceSnapshot(businessId: string) {
+  const snapshot = await db.workspaceSnapshots.get(businessId)
+  if (!snapshot) return false
+  await withoutSync(async () => {
+    for (const name of WORKSPACE_TABLES) {
+      const table = (db as unknown as Record<string, Table<unknown, string>>)[name]
+      await table.clear()
+      const rows = snapshot.data[name] ?? []
+      if (rows.length) await table.bulkPut(rows)
+    }
+  })
+  return true
+}
+
+/** Wipe only the active working tables after a snapshot has been saved. */
 export async function clearLocalBusinessData() {
   await withoutSync(async () => {
-    await Promise.all([
-      db.products.clear(),
-      db.sales.clear(),
-      db.stockMovements.clear(),
-      db.customers.clear(),
-      db.suppliers.clear(),
-      db.purchases.clear(),
-      db.cashSessions.clear(),
-      db.expenses.clear(),
-      db.outbox.clear(),
-      db.auditLogs.clear(),
-      db.branches.clear(),
-    ])
+    await Promise.all(WORKSPACE_TABLES.map((name) =>
+      (db as unknown as Record<string, Table<unknown, string>>)[name].clear()
+    ))
   })
 }
 
 /**
- * Call whenever the signed-in business changes.
- * Clears leftover IndexedDB from a previous account/demo.
+ * Keep local records isolated by business without destroying them when the user
+ * switches accounts. Snapshots live in IndexedDB, not localStorage, so product
+ * images and larger offline datasets do not hit localStorage's small quota.
  */
 export async function switchToBusinessWorkspace(businessId: string | null) {
   const prev = localStorage.getItem(WORKSPACE_KEY)
   if (!businessId) {
-    if (prev) {
-      await clearLocalBusinessData()
-      localStorage.removeItem(WORKSPACE_KEY)
-    }
-    return { switched: Boolean(prev) }
+    // Sign-out is not data deletion. Leave the last workspace stored locally.
+    return { switched: false }
   }
   if (prev === businessId) return { switched: false }
+
+  if (prev) await saveWorkspaceSnapshot(prev)
   await clearLocalBusinessData()
   localStorage.setItem(WORKSPACE_KEY, businessId)
-  // Reset settings name shell (cloud pull / onboarding will fill real name)
-  const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
-  localStorage.setItem('deviceId', deviceId)
-  await withoutSync(async () => {
-    await db.settings.put({
-      id: 'main',
-      businessName: 'My Store',
-      currency: 'TZS',
-      taxRate: 18,
-      taxInclusive: true,
-      deviceId,
-      offlineWindowHours: 72,
-      receiptFooter: 'Thank you for shopping with us!',
-      tinNumber: '',
-      vrnNumber: '',
-      fiscalMode: 'off',
-      fiscalReceiptSeq: 0,
-      industryType: 'retail',
+
+  const restored = await restoreWorkspaceSnapshot(businessId)
+  if (!restored) {
+    const deviceId = localStorage.getItem('deviceId') || crypto.randomUUID()
+    localStorage.setItem('deviceId', deviceId)
+    await withoutSync(async () => {
+      await db.settings.put({
+        id: 'main',
+        businessName: 'My Store',
+        currency: 'TZS',
+        taxRate: 18,
+        taxInclusive: true,
+        deviceId,
+        offlineWindowHours: 72,
+        receiptFooter: 'Thank you for shopping with us!',
+        tinNumber: '',
+        vrnNumber: '',
+        fiscalMode: 'off',
+        fiscalReceiptSeq: 0,
+        industryType: 'retail',
+      })
     })
-  })
-  return { switched: true }
+  }
+  return { switched: true, restored }
 }
