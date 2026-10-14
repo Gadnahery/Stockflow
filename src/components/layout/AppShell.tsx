@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
   ShoppingCart, Package, Users, BarChart3, LayoutGrid, Lock, Wifi, WifiOff,
   PanelLeft, PanelLeftClose, Search, Plus, Receipt, Wallet, Truck, ClipboardList,
-  Settings, CloudCog, ShieldCheck, CreditCard, Building2,
+  Settings, CloudCog, ShieldCheck, Building2,
 } from 'lucide-react'
 import { useEffect, useRef, type UIEvent, type FocusEvent } from 'react'
 import clsx from 'clsx'
@@ -12,7 +12,6 @@ import { useAuth } from '../../contexts/AuthContext'
 import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import InstallBanner from '../InstallBanner'
-import SubscriptionBanner from '../SubscriptionBanner'
 import UpdateBanner from '../UpdateBanner'
 
 
@@ -30,7 +29,6 @@ const NAV_LABELS: Record<string, string> = {
   'app.shifts': 'Shifts',
   'app.settings': 'Settings',
   'app.users': 'Team',
-  'app.billing': 'Billing',
   'app.branches': 'Branches',
   'app.sync': 'Sync',
   'app.audit': 'Audit',
@@ -38,7 +36,6 @@ const NAV_LABELS: Record<string, string> = {
   'app.export': 'Export',
   'app.team': 'Team',
   'app.alerts': 'Alerts',
-  'app.plan': 'Billing',
   'app.account': 'Account',
   'app.help': 'Help',
   'app.notifications': 'Alerts',
@@ -77,7 +74,6 @@ const desktopNavKeys = [
   { to: '/audit', icon: ShieldCheck, labelKey: 'app.audit' , section: 'Insights' },
   { to: '/branches', icon: Building2, labelKey: 'app.branches' , section: 'Admin' },
   { to: '/settings', icon: Settings, labelKey: 'app.settings' , section: 'Admin' },
-  { to: '/billing', icon: CreditCard, labelKey: 'app.plan' , section: 'Admin' },
   { to: '/more', icon: LayoutGrid, labelKey: 'app.more' , section: 'Admin' },
 ]
 
@@ -95,7 +91,6 @@ function pageTitleKey(pathname: string): string | null {
   if (pathname.startsWith('/account')) return 'app.account'
   if (pathname.startsWith('/help')) return 'app.help'
   if (pathname.startsWith('/branches')) return 'app.branches'
-  if (pathname.startsWith('/billing')) return 'app.plan'
   return null
 }
 
@@ -402,7 +397,6 @@ export default function AppShell() {
 
         <main className="flex-1 min-h-0 min-w-0 relative" onScrollCapture={onScrollAny}>
           <div key={location.pathname} className="page-enter h-full flex flex-col">
-            <SubscriptionBanner />
             <InstallBanner />
             <Outlet />
           </div>

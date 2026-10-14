@@ -139,7 +139,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setBusiness(fresh.business)
           cacheMember(fresh.member)
           cacheBusiness(fresh.business)
-          localStorage.setItem('sf_write_allowed', entitlementCanWrite(fresh.business) ? '1' : '0')
           mirrorSessionUser(fresh.member)
           if (fresh.member.business_id && navigator.onLine) void pullMissing().catch(() => 0)
         }).catch(() => undefined)
@@ -157,7 +156,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setBusiness(b)
       cacheMember(m)
       try {
-        localStorage.setItem('sf_write_allowed', entitlementCanWrite(b) ? '1' : '0')
       } catch { /* ignore */ }
       mirrorSessionUser(m)
       if (m?.business_id && navigator.onLine) {

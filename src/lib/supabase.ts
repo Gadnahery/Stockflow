@@ -35,17 +35,11 @@ export interface Business {
   id: string
   name: string
   slug?: string | null
-  trial_ends_at?: string | null
-  paid_until?: string | null
-  subscription_status?: string | null
-  last_payment_order_id?: string | null
-  last_payment_at?: string | null
 }
 
 const BUSINESS_ID_KEY = 'businessId'
 const BRANCH_ID_KEY = 'branchId'
 const MEMBER_CACHE_KEY = 'sf_member_cache'
-const ENTITLEMENT_KEY = 'sf_entitlement'
 const BUSINESS_CACHE_KEY = 'sf_business_cache'
 
 export function getBusinessId(): string | null {
@@ -96,19 +90,6 @@ export function getCachedMember(): BusinessMember | null {
   }
 }
 
-export function cacheEntitlement(payload: unknown) {
-  localStorage.setItem(ENTITLEMENT_KEY, JSON.stringify({ at: Date.now(), payload }))
-}
-
-export function getCachedEntitlement(): { at: number; payload: unknown } | null {
-  try {
-    const raw = localStorage.getItem(ENTITLEMENT_KEY)
-    return raw ? JSON.parse(raw) : null
-  } catch {
-    return null
-  }
-}
-
 /** Load the active membership for the current auth user. */
 export async function fetchMembership(userId: string): Promise<{
   member: BusinessMember | null
@@ -152,9 +133,9 @@ export async function fetchMembership(userId: string): Promise<{
   }
   cacheMember(member)
 
-  const { data: biz, error: businessError } = await supabase
+  const { data: biz } = await supabase
     .from('businesses')
-    .select('id, name, slug, trial_ends_at, paid_until, subscription_status, last_payment_order_id, last_payment_at')
+    .select('id, name, slug')
     .eq('id', member.business_id)
     .maybeSingle()
 
@@ -162,7 +143,6 @@ export async function fetchMembership(userId: string): Promise<{
   const business = (biz as Business) ?? (cachedBusiness?.id === member.business_id ? cachedBusiness : null)
   if (business) cacheBusiness(business)
   // Do not retain another workspace's stale entitlement when business details are unavailable.
-  if (businessError && business?.id !== member.business_id) localStorage.removeItem('sf_write_allowed')
   return { member, business }
 }
 
