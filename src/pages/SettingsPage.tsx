@@ -104,6 +104,7 @@ export default function SettingsPage() {
     } catch {
       /* settings row may not exist yet */
     }
+    window.dispatchEvent(new Event('sf-branch-change'))
     const name = branches.find((b) => b.id === id)?.name
     toast(name ? `Branch: ${name}` : 'Branch updated', 'success')
   }

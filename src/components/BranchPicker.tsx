@@ -75,7 +75,7 @@ export default function BranchPicker({ onDone }: { onDone: () => void }) {
             Sales and stock for this device will use the branch you select.
           </p>
         </div>
-        <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
+        <div className="bg-white dark:bg-[var(--card)] rounded-[22px] shadow-card overflow-hidden">
           {branches.map((b, i) => (
             <button
               key={b.id}

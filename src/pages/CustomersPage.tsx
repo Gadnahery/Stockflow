@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { db, audit } from '../lib/db'
 import type { Customer, Sale } from '../types'
 import Screen from '../components/ui/Screen'
+import { useI18n } from '../i18n/I18nContext'
 import Sheet from '../components/ui/Sheet'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { useUi } from '../store/uiStore'
@@ -17,6 +18,7 @@ const emptyForm = { name: '', phone: '', email: '', address: '', creditLimit: '0
 type Filter = 'all' | 'owing' | 'credit'
 
 export default function CustomersPage() {
+  const { t } = useI18n()
   const confirm = useConfirm()
   const toast = useUi((s) => s.toast)
   const [query, setQuery] = useState('')
@@ -182,7 +184,7 @@ export default function CustomersPage() {
 
   return (
     <Screen
-      title="Customers"
+      title={t("customers.title")}
       subtitle={
         loading
           ? 'Loading…'
@@ -305,7 +307,7 @@ export default function CustomersPage() {
       <Sheet
         open={showDetail && !!editing}
         onClose={() => setShowDetail(false)}
-        title={editing?.name || 'Customer'}
+        title={editing?.name || t("customers.title")}
         footer={
           <div className="flex gap-2">
             <button type="button" onClick={openEditFromDetail} className="press flex-1 h-12 rounded-[14px] bg-black/[0.06] font-semibold">
@@ -380,7 +382,7 @@ export default function CustomersPage() {
             )}
 
             <div>
-              <p className="text-[13px] font-semibold text-ink-secondary mb-2">Sales history</p>
+              <p className="text-[13px] font-semibold text-ink-secondary mb-2">{t('customers.salesHistory')}</p>
               {customerSales.length === 0 ? (
                 <p className="text-[14px] text-ink-muted py-4">No sales linked to this customer yet.</p>
               ) : (
@@ -412,7 +414,7 @@ export default function CustomersPage() {
       <Sheet
         open={showForm}
         onClose={() => setShowForm(false)}
-        title={editing ? 'Edit customer' : 'New customer'}
+        title={editing ? t("customers.edit") : t("customers.new")}
         footer={
           <div className="space-y-2">
             <button type="button" onClick={() => void save()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">

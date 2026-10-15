@@ -6,6 +6,7 @@ import { db } from '../lib/db'
 import type { Sale } from '../types'
 import ReceiptModal from '../components/ReceiptModal'
 import Screen from '../components/ui/Screen'
+import { useI18n } from '../i18n/I18nContext'
 import { usePosStore } from '../store/posStore'
 import { usePermission } from '../hooks/usePermission'
 import { useConfirm } from '../components/ui/ConfirmDialog'
@@ -18,6 +19,7 @@ type Period = 'today' | '7d' | '30d' | 'all'
 type StatusFilter = 'all' | 'completed' | 'voided' | 'refunded'
 
 export default function SalesPage() {
+  const { t } = useI18n()
   const [selected, setSelected] = useState<Sale | null>(null)
   const [query, setQuery] = useState('')
   const [period, setPeriod] = useState<Period>('7d')
@@ -126,7 +128,7 @@ export default function SalesPage() {
 
   return (
     <Screen
-      title="Sales"
+      title={t("sales.title")}
       subtitle={
         loading
           ? 'Loading…'

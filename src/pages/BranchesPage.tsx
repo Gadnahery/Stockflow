@@ -7,9 +7,8 @@ import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { setActiveBranchId } from '../lib/branch'
-import { db, switchToBusinessWorkspace } from '../lib/db'
+import { db } from '../lib/db'
 import { useI18n } from '../i18n/I18nContext'
-import { pullMissing } from '../lib/sync'
 
 type BranchRow = {
   id: string
@@ -95,20 +94,21 @@ export default function BranchesPage() {
   }
 
   const setActive = async (id: string) => {
-    const bizId = getBusinessId() || member?.business_id
+    // Lightweight switch: only change active branch tag.
+    // Do NOT call switchToBusinessWorkspace — that is for changing shops, not branches,
+    // and must never clear the shared product catalogue.
     try {
-      // Save the previous branch's offline data before loading this branch's catalogue.
-      if (bizId) await switchToBusinessWorkspace(bizId, id, member?.branch_ids?.[0] === id ? bizId : undefined)
       setActiveBranchId(id)
-      // Notify all branch-aware screens immediately; the branch ID is stored outside
-      // React state, so subscribers otherwise can keep displaying the previous branch.
+      try {
+        await db.settings.update('main', { branchId: id } as Record<string, unknown>)
+      } catch {
+        /* settings row optional */
+      }
       window.dispatchEvent(new Event('sf-branch-change'))
-      await pullMissing().catch(() => 0)
-      await refreshMembership()
-      toast(sw ? 'Tawi linalotumika limebadilishwa' : 'Active branch updated', 'success')
       setBranches((b) => [...b])
+      toast(sw ? 'Tawi linalotumika limebadilishwa' : 'Active branch updated', 'success')
     } catch {
-      toast(sw ? 'Imeshindikana kubadilisha tawi kwa usalama. Data yako imehifadhiwa.' : 'Could not switch branch safely. Your saved data has been kept.', 'error')
+      toast(sw ? 'Imeshindikana kubadilisha tawi' : 'Could not switch branch', 'error')
     }
   }
 

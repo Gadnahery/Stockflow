@@ -321,7 +321,7 @@ export default function AppShell() {
       {/* Main column */}
       <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         {/* Desktop top bar */}
-        <header className="hidden md:flex items-center gap-3 h-14 px-4 lg:px-5 border-b border-black/5 bg-white/80 backdrop-blur-xl shrink-0 z-20">
+        <header className="hidden md:flex items-center gap-3 h-14 px-4 lg:px-5 border-b border-border bg-white/80 dark:bg-[var(--card)]/90 backdrop-blur-xl shrink-0 z-20">
           {hidden && (
             <button
               type="button"

@@ -12,11 +12,13 @@ import Screen from '../components/ui/Screen'
 import Sheet from '../components/ui/Sheet'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { fmtMoney } from '../lib/util'
+import { useI18n } from '../i18n/I18nContext'
 
 const CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Transport', 'Supplies', 'Marketing', 'Maintenance', 'Other']
 const METHODS = ['cash', 'mobile', 'card', 'bank']
 
 export default function ExpensesPage() {
+  const { t } = useI18n()
   const confirm = useConfirm()
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -126,8 +128,8 @@ export default function ExpensesPage() {
     <>
       <div className="px-4 pt-2"><BranchFilter value={branchFilter} onChange={setBranchFilter} /></div>
       <Screen
-      title="Expenses"
-      subtitle={`${fmtMoney(total)} in view`}
+      title={t("expenses.title")}
+      subtitle={`${fmtMoney(total)} ${t("expenses.inView")}`}
       action={
         <button type="button" onClick={openCreate} className="press h-9 px-3.5 rounded-full bg-primary text-white text-[14px] font-semibold flex items-center gap-1.5">
           <Plus size={16} /> Add
@@ -201,10 +203,10 @@ export default function ExpensesPage() {
             <div className="mx-auto mb-3 h-14 w-14 rounded-full bg-[#FFF1E8] text-warning flex items-center justify-center">
               <Wallet size={26} />
             </div>
-            <p className="text-[16px] font-semibold">No expenses</p>
+            <p className="text-[16px] font-semibold">{t('expenses.empty')}</p>
             <p className="text-[14px] text-ink-secondary mt-1 mb-4">Record rent, utilities, and other costs.</p>
             <button type="button" onClick={openCreate} className="press h-11 px-5 rounded-[14px] bg-primary text-white font-semibold">
-              Add expense
+              {t("expenses.add")}
             </button>
           </div>
         )}
@@ -246,16 +248,16 @@ export default function ExpensesPage() {
       <Sheet
         open={showForm}
         onClose={() => setShowForm(false)}
-        title={editingId ? 'Edit expense' : 'Add expense'}
+        title={editingId ? t("expenses.edit") : t("expenses.add")}
         footer={
           <button type="button" onClick={() => void save()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">
-            {editingId ? 'Save changes' : 'Save expense'}
+            {editingId ? t("expenses.saveChanges") : t("expenses.save")}
           </button>
         }
       >
         <div className="space-y-4">
           <div>
-            <label className="auth-label">Category</label>
+            <label className="auth-label">{t("expenses.category")}</label>
             <select className="field w-full" value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })}>
               {CATEGORIES.map((c) => (
                 <option key={c} value={c}>{c}</option>
@@ -263,11 +265,11 @@ export default function ExpensesPage() {
             </select>
           </div>
           <div>
-            <label className="auth-label">Amount (TZS)</label>
+            <label className="auth-label">{t("expenses.amount")} (TZS)</label>
             <input className="field w-full" inputMode="decimal" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} placeholder="0" />
           </div>
           <div>
-            <label className="auth-label">Payment method</label>
+            <label className="auth-label">{t("expenses.method")}</label>
             <div className="flex flex-wrap gap-2">
               {METHODS.map((m) => (
                 <button
@@ -284,8 +286,8 @@ export default function ExpensesPage() {
             </div>
           </div>
           <div>
-            <label className="auth-label">Note</label>
-            <input className="field w-full" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder="Optional" />
+            <label className="auth-label">{t("expenses.note")}</label>
+            <input className="field w-full" value={form.note} onChange={(e) => setForm({ ...form, note: e.target.value })} placeholder={t("expenses.optional")} />
           </div>
         </div>
       </Sheet>

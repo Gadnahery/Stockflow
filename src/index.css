@@ -498,6 +498,8 @@ html.dark .sheet-panel .text-ink { color: var(--ink) !important; }
 html.dark .rounded-\[20px\].bg-white,
 html.dark .rounded-\[18px\].bg-white,
 html.dark .rounded-2xl.bg-white,
+html.dark .rounded-\[22px\].bg-white,
+html.dark .rounded-\[22px\],
 html.dark .rounded-xl.bg-white {
   background-color: var(--card) !important;
 }
