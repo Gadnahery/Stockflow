@@ -28,6 +28,8 @@ export interface Product {
   isService?: boolean
 
   id: UUID
+  /** When catalogMode is isolated, product belongs to this branch only */
+  branchId?: UUID
   name: string
   sku: string
   barcode?: string
@@ -227,11 +229,12 @@ export interface AppSettings {
   fiscalReceiptSeq?: number
   /** Feature-flagged shop type from SRS §8 */
   industryType?: 'retail' | 'restaurant' | 'pharmacy' | 'liquor' | 'salon' | 'wholesale'
-  /**
-   * shared = one stock number for all branches (default)
-   * per_branch = each branch has its own quantity for the same products
-   */
   stockMode?: 'shared' | 'per_branch'
+  /**
+   * shared = same product list for every branch (default)
+   * isolated = each branch has its own products (empty until you add them); like a second shop under same owner
+   */
+  catalogMode?: 'shared' | 'isolated'
 }
 
 /** Per-branch quantity when stockMode is per_branch. Catalogue products stay shared. */

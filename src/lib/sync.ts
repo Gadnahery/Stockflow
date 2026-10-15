@@ -139,10 +139,13 @@ async function syncProduct(product: Product, businessId: string) {
   let imageUrl: string | null = null
   try { imageUrl = await uploadImage(product, businessId) } catch (e) { console.warn('image upload', e) }
 
+  // Shared catalogue → null branch_id. Isolated → product's branch (or active).
+  const productBranch =
+    product.branchId && isUuid(product.branchId) ? product.branchId : null
   const row: Record<string, unknown> = {
     id: product.id,
     business_id: businessId,
-    branch_id: getBranchId(),
+    branch_id: productBranch,
     name: product.name,
     sku: product.sku,
     barcode: product.barcode || null,
@@ -429,6 +432,7 @@ export async function pullMissing(): Promise<number> {
       }
       await db.products.put({
         id: row.id,
+        branchId: row.branch_id || undefined,
         name: row.name,
         sku: row.sku || String(row.id).slice(0, 8),
         barcode: row.barcode || undefined,

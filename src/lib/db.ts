@@ -179,6 +179,7 @@ export async function ensureSeedData() {
       fiscalReceiptSeq: 0,
       industryType: 'retail',
       stockMode: 'shared',
+      catalogMode: 'shared',
     })
   } else if (!existing.deviceId) {
     await db.settings.update('main', { deviceId })
@@ -306,6 +307,7 @@ export async function switchToBusinessWorkspace(businessId: string | null, _bran
         fiscalReceiptSeq: 0,
         industryType: 'retail',
       stockMode: 'shared',
+      catalogMode: 'shared',
       })
     })
   }

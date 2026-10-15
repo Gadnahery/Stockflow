@@ -13,6 +13,7 @@ import { useUi } from '../store/uiStore'
 import { fileToDataUrl } from '../lib/image'
 import { useI18n } from '../i18n/I18nContext'
 import { stockMapForProducts, applyStockChange, getStockMode } from '../lib/stock'
+import { getCatalogMode, productVisibleOnBranch } from '../lib/catalogMode'
 import { getBranchId } from '../lib/supabase'
 import { fmt, generateBarcode, makeSku } from '../lib/util'
 import { useConfirm } from '../components/ui/ConfirmDialog'
@@ -151,12 +152,21 @@ export default function ProductsPage() {
       packQty: form.packQty ? parseFloat(form.packQty) : undefined,
       packName: form.packName.trim() || undefined,
       packPrice: form.packPrice ? parseFloat(form.packPrice) : undefined,
-      // Shared catalog by default (branch isolation is on sales/reports, not product list)
       imageUrl: form.imageUrl || undefined,
+      branchId: undefined as string | undefined,
       active: true,
       updatedAt: now,
     }
     try {
+      const cMode = await getCatalogMode()
+      if (cMode === 'isolated') {
+        const bid = getBranchId()
+        if (!bid) {
+          setSaving(false)
+          return toast('Select a branch before adding products', 'error')
+        }
+        ;(data as { branchId?: string }).branchId = editing?.branchId || bid
+      }
       let uid: string | undefined
       try { uid = JSON.parse(sessionStorage.getItem('currentUser') || '{}').id } catch { /* none */ }
       const movement = (productId: string, prev: number, next: number, type: 'adjustment' | 'opening', reason: string) =>

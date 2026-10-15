@@ -15,6 +15,7 @@ import { usePermission } from '../hooks/usePermission'
 import { useI18n } from '../i18n/I18nContext'
 import ActiveBranchChip from '../components/ActiveBranchChip'
 import { stockMapForProducts } from '../lib/stock'
+import { getCatalogMode, productVisibleOnBranch } from '../lib/catalogMode'
 import { getBranchId } from '../lib/supabase'
 import { featuresFor } from '../lib/industry'
 import { format } from 'date-fns'
@@ -90,13 +91,27 @@ export default function PosPage() {
     [products]
   )
 
+  const [catalogMode, setCatalogMode] = useState<'shared' | 'isolated'>('shared')
+  useEffect(() => {
+    void getCatalogMode().then(setCatalogMode)
+    const on = () => { void getCatalogMode().then(setCatalogMode) }
+    window.addEventListener('sf-catalog-mode', on)
+    window.addEventListener('sf-branch-change', on)
+    return () => {
+      window.removeEventListener('sf-catalog-mode', on)
+      window.removeEventListener('sf-branch-change', on)
+    }
+  }, [])
+
   const filtered = useMemo(() => {
     const q = searchQuery.trim().toLowerCase()
+    const bid = getBranchId()
     return products
+      .filter((p) => productVisibleOnBranch(p, catalogMode, bid))
       .filter((p) => category === 'All' || p.category === category)
       .filter((p) => !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q)))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [products, searchQuery, category])
+  }, [products, searchQuery, category, catalogMode, branchTick])
 
   const qtyById = useMemo(() => {
     const m = new Map<string, number>()

@@ -8,7 +8,7 @@ import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { setActiveBranchId } from '../lib/branch'
 import { db } from '../lib/db'
-import { getStockMode, setStockMode, type StockMode } from '../lib/stock'
+import { getCatalogMode, setCatalogMode, type CatalogMode } from '../lib/catalogMode'
 import { useI18n } from '../i18n/I18nContext'
 
 type BranchRow = {
@@ -30,7 +30,7 @@ export default function BranchesPage() {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
-  const [stockMode, setStockModeState] = useState<StockMode>('shared')
+  const [catalogMode, setCatalogModeState] = useState<CatalogMode>('shared')
   const [modeBusy, setModeBusy] = useState(false)
   const activeId = localStorage.getItem('branchId')
 
@@ -55,23 +55,29 @@ export default function BranchesPage() {
 
   useEffect(() => {
     void load()
-    void getStockMode().then(setStockModeState)
+    void getCatalogMode().then(setCatalogModeState)
   }, [member?.business_id])
 
-  const changeStockMode = async (mode: StockMode) => {
-    if (mode === stockMode || modeBusy) return
+  const changeCatalogMode = async (mode: CatalogMode) => {
+    if (mode === catalogMode || modeBusy) return
     setModeBusy(true)
     try {
-      await setStockMode(mode, branches.map((b) => b.id))
-      setStockModeState(mode)
+      await setCatalogMode(mode, { assignToBranchId: localStorage.getItem('branchId') })
+      setCatalogModeState(mode)
+      window.dispatchEvent(new Event('sf-catalog-mode'))
+      window.dispatchEvent(new Event('sf-branch-change'))
       toast(
-        mode === 'per_branch'
-          ? (sw ? 'Kila tawi lina hifadhi yake. Orodha ya bidhaa inabaki moja.' : 'Each branch has its own stock. Product list stays shared.')
-          : (sw ? 'Hifadhi imejumuishwa kwa matawi yote.' : 'Stock merged across all branches.'),
+        mode === 'isolated'
+          ? (sw
+              ? 'Kila tawi lina bidhaa zake. Tawi jipya litaonekana tupu hadi uunde bidhaa.'
+              : 'Each branch has its own products. A branch with no products shows empty until you add some.')
+          : (sw
+              ? 'Bidhaa zote zimeunganishwa — matawi yote yanaona orodha moja.'
+              : 'All products merged — every branch sees one shared list.'),
         'success',
       )
     } catch (e) {
-      toast((e as Error).message || 'Could not update stock mode', 'error')
+      toast((e as Error).message || 'Could not update catalogue mode', 'error')
     } finally {
       setModeBusy(false)
     }
@@ -159,38 +165,38 @@ export default function BranchesPage() {
         {canManage && branches.length > 0 && (
           <div className="rounded-[22px] bg-white dark:bg-[var(--card)] shadow-card p-4 space-y-3">
             <div>
-              <p className="text-[15px] font-semibold text-ink">{sw ? 'Hifadhi kati ya matawi' : 'Stock across branches'}</p>
+              <p className="text-[15px] font-semibold text-ink">{sw ? 'Orodha ya bidhaa kati ya matawi' : 'Product catalogue across branches'}</p>
               <p className="text-[13px] text-ink-secondary mt-0.5">
                 {sw
-                  ? 'Chagua kama matawi yanashiriki idadi moja, au kila tawi lina idadi yake. Bidhaa hazifutwi.'
-                  : 'Choose one shared quantity for every branch, or separate quantities per branch. Products are never hidden.'}
+                  ? 'Chagua kama matawi yote yanaona bidhaa zile zile, au kila tawi lina orodha yake (kama duka la pili). Unaweza kuunganisha baadaye.'
+                  : 'Choose one shared product list for every branch, or a separate list per branch (like a second shop). You can merge later.'}
               </p>
             </div>
             <div className="grid grid-cols-1 gap-2">
               <button
                 type="button"
                 disabled={modeBusy}
-                onClick={() => void changeStockMode('shared')}
+                onClick={() => void changeCatalogMode('shared')}
                 className={`press text-left rounded-[16px] px-3.5 py-3 border ${
-                  stockMode === 'shared' ? 'border-primary bg-primary/10' : 'border-border bg-black/[0.02] dark:bg-white/5'
+                  catalogMode === 'shared' ? 'border-primary bg-primary/10' : 'border-border bg-black/[0.02] dark:bg-white/5'
                 }`}
               >
-                <span className="block text-[14px] font-semibold text-ink">{sw ? 'Hifadhi moja (iliyounganishwa)' : 'Shared stock (merged)'}</span>
+                <span className="block text-[14px] font-semibold text-ink">{sw ? 'Orodha moja (iliyounganishwa)' : 'Shared catalogue (merged)'}</span>
                 <span className="block text-[12px] text-ink-secondary mt-0.5">
-                  {sw ? 'Tawi lolote linatumia idadi moja. Kubadilisha kwenda hapa huongeza idadi za matawi zote.' : 'Every branch uses one quantity. Switching here sums all branch quantities together.'}
+                  {sw ? 'Matawi yote yanaona bidhaa zile zile. Kubadilisha hapa huunganisha orodha zote.' : 'Every branch sees the same products. Switching here merges all branch lists into one.'}
                 </span>
               </button>
               <button
                 type="button"
                 disabled={modeBusy}
-                onClick={() => void changeStockMode('per_branch')}
+                onClick={() => void changeCatalogMode('isolated')}
                 className={`press text-left rounded-[16px] px-3.5 py-3 border ${
-                  stockMode === 'per_branch' ? 'border-primary bg-primary/10' : 'border-border bg-black/[0.02] dark:bg-white/5'
+                  catalogMode === 'isolated' ? 'border-primary bg-primary/10' : 'border-border bg-black/[0.02] dark:bg-white/5'
                 }`}
               >
-                <span className="block text-[14px] font-semibold text-ink">{sw ? 'Hifadhi kwa kila tawi' : 'Separate stock per branch'}</span>
+                <span className="block text-[14px] font-semibold text-ink">{sw ? 'Orodha tofauti kwa kila tawi' : 'Separate catalogue per branch'}</span>
                 <span className="block text-[12px] text-ink-secondary mt-0.5">
-                  {sw ? 'Orodha ya bidhaa ni moja; idadi ni tofauti kwa kila tawi. Mauzo yanapunguza hifadhi ya tawi lililochaguliwa.' : 'Same product list; each branch has its own counts. Sales deduct from the active branch only.'}
+                  {sw ? 'Kila tawi lina bidhaa zake na hifadhi yake. Tawi bila bidhaa litaonekana tupu.' : 'Each branch has its own products and stock. An empty branch stays empty until you add products there.'}
                 </span>
               </button>
             </div>
