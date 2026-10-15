@@ -23,6 +23,8 @@ const isDesktop =
 const Router = isDesktop ? HashRouter : BrowserRouter
 
 void recoverSharedCatalog()
+// Clear legacy billing lock left by older builds
+try { localStorage.removeItem('sf_write_allowed') } catch { /* ignore */ }
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>

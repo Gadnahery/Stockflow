@@ -221,7 +221,12 @@ export default function PosPage() {
     const payments = buildFinal()
     setPaying(true)
     try {
-      const sale = await completeSale(payments, saleNote)
+      const sale = await Promise.race([
+        completeSale(payments, saleNote),
+        new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Sale timed out — try again')), 15000),
+        ),
+      ])
       haptic(30)
       setLastSale(sale)
       setShowPay(false)
@@ -233,7 +238,7 @@ export default function PosPage() {
       setLines([])
       toast(t('pos.saleDone'), 'success')
     } catch (err) {
-      toast((err as Error).message, 'error')
+      toast((err as Error).message || 'Could not complete sale', 'error')
     } finally {
       setPaying(false)
     }

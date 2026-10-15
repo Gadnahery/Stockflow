@@ -37,11 +37,18 @@ const HELD_KEY = 'heldCarts'
 const loadHeld = (): HeldCart[] => { try { return JSON.parse(localStorage.getItem(HELD_KEY) || '[]') } catch { return [] } }
 const saveHeld = (h: HeldCart[]) => localStorage.setItem(HELD_KEY, JSON.stringify(h))
 
-function getCurrentUser() {
+function getCurrentUser(): { id: string; name: string } {
   try {
-    return JSON.parse(sessionStorage.getItem('currentUser') || '{}')
+    const u = JSON.parse(sessionStorage.getItem('currentUser') || '{}') as { id?: string; name?: string }
+    return {
+      id: u.id || (typeof localStorage !== 'undefined' ? localStorage.getItem('deviceId') : null) || 'local',
+      name: u.name || 'Cashier',
+    }
   } catch {
-    return {}
+    return {
+      id: (typeof localStorage !== 'undefined' ? localStorage.getItem('deviceId') : null) || 'local',
+      name: 'Cashier',
+    }
   }
 }
 
@@ -387,7 +394,8 @@ export const usePosStore = create<PosState>((set, get) => ({
       synced: false,
     }
 
-    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
+    try {
+      await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
       await db.sales.add(sale)
       if (creditAmt > 0 && selectedCustomerId) {
         const c = await db.customers.get(selectedCustomerId)
@@ -454,12 +462,25 @@ export const usePosStore = create<PosState>((set, get) => ({
         })
       }
     })
+    } catch (txErr) {
+      const msg = txErr instanceof Error ? txErr.message : 'Could not save sale'
+      throw new Error(msg.includes('Quota') ? 'Device storage full — free space and try again' : msg)
+    }
 
+    // Unlock UI immediately — never wait on audit/sync
     set({ cart: [], currentSaleId: saleId, selectedCustomerId: null, selectedCustomerName: null, catalogTick: get().catalogTick + 1 })
-    if (sale.discount > 0) await audit('SALE_DISCOUNT', 'sale', saleId, { after: { discount: sale.discount, total: sale.total }, reason: `Receipt ${receiptNumber}` })
-    await get().refreshPendingSync()
-    // Push immediately when online so sales appear in cloud without waiting for the poll loop
-    if (navigator.onLine) {
+    try {
+      if (sale.discount > 0) {
+        await audit('SALE_DISCOUNT', 'sale', saleId, {
+          after: { discount: sale.discount, total: sale.total },
+          reason: `Receipt ${receiptNumber}`,
+        })
+      }
+    } catch { /* never block sale */ }
+    try {
+      await get().refreshPendingSync()
+    } catch { /* ignore */ }
+    if (typeof navigator !== 'undefined' && navigator.onLine) {
       void processOutbox().then(() => get().refreshPendingSync()).catch(() => {})
     }
     return sale

@@ -107,11 +107,7 @@ export default function ProductsPage() {
   }
 
   const save = async () => {
-    try {
-      if (localStorage.getItem('sf_write_allowed') === '0') {
-        return toast('Trial ended — subscribe in Plan & billing to edit products', 'error')
-      }
-    } catch { /* ignore */ }
+    // Workspace access is role-based; never block product edits on a stale billing flag.
     const name = form.name.trim()
     if (!name) return toast('Enter a product name', 'error')
     if (form.price === '' || isNaN(parseFloat(form.price))) return toast('Enter a selling price', 'error')
