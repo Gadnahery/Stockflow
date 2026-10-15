@@ -12,6 +12,8 @@ import ProductImage from '../components/ui/ProductImage'
 import { useUi } from '../store/uiStore'
 import { fileToDataUrl } from '../lib/image'
 import { useI18n } from '../i18n/I18nContext'
+import { stockMapForProducts, applyStockChange, getStockMode } from '../lib/stock'
+import { getBranchId } from '../lib/supabase'
 import { fmt, generateBarcode, makeSku } from '../lib/util'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 
@@ -29,6 +31,12 @@ export default function ProductsPage() {
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState('All')
   const [stockStatus, setStockStatus] = useState<'all' | 'low' | 'out'>('all')
+  const [branchTick, setBranchTick] = useState(0)
+  useEffect(() => {
+    const onB = () => setBranchTick((n) => n + 1)
+    window.addEventListener('sf-branch-change', onB)
+    return () => window.removeEventListener('sf-branch-change', onB)
+  }, [])
   const [showForm, setShowForm] = useState(false)
   const [editing, setEditing] = useState<Product | null>(null)
   const [form, setForm] = useState(emptyForm)
@@ -43,6 +51,18 @@ export default function ProductsPage() {
   )
   const products = useMemo(() => productsQ ?? [], [productsQ])
   const loading = productsQ === undefined
+  // Per-branch quantities when owner enabled that mode (catalogue still shared)
+  const stockByIdQ = useLiveQuery(
+    async () => {
+      const list = productsQ ?? []
+      if (!list.length) return {} as Record<string, number>
+      const map = await stockMapForProducts(list, getBranchId())
+      return Object.fromEntries(map)
+    },
+    [productsQ, branchTick],
+  )
+  const stockOf = (p: { id: string; stock: number }) =>
+    stockByIdQ && p.id in stockByIdQ ? stockByIdQ[p.id] : p.stock
   const canManage = can('MANAGE_PRODUCTS')
 
   const categories = useMemo(
@@ -55,8 +75,9 @@ export default function ProductsPage() {
     const matches = !q || p.name.toLowerCase().includes(q) || p.sku.toLowerCase().includes(q) || (p.barcode && p.barcode.includes(q))
     if (!matches) return false
     if (category !== 'All' && p.category !== category) return false
-    if (stockStatus === 'out' && p.stock > 0) return false
-    if (stockStatus === 'low' && !(p.stock > 0 && p.stock <= (p.minStock ?? 0))) return false
+    const st = stockOf(p)
+    if (stockStatus === 'out' && st > 0) return false
+    if (stockStatus === 'low' && !(st > 0 && st <= (p.minStock ?? 0))) return false
     return true
   })
 
@@ -68,7 +89,7 @@ export default function ProductsPage() {
     setEditing(p)
     setForm({
       name: p.name, sku: p.sku, barcode: p.barcode || '', price: String(p.price), cost: String(p.cost),
-      stock: String(p.stock), minStock: p.minStock != null ? String(p.minStock) : '', category: p.category || '',
+      stock: String(stockOf(p)), minStock: p.minStock != null ? String(p.minStock) : '', category: p.category || '',
       unit: p.unit || 'piece', packQty: p.packQty != null ? String(p.packQty) : '', packName: p.packName || '',
       packPrice: p.packPrice != null ? String(p.packPrice) : '', imageUrl: p.imageUrl || '',
     })
@@ -145,14 +166,38 @@ export default function ProductsPage() {
         if (editing.price !== data.price || editing.cost !== data.cost) {
           await audit('PRICE_CHANGE', 'product', editing.id, { before: { price: editing.price, cost: editing.cost }, after: { price: data.price, cost: data.cost }, reason: name })
         }
-        if (editing.stock !== data.stock) {
+        const mode = await getStockMode()
+        if (mode === 'per_branch') {
+          const prevEff = stockOf(editing)
+          if (prevEff !== data.stock) {
+            await applyStockChange({
+              productId: editing.id,
+              productName: name,
+              delta: data.stock - prevEff,
+              branchId: getBranchId(),
+            })
+            await audit('STOCK_ADJUST', 'product', editing.id, { before: { stock: prevEff }, after: { stock: data.stock }, reason: name + ' (branch)' })
+          }
+          // Keep shared product.stock as-is for catalogue; branch row holds qty
+          await db.products.update(editing.id, { ...data, stock: editing.stock, updatedAt: now })
+        } else if (editing.stock !== data.stock) {
           await movement(editing.id, editing.stock, data.stock, 'adjustment', 'Edited in product form')
           await audit('STOCK_ADJUST', 'product', editing.id, { before: { stock: editing.stock }, after: { stock: data.stock }, reason: name })
         }
       } else {
         const id = uuidv4()
         await db.products.add({ id, ...data, createdAt: now })
-        if (data.stock > 0) await movement(id, 0, data.stock, 'opening', 'Opening stock')
+        const mode = await getStockMode()
+        if (mode === 'per_branch' && getBranchId()) {
+          await applyStockChange({
+            productId: id,
+            productName: name,
+            delta: data.stock,
+            branchId: getBranchId(),
+          })
+        } else if (data.stock > 0) {
+          await movement(id, 0, data.stock, 'opening', 'Opening stock')
+        }
       }
       toast(editing ? 'Changes saved' : 'Product added', 'success')
       setShowForm(false)
@@ -236,8 +281,9 @@ export default function ProductsPage() {
           ) : (
             <div className="bg-white rounded-[22px] shadow-card divide-y divide-border overflow-hidden md:bg-transparent md:shadow-none md:overflow-visible md:divide-y-0 md:grid md:grid-cols-2 xl:grid-cols-3 md:gap-3">
               {filtered.map((p) => {
-                const out = p.stock <= 0
-                const low = !out && p.stock <= (p.minStock ?? 0)
+                const st = stockOf(p)
+                const out = st <= 0
+                const low = !out && st <= (p.minStock ?? 0)
                 return (
                   <button
                     key={p.id}
@@ -252,7 +298,7 @@ export default function ProductsPage() {
                     <div className="text-right shrink-0">
                       <p className="font-bold text-[16px] tabular-nums tracking-tight">{fmt(p.price)}</p>
                       <span className={`inline-block mt-0.5 text-[12px] font-semibold px-2 py-0.5 rounded-full tabular-nums ${out ? 'bg-red-50 text-danger' : low ? 'bg-amber-50 text-warning' : 'bg-black/[0.05] text-ink-secondary'}`}>
-                        {out ? 'Out' : `${fmt(p.stock)} in stock`}
+                        {out ? 'Out' : `${fmt(st)} in stock`}
                       </span>
                     </div>
                   </button>

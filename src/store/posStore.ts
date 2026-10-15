@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { CartItem, Product, Payment, Sale, StockMovement, HeldCart } from '../types'
 import { db, audit } from '../lib/db'
 import { processOutbox } from '../lib/sync'
+import { applyStockChange } from '../lib/stock'
 
 interface PosState {
   cart: CartItem[]
@@ -205,7 +206,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const user = getCurrentUser()
 
     const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
-    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
+    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, async () => {
       await db.sales.update(saleId, { status: 'voided', synced: false })
       if (creditAmt > 0 && sale.customerId) {
         const c = await db.customers.get(sale.customerId)
@@ -259,7 +260,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const user = getCurrentUser()
     const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
 
-    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
+    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, async () => {
       await db.sales.update(saleId, { status: 'refunded', synced: false })
       if (creditAmt > 0 && sale.customerId) {
         const c = await db.customers.get(sale.customerId)
@@ -395,7 +396,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     }
 
     try {
-      await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, async () => {
+      await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, async () => {
       await db.sales.add(sale)
       if (creditAmt > 0 && selectedCustomerId) {
         const c = await db.customers.get(selectedCustomerId)
@@ -406,15 +407,16 @@ export const usePosStore = create<PosState>((set, get) => ({
       for (const item of cart) {
         const product = await db.products.get(item.productId)
         if (!product) continue
-        if (product.isService) continue // salon/restaurant service lines
+        if (product.isService) continue
 
-        const previousStock = product.stock
         const deduct = item.stockUnits ?? item.quantity
-        const newStock = Math.max(0, previousStock - deduct)
-
-        await db.products.update(item.productId, {
-          stock: newStock,
-          updatedAt: now,
+        // Respect shared vs per-branch stock mode (catalogue stays shared)
+        const { previous, next } = await applyStockChange({
+          productId: item.productId,
+          productName: item.name,
+          delta: -deduct,
+          branchId: branchId || null,
+          now,
         })
 
         const movement: StockMovement = {
@@ -423,9 +425,10 @@ export const usePosStore = create<PosState>((set, get) => ({
           productName: item.name,
           type: 'sale',
           quantity: -deduct,
-          previousStock,
-          newStock,
+          previousStock: previous,
+          newStock: next,
           referenceId: saleId,
+          branchId: branchId || undefined,
           userId: user.id,
           createdAt: now,
           synced: false,

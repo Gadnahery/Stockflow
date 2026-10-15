@@ -107,6 +107,7 @@ export interface StockMovement {
   newStock: number
   reason?: string
   referenceId?: UUID        // sale id, purchase id, etc.
+  branchId?: UUID
   userId?: UUID
   createdAt: string
   synced: boolean
@@ -226,6 +227,22 @@ export interface AppSettings {
   fiscalReceiptSeq?: number
   /** Feature-flagged shop type from SRS §8 */
   industryType?: 'retail' | 'restaurant' | 'pharmacy' | 'liquor' | 'salon' | 'wholesale'
+  /**
+   * shared = one stock number for all branches (default)
+   * per_branch = each branch has its own quantity for the same products
+   */
+  stockMode?: 'shared' | 'per_branch'
+}
+
+/** Per-branch quantity when stockMode is per_branch. Catalogue products stay shared. */
+export interface BranchStock {
+  id: string // `${productId}:${branchId}`
+  productId: UUID
+  branchId: UUID
+  stock: number
+  minStock?: number
+  updatedAt: string
+  synced?: boolean
 }
 
 

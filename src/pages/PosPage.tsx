@@ -14,6 +14,8 @@ import { fmt, haptic } from '../lib/util'
 import { usePermission } from '../hooks/usePermission'
 import { useI18n } from '../i18n/I18nContext'
 import ActiveBranchChip from '../components/ActiveBranchChip'
+import { stockMapForProducts } from '../lib/stock'
+import { getBranchId } from '../lib/supabase'
 import { featuresFor } from '../lib/industry'
 import { format } from 'date-fns'
 
@@ -60,6 +62,24 @@ export default function PosPage() {
     [catalogTick],
   )
   const products = useMemo(() => productsQ ?? [], [productsQ])
+  const [branchTick, setBranchTick] = useState(0)
+  useEffect(() => {
+    const onB = () => setBranchTick((n) => n + 1)
+    window.addEventListener('sf-branch-change', onB)
+    return () => window.removeEventListener('sf-branch-change', onB)
+  }, [])
+  const stockByIdQ = useLiveQuery(
+    async () => {
+      const list = productsQ ?? []
+      if (!list.length) return {} as Record<string, number>
+      const map = await stockMapForProducts(list, getBranchId())
+      return Object.fromEntries(map)
+    },
+    [productsQ, catalogTick, branchTick],
+  )
+  const stockOf = (p: { id: string; stock: number }) =>
+    stockByIdQ && p.id in stockByIdQ ? stockByIdQ[p.id] : p.stock
+
   const loading = productsQ === undefined
   const customers = useLiveQuery(() => db.customers.orderBy('name').toArray(), []) || []
   const openShift = useLiveQuery(() => db.cashSessions.filter((s) => s.status === 'open').first(), [])
@@ -151,13 +171,13 @@ export default function PosPage() {
 
 
   const add = (p: Product, sellAs: 'unit' | 'pack' = 'unit') => {
-    if (p.stock <= 0) {
+    if (stockOf(p) <= 0) {
       toast(`${p.name} ${t('pos.outOfStock')}`, 'error')
       return
     }
     const inCart = qtyById.get(p.id) ?? 0
-    if (inCart >= p.stock) {
-      toast(t('pos.onlyStock').replace('{n}', fmt(p.stock)).replace('{name}', p.name), 'error')
+    if (inCart >= stockOf(p)) {
+      toast(t('pos.onlyStock').replace('{n}', fmt(stockOf(p))).replace('{name}', p.name), 'error')
       return
     }
     addToCart(p, 1, sellAs)
@@ -192,7 +212,7 @@ export default function PosPage() {
             (p) => p.barcode === code || p.sku.toLowerCase() === code.toLowerCase(),
           )
           if (product) {
-            if (product.stock <= 0) {
+            if (stockOf(product) <= 0) {
               toast(`${product.name} ${t('pos.outOfStock')}`, 'error')
             } else {
               addToCart(product)
@@ -637,8 +657,9 @@ function Row({ label, value, danger, muted }: { label: string; value: string; da
 }
 
 function ProductCard({ product, qty, onAdd }: { product: Product; qty: number; onAdd: (mode?: 'unit' | 'pack') => void }) {
-  const out = product.stock <= 0
-  const low = !out && product.stock <= (product.minStock ?? 5)
+  const st = stockOf(product)
+  const out = st <= 0
+  const low = !out && st <= (product.minStock ?? 5)
   const hasPack = (product.packQty || 0) > 1
   return (
     <div className="group relative flex flex-col bg-white rounded-[22px] shadow-card p-2.5 text-left overflow-hidden">

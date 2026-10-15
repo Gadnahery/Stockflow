@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   Product, Sale, OutboxEvent, User, AppSettings,
-  Customer, Supplier, StockMovement, CashSession, Expense, PurchaseOrder, Branch, AuditLog } from '../types'
+  Customer, Supplier, StockMovement, CashSession, Expense, PurchaseOrder, Branch, AuditLog, BranchStock } from '../types'
 
 export class StockFlowDB extends Dexie {
   products!: Table<Product, string>
@@ -18,6 +18,7 @@ export class StockFlowDB extends Dexie {
   settings!: Table<AppSettings, string>
   auditLogs!: Table<AuditLog, string>
   workspaceSnapshots!: Table<{ id: string; data: Record<string, unknown[]>; savedAt: string }, string>
+  branchStock!: Table<BranchStock, string>
 
   constructor() {
     super('StockFlowDB')
@@ -80,6 +81,23 @@ export class StockFlowDB extends Dexie {
       settings: 'id',
       auditLogs: 'id, action, entityType, createdAt',
       workspaceSnapshots: 'id, savedAt',
+    })
+    this.version(6).stores({
+      products: 'id, sku, barcode, name, category, active',
+      sales: 'id, createdAt, synced, receiptNumber, status, cashierId, shiftId',
+      stockMovements: 'id, productId, type, createdAt, synced, referenceId',
+      customers: 'id, name, phone',
+      suppliers: 'id, name, phone',
+      purchases: 'id, supplierId, status, createdAt, synced',
+      cashSessions: 'id, userId, status, openedAt',
+      expenses: 'id, category, createdAt, synced',
+      outbox: 'id, type, createdAt',
+      users: 'id, pin, role, active',
+      branches: 'id, name, active',
+      settings: 'id',
+      auditLogs: 'id, action, entityType, createdAt',
+      workspaceSnapshots: 'id, savedAt',
+      branchStock: 'id, productId, branchId, updatedAt',
     })
   }
 }
@@ -160,6 +178,7 @@ export async function ensureSeedData() {
       fiscalMode: 'off',
       fiscalReceiptSeq: 0,
       industryType: 'retail',
+      stockMode: 'shared',
     })
   } else if (!existing.deviceId) {
     await db.settings.update('main', { deviceId })
@@ -170,7 +189,7 @@ const WORKSPACE_KEY = 'sf_workspace_id'
 
 const WORKSPACE_TABLES = [
   'products', 'sales', 'stockMovements', 'customers', 'suppliers',
-  'purchases', 'cashSessions', 'expenses', 'outbox', 'users',
+  'purchases', 'cashSessions', 'expenses', 'outbox', 'users', 'branchStock',
   'branches', 'settings', 'auditLogs',
 ] as const
 
@@ -286,6 +305,7 @@ export async function switchToBusinessWorkspace(businessId: string | null, _bran
         fiscalMode: 'off',
         fiscalReceiptSeq: 0,
         industryType: 'retail',
+      stockMode: 'shared',
       })
     })
   }

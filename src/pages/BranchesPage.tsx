@@ -8,6 +8,7 @@ import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import { setActiveBranchId } from '../lib/branch'
 import { db } from '../lib/db'
+import { getStockMode, setStockMode, type StockMode } from '../lib/stock'
 import { useI18n } from '../i18n/I18nContext'
 
 type BranchRow = {
@@ -29,6 +30,8 @@ export default function BranchesPage() {
   const [name, setName] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
+  const [stockMode, setStockModeState] = useState<StockMode>('shared')
+  const [modeBusy, setModeBusy] = useState(false)
   const activeId = localStorage.getItem('branchId')
 
   const canManage = can('MANAGE_SETTINGS') || member?.role === 'business_owner' || member?.role === 'owner'
@@ -52,7 +55,27 @@ export default function BranchesPage() {
 
   useEffect(() => {
     void load()
+    void getStockMode().then(setStockModeState)
   }, [member?.business_id])
+
+  const changeStockMode = async (mode: StockMode) => {
+    if (mode === stockMode || modeBusy) return
+    setModeBusy(true)
+    try {
+      await setStockMode(mode, branches.map((b) => b.id))
+      setStockModeState(mode)
+      toast(
+        mode === 'per_branch'
+          ? (sw ? 'Kila tawi lina hifadhi yake. Orodha ya bidhaa inabaki moja.' : 'Each branch has its own stock. Product list stays shared.')
+          : (sw ? 'Hifadhi imejumuishwa kwa matawi yote.' : 'Stock merged across all branches.'),
+        'success',
+      )
+    } catch (e) {
+      toast((e as Error).message || 'Could not update stock mode', 'error')
+    } finally {
+      setModeBusy(false)
+    }
+  }
 
   const create = async () => {
     const bizId = getBusinessId() || member?.business_id
@@ -132,6 +155,48 @@ export default function BranchesPage() {
         <p className="text-[14px] text-ink-secondary px-1">
            {sw ? 'Orodha ya bidhaa inashirikishwa kati ya matawi yote. Mauzo na gharama hubaki kwenye tawi yalipotokea.' : 'The product catalogue is shared across all branches. Sales and expenses remain assigned to the branch where they happen.'}
         </p>
+
+        {canManage && branches.length > 0 && (
+          <div className="rounded-[22px] bg-white dark:bg-[var(--card)] shadow-card p-4 space-y-3">
+            <div>
+              <p className="text-[15px] font-semibold text-ink">{sw ? 'Hifadhi kati ya matawi' : 'Stock across branches'}</p>
+              <p className="text-[13px] text-ink-secondary mt-0.5">
+                {sw
+                  ? 'Chagua kama matawi yanashiriki idadi moja, au kila tawi lina idadi yake. Bidhaa hazifutwi.'
+                  : 'Choose one shared quantity for every branch, or separate quantities per branch. Products are never hidden.'}
+              </p>
+            </div>
+            <div className="grid grid-cols-1 gap-2">
+              <button
+                type="button"
+                disabled={modeBusy}
+                onClick={() => void changeStockMode('shared')}
+                className={`press text-left rounded-[16px] px-3.5 py-3 border ${
+                  stockMode === 'shared' ? 'border-primary bg-primary/10' : 'border-border bg-black/[0.02] dark:bg-white/5'
+                }`}
+              >
+                <span className="block text-[14px] font-semibold text-ink">{sw ? 'Hifadhi moja (iliyounganishwa)' : 'Shared stock (merged)'}</span>
+                <span className="block text-[12px] text-ink-secondary mt-0.5">
+                  {sw ? 'Tawi lolote linatumia idadi moja. Kubadilisha kwenda hapa huongeza idadi za matawi zote.' : 'Every branch uses one quantity. Switching here sums all branch quantities together.'}
+                </span>
+              </button>
+              <button
+                type="button"
+                disabled={modeBusy}
+                onClick={() => void changeStockMode('per_branch')}
+                className={`press text-left rounded-[16px] px-3.5 py-3 border ${
+                  stockMode === 'per_branch' ? 'border-primary bg-primary/10' : 'border-border bg-black/[0.02] dark:bg-white/5'
+                }`}
+              >
+                <span className="block text-[14px] font-semibold text-ink">{sw ? 'Hifadhi kwa kila tawi' : 'Separate stock per branch'}</span>
+                <span className="block text-[12px] text-ink-secondary mt-0.5">
+                  {sw ? 'Orodha ya bidhaa ni moja; idadi ni tofauti kwa kila tawi. Mauzo yanapunguza hifadhi ya tawi lililochaguliwa.' : 'Same product list; each branch has its own counts. Sales deduct from the active branch only.'}
+                </span>
+              </button>
+            </div>
+            {modeBusy && <p className="text-[12px] text-ink-muted">{sw ? 'Inasasisha…' : 'Updating…'}</p>}
+          </div>
+        )}
 
         {loading && (
           <div className="space-y-2">
