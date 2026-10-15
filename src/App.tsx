@@ -62,12 +62,16 @@ function App() {
 
     const onOnline = () => {
       setOnline(true)
-      void processOutbox().then(() => {
-        refreshPendingSync()
-        return pullMissing()
-      })
+      window.dispatchEvent(new CustomEvent('sf-connectivity', { detail: { online: true } }))
+      void processOutbox()
+        .then(() => refreshPendingSync())
+        .then(() => pullMissing().catch(() => 0))
+        .catch(() => {})
     }
-    const onOffline = () => setOnline(false)
+    const onOffline = () => {
+      setOnline(false)
+      window.dispatchEvent(new CustomEvent('sf-connectivity', { detail: { online: false } }))
+    }
 
     window.addEventListener('online', onOnline)
     window.addEventListener('offline', onOffline)

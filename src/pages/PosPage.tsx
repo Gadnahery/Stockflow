@@ -236,7 +236,10 @@ export default function PosPage() {
       setPayMethod('cash')
       setCustomerQuery('')
       setLines([])
-      toast(t('pos.saleDone'), 'success')
+      toast(
+        isOnline ? t('pos.saleDone') : 'Sale saved offline — will sync when online',
+        'success',
+      )
     } catch (err) {
       toast((err as Error).message || 'Could not complete sale', 'error')
     } finally {

@@ -5,6 +5,7 @@
  */
 import { db, withoutSync } from './db'
 import { supabase, supabaseConfigured, getBusinessId, setBusinessId } from './supabase'
+import { withTimeout, canReachCloud, isBrowserOnline } from './connectivity'
 import type { AuditLog, Payment, Sale, Product, Customer, Supplier, Expense, StockMovement, PurchaseOrder, CashSession, OutboxEvent } from '../types'
 
 const IMAGE_BUCKET = 'product-images'
@@ -314,24 +315,31 @@ async function queueExistingOnce() {
   localStorage.setItem('initialPushV1', '1')
 }
 
-export async function processOutbox(): Promise<{ synced: number; failed: number }> {
-  if (!supabaseConfigured || !navigator.onLine) return { synced: 0, failed: 0 }
+let outboxRunning = false
 
+export async function processOutbox(): Promise<{ synced: number; failed: number }> {
+  if (!supabaseConfigured || !isBrowserOnline()) return { synced: 0, failed: 0 }
+  // Prevent overlapping runs (second sale / sync loop) from stacking and hanging
+  if (outboxRunning) return { synced: 0, failed: 0 }
+  outboxRunning = true
   let synced = 0
   let failed = 0
   try {
-    const businessId = await ensureBusiness()
+    const reachable = await canReachCloud(4000)
+    if (!reachable) return { synced: 0, failed: 0 }
+
+    const businessId = await withTimeout(ensureBusiness(), 10000, 'Auth')
     await queueExistingOnce()
     const events = await db.outbox.orderBy('createdAt').toArray()
 
     for (const event of events) {
+      if (!isBrowserOnline()) break
       if ((event.retries || 0) >= MAX_OUTBOX_RETRIES) {
-        // Dead-letter — keep for diagnostics, skip forever until user discards
         failed++
         continue
       }
       try {
-        await processEvent(event, businessId)
+        await withTimeout(processEvent(event, businessId), 12000, event.type)
         await db.outbox.delete(event.id)
         synced++
       } catch (err) {
@@ -339,6 +347,8 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
         const message = err instanceof Error ? err.message : (err as { message?: string })?.message ?? String(err)
         await db.outbox.update(event.id, { retries: (event.retries || 0) + 1, lastError: message })
         console.warn('sync failed', event.type, message)
+        // Network death mid-loop — stop and try later
+        if (/timed out|Failed to fetch|NetworkError|abort/i.test(message)) break
       }
     }
     if (synced > 0) {
@@ -346,6 +356,8 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
     }
   } catch (err) {
     console.warn('processOutbox', err)
+  } finally {
+    outboxRunning = false
   }
   return { synced, failed }
 }
@@ -357,7 +369,7 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
  * Only adds what is missing locally — existing local rows (and their live stock) are never overwritten.
  */
 export async function pullMissing(): Promise<number> {
-  if (!supabaseConfigured || !navigator.onLine) return 0
+  if (!supabaseConfigured || !isBrowserOnline()) return 0
   const businessId = getBusinessId()
   if (!businessId) return 0
 
@@ -603,14 +615,17 @@ export function startRealtime(onChange?: () => void): () => void {
 export function startSyncLoop(intervalMs = 20000) {
   let ticks = 0
   const tick = async () => {
-    if (!navigator.onLine) return
-    const result = await processOutbox()
-    if (result.synced > 0) console.info(`Synced ${result.synced} events`)
-    // Full pull on first tick and every ~2 minutes
-    if (ticks++ % 6 === 0) await pullMissing().catch(() => 0)
+    if (!isBrowserOnline()) return
+    try {
+      const result = await processOutbox()
+      if (result.synced > 0) console.info(`Synced ${result.synced} events`)
+      if (ticks++ % 6 === 0) await withTimeout(pullMissing(), 20000, 'Pull').catch(() => 0)
+    } catch (e) {
+      console.warn('sync loop', e)
+    }
   }
-  tick()
-  return window.setInterval(tick, intervalMs)
+  void tick()
+  return window.setInterval(() => { void tick() }, intervalMs)
 }
 
 export function getLastSyncAt(): string | null {
