@@ -320,6 +320,12 @@ async function queueExistingOnce() {
 
 let outboxRunning = false
 
+function isNetworkError(err: unknown): boolean {
+  const e = err as { name?: string; message?: string }
+  const m = (e?.message || '').toLowerCase()
+  return e?.name === 'AbortError' || err instanceof TypeError || m.includes('failed to fetch') || m.includes('network') || m.includes('load failed') || m.includes('timed out')
+}
+
 export async function processOutbox(): Promise<{ synced: number; failed: number }> {
   if (!supabaseConfigured || !isBrowserOnline()) return { synced: 0, failed: 0 }
   // Prevent overlapping runs (second sale / sync loop) from stacking and hanging
@@ -348,6 +354,11 @@ export async function processOutbox(): Promise<{ synced: number; failed: number 
       } catch (err) {
         failed++
         const message = err instanceof Error ? err.message : (err as { message?: string })?.message ?? String(err)
+        if (isNetworkError(err)) {
+          // No connection: leave everything queued untouched and try again later — do not hammer a dead network.
+          console.warn('sync paused (offline)', message)
+          break
+        }
         await db.outbox.update(event.id, { retries: (event.retries || 0) + 1, lastError: message })
         console.warn('sync failed', event.type, message)
         // Network death mid-loop — stop and try later

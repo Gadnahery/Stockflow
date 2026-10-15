@@ -12,6 +12,9 @@ import './index.css'
 import { recoverSharedCatalog } from './lib/recoverCatalog'
 import { registerServiceWorker, listenForInstallPrompt } from './lib/pwa'
 
+// Older versions left this flag behind; it must never block work again.
+try { localStorage.removeItem('sf_write_allowed') } catch { /* ignore */ }
+
 registerServiceWorker()
 listenForInstallPrompt()
 

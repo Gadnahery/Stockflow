@@ -11,6 +11,7 @@ import { useUi, type SidebarMode } from '../../store/uiStore'
 import { useAuth } from '../../contexts/AuthContext'
 import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
+import TrialBanner from '../TrialBanner'
 import InstallBanner from '../InstallBanner'
 import UpdateBanner from '../UpdateBanner'
 
@@ -399,6 +400,7 @@ export default function AppShell() {
 
         <main className="flex-1 min-h-0 min-w-0 relative" onScrollCapture={onScrollAny}>
           <div key={location.pathname} className="page-enter h-full flex flex-col">
+            <TrialBanner />
             <InstallBanner />
             <Outlet />
           </div>

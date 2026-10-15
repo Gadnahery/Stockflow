@@ -6,6 +6,20 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 export const supabaseConfigured = Boolean(url && anonKey)
 
+/** A dead network (wifi without internet) makes fetch hang for minutes — fail fast instead. */
+function fetchWithTimeout(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const target = typeof input === 'string' ? input : input instanceof URL ? input.href : input.url
+  const ms = target.includes('/storage/v1/') ? 60_000 : 15_000
+  const ctrl = new AbortController()
+  const timer = setTimeout(() => ctrl.abort(), ms)
+  const outer = init?.signal
+  if (outer) {
+    if (outer.aborted) ctrl.abort()
+    else outer.addEventListener('abort', () => ctrl.abort(), { once: true })
+  }
+  return fetch(input, { ...init, signal: ctrl.signal }).finally(() => clearTimeout(timer))
+}
+
 export const supabase = supabaseConfigured
   ? createClient(url, anonKey, {
       auth: {
@@ -14,6 +28,7 @@ export const supabase = supabaseConfigured
         detectSessionInUrl: true,
         storage: localStorage,
       },
+      global: { fetch: fetchWithTimeout },
     })
   : (null as unknown as ReturnType<typeof createClient>)
 

@@ -206,7 +206,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const user = getCurrentUser()
 
     const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
-    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, async () => {
+    await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
       await db.sales.update(saleId, { status: 'voided', synced: false })
       if (creditAmt > 0 && sale.customerId) {
         const c = await db.customers.get(sale.customerId)
@@ -260,7 +260,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const user = getCurrentUser()
     const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
 
-    await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, async () => {
+    await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
       await db.sales.update(saleId, { status: 'refunded', synced: false })
       if (creditAmt > 0 && sale.customerId) {
         const c = await db.customers.get(sale.customerId)
@@ -396,7 +396,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     }
 
     try {
-      await db.transaction('rw', db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, async () => {
+      await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
       await db.sales.add(sale)
       if (creditAmt > 0 && selectedCustomerId) {
         const c = await db.customers.get(selectedCustomerId)

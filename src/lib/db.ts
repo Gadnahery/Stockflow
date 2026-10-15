@@ -104,6 +104,19 @@ export class StockFlowDB extends Dexie {
 
 export const db = new StockFlowDB()
 
+// Another window upgraded the database (new app version). Step aside instead of freezing, then reload.
+db.on('versionchange', () => {
+  db.close()
+  try {
+    const n = Number(sessionStorage.getItem('sf_db_reloads') || '0')
+    if (typeof window !== 'undefined' && n < 2) {
+      sessionStorage.setItem('sf_db_reloads', String(n + 1))
+      setTimeout(() => window.location.reload(), 400)
+      setTimeout(() => sessionStorage.removeItem('sf_db_reloads'), 60_000)
+    }
+  } catch { /* ignore */ }
+})
+
 // ───────── Automatic sync tracking ─────────
 // Any change to these tables queues an outbox event, so no screen has to remember to.
 let suppress = 0
