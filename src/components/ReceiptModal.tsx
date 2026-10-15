@@ -50,7 +50,7 @@ export default function ReceiptModal({ sale, onClose }: Props) {
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       <button type="button" className="absolute inset-0 bg-black/40" aria-label="Close" onClick={onClose} />
       <div className="relative w-full max-w-md max-h-[92vh] overflow-y-auto bg-white rounded-t-[28px] sm:rounded-[28px] shadow-float">
-        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 bg-white/95 backdrop-blur border-b border-border rounded-t-[28px]">
+        <div className="sticky top-0 z-10 flex items-center justify-between px-5 py-3 sheet-head backdrop-blur border-b border-border rounded-t-[28px]">
           <h2 className="text-[17px] font-semibold">Receipt</h2>
           <div className="flex items-center gap-1">
             <button type="button" onClick={() => void share()} className="press h-9 w-9 rounded-full flex items-center justify-center text-primary" aria-label="Share">

@@ -218,10 +218,15 @@ button { font-family: inherit; touch-action: manipulation; }
 }
 
 .sheet-head {
-  position: sticky; top: 0; z-index: 10; display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  padding: 20px 20px 12px; background: rgba(255,255,255,0.96);
+  position: sticky; top: 0; z-index: 10;
+  background: rgba(255,255,255,0.96);
   -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
   border-radius: 28px 28px 0 0;
+}
+.sheet-foot {
+  background: rgba(255,255,255,0.94);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+  border-top: 0.5px solid var(--hairline);
 }
 
 
@@ -457,14 +462,54 @@ html.dark header.border-b {
   border-color: var(--hairline) !important;
 }
 
-/* Sheets / modals */
-html.dark .sheet-head,
-html.dark [class*="rounded-t-\[28px\]"] {
+
+/* Sheets / modals — full dark surfaces (no mixed white sheets) */
+html.dark .sheet-panel {
   background: var(--card) !important;
   color: var(--ink);
+  box-shadow: 0 -8px 40px rgba(0, 0, 0, 0.55) !important;
+}
+html.dark .sheet-head,
+html.dark .sheet-foot {
+  background: var(--card) !important;
+  color: var(--ink);
+  border-color: var(--hairline) !important;
+}
+html.dark .sheet-foot {
+  border-top: 0.5px solid var(--hairline);
+  background: var(--elevated) !important;
+}
+html.dark .bg-white\/95,
+html.dark .bg-white\/90,
+html.dark .bg-white\/85,
+html.dark .bg-white\/80,
+html.dark .bg-white\/70,
+html.dark .bg-white\/60 {
+  background-color: var(--card) !important;
+}
+html.dark .sheet-panel label,
+html.dark .sheet-panel .text-\[13px\],
+html.dark .sheet-panel .text-\[12px\] {
+  color: var(--ink-secondary);
+}
+html.dark .sheet-panel .text-ink { color: var(--ink) !important; }
+
+/* Card-like surfaces used on expenses/products lists */
+html.dark .rounded-\[20px\].bg-white,
+html.dark .rounded-\[18px\].bg-white,
+html.dark .rounded-2xl.bg-white,
+html.dark .rounded-xl.bg-white {
+  background-color: var(--card) !important;
+}
+
+/* Select / option in dark sheets */
+html.dark select.field option {
+  background: #1C1C1E;
+  color: #F5F5F7;
 }
 
 /* ───────── Auth always light (ignore global dark) ───────── */
+
 html.dark .auth-canvas {
   background:
     radial-gradient(120% 80% at 50% -10%, #D6E8FF 0%, transparent 55%),
