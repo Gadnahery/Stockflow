@@ -391,7 +391,7 @@ export default function PosPage() {
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
               {filtered.map((product) => (
-                <ProductCard key={product.id} product={product} qty={qtyById.get(product.id) ?? 0} onAdd={(mode) => add(product, mode)} />
+                <ProductCard stock={stockOf(product)} key={product.id} product={product} qty={qtyById.get(product.id) ?? 0} onAdd={(mode) => add(product, mode)} />
               ))}
             </div>
           )}
@@ -671,8 +671,8 @@ function Row({ label, value, danger, muted }: { label: string; value: string; da
   )
 }
 
-function ProductCard({ product, qty, onAdd }: { product: Product; qty: number; onAdd: (mode?: 'unit' | 'pack') => void }) {
-  const st = stockOf(product)
+function ProductCard({ product, qty, stock, onAdd }: { product: Product; qty: number; stock: number; onAdd: (mode?: 'unit' | 'pack') => void }) {
+  const st = stock
   const out = st <= 0
   const low = !out && st <= (product.minStock ?? 5)
   const hasPack = (product.packQty || 0) > 1
