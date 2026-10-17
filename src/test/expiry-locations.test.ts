@@ -32,10 +32,10 @@ describe('expiry', () => {
   it('sortByFefo puts earliest first', () => {
     const sorted = sortByFefo([
       { expiryDate: '2027-01-01' },
-      { expiryDate: '2026-06-01' },
+      { expiryDate: '2027-06-01' },
       { expiryDate: undefined },
     ])
-    expect(sorted[0].expiryDate).toBe('2026-06-01')
+    expect(sorted[0].expiryDate).toBe('2027-06-01')
     expect(sorted[2].expiryDate).toBeUndefined()
   })
 
@@ -88,14 +88,14 @@ describe('batches FEFO', () => {
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     })
-    await addBatch({ productId, productName: 'Meds', quantity: 10, expiryDate: '2026-12-01', location: 'shop' })
-    await addBatch({ productId, productName: 'Meds', quantity: 5, expiryDate: '2026-06-01', location: 'shop' })
+    await addBatch({ productId, productName: 'Meds', quantity: 10, expiryDate: '2027-12-01', location: 'shop' })
+    await addBatch({ productId, productName: 'Meds', quantity: 5, expiryDate: '2027-06-01', location: 'shop' })
     const used = await deductFefo({ productId, quantity: 6, skipProductUpdate: true })
-    expect(used[0].expiryDate).toBe('2026-06-01')
+    expect(used[0].expiryDate).toBe('2027-06-01')
     expect(used[0].qty).toBe(5)
     expect(used[1].qty).toBe(1)
     const left = await listBatches(productId, 'shop')
-    const june = left.find((b) => b.expiryDate === '2026-06-01')
+    const june = left.find((b) => b.expiryDate === '2027-06-01')
     expect(june?.quantity ?? 0).toBe(0)
   })
 })
