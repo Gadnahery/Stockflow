@@ -12,7 +12,8 @@ function readSidebar(): SidebarMode {
     const v = localStorage.getItem(SIDEBAR_KEY)
     if (v === 'expanded' || v === 'rail' || v === 'hidden') return v
   } catch { /* ignore */ }
-  return 'expanded'
+  // Default: collapsed icon rail (macOS / iPad-style). User can expand with ⌘B.
+  return 'rail'
 }
 
 interface UiState {
@@ -38,7 +39,10 @@ export const useUi = create<UiState>((set, get) => ({
   setTabCompact: (v) => { if (get().tabCompact !== v) set({ tabCompact: v }) },
   sidebarMode: typeof window !== 'undefined' ? readSidebar() : 'expanded',
   setSidebarMode: (m) => {
-    try { localStorage.setItem(SIDEBAR_KEY, m) } catch { /* ignore */ }
+    try {
+      localStorage.setItem(SIDEBAR_KEY, m)
+      localStorage.setItem('sf_sidebar_locked', '1')
+    } catch { /* ignore */ }
     set({ sidebarMode: m })
   },
   cycleSidebar: () => {

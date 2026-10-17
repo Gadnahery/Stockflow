@@ -99,8 +99,8 @@ function pageTitleKey(pathname: string): string | null {
 }
 
 const SIDEBAR_W: Record<SidebarMode, string> = {
-  expanded: 'w-[260px]',
-  rail: 'w-[72px]',
+  expanded: 'w-[240px]',
+  rail: 'w-[68px]',
   hidden: 'w-0',
 }
 
@@ -161,18 +161,21 @@ export default function AppShell() {
     return () => window.removeEventListener('keydown', onKey)
   }, [cycleSidebar])
 
-  // Auto rail on medium widths
+  // Responsive sidebar: below ~1100px prefer icon rail (content first), like macOS Mail.
   useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)')
+    const mq = window.matchMedia('(max-width: 1099px)')
     const apply = () => {
-      if (!mq.matches && sidebarMode === 'expanded') {
-        // leave user preference; only soft-suggest on first load is optional
+      try {
+        if (localStorage.getItem('sf_sidebar_locked') === '1') return
+      } catch { /* ignore */ }
+      if (mq.matches && sidebarMode === 'expanded') {
+        setSidebarMode('rail')
       }
     }
     apply()
     mq.addEventListener('change', apply)
     return () => mq.removeEventListener('change', apply)
-  }, [sidebarMode])
+  }, [sidebarMode, setSidebarMode])
 
   const onScrollAny = (e: UIEvent<HTMLElement>) => {
     const el = e.target as HTMLElement
@@ -211,11 +214,12 @@ export default function AppShell() {
   }
 
   return (
-    <div className="h-full flex flex-col md:flex-row bg-surface-secondary" onFocus={onFocusIn} onBlur={onFocusOut}>
+    <div className="h-full flex flex-col md:flex-row bg-surface-secondary md:bg-[#f2f2f7] dark:md:bg-[var(--bg)]" onFocus={onFocusIn} onBlur={onFocusOut}>
       {/* Desktop sidebar */}
       <aside
         className={clsx(
-          'hidden md:flex flex-col glass border-r border-black/5 shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          'hidden md:flex flex-col shrink-0 overflow-hidden transition-[width] duration-300 ease-[cubic-bezier(0.32,0.72,0,1)]',
+          'bg-white/70 dark:bg-[var(--card)]/80 backdrop-blur-2xl border-r border-black/[0.06] dark:border-white/[0.06]',
           SIDEBAR_W[sidebarMode],
         )}
       >
@@ -277,8 +281,8 @@ export default function AppShell() {
                             'flex items-center rounded-[12px] text-[14px] font-medium transition-smooth',
                             expanded ? 'gap-3 px-3 h-10' : 'justify-center h-11 w-11 mx-auto',
                             isActive
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-ink-secondary hover:bg-black/[0.04] hover:text-ink',
+                              ? 'bg-primary text-white shadow-sm shadow-primary/25'
+                              : 'text-ink-secondary hover:bg-black/[0.05] hover:text-ink dark:hover:bg-white/[0.06]',
                           )}
                         >
                           <item.icon size={expanded ? 18 : 20} strokeWidth={isActive ? 2.4 : 1.9} />
@@ -330,7 +334,7 @@ export default function AppShell() {
       {/* Main column */}
       <div className="flex-1 min-w-0 min-h-0 flex flex-col">
         {/* Desktop top bar */}
-        <header className="hidden md:flex items-center gap-3 h-14 px-4 lg:px-5 border-b border-border bg-white/80 dark:bg-[var(--card)]/90 backdrop-blur-xl shrink-0 z-20">
+        <header className="hidden md:flex items-center gap-3 h-[52px] px-4 lg:px-5 shrink-0 z-20 bg-transparent">
           {hidden && (
             <button
               type="button"
@@ -406,8 +410,11 @@ export default function AppShell() {
           </button>
         </header>
 
-        <main className="flex-1 min-h-0 min-w-0 relative" onScrollCapture={onScrollAny}>
-          <div key={location.pathname} className="page-enter h-full flex flex-col">
+        <main className="flex-1 min-h-0 min-w-0 relative md:px-3 md:pb-3" onScrollCapture={onScrollAny}>
+          <div
+            key={location.pathname}
+            className="page-enter h-full flex flex-col md:bg-white dark:md:bg-[var(--card)] md:rounded-[18px] md:shadow-[0_1px_3px_rgba(0,0,0,0.06)] md:border md:border-black/[0.04] overflow-hidden"
+          >
             <TrialBanner />
             <InstallBanner />
             <Outlet />
