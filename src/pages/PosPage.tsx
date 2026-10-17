@@ -451,13 +451,13 @@ export default function PosPage() {
         </div>
       )}
 
-      {lastSale && <DocumentModal
+      <DocumentModal
         open={Boolean(quoteDoc)}
         onClose={() => setQuoteDoc(null)}
         title="Quote"
         doc={quoteDoc}
       />
-      <ReceiptModal sale={lastSale} onClose={() => setLastSale(null)} />}
+      {lastSale && <ReceiptModal sale={lastSale} onClose={() => setLastSale(null)} />}
 
       <Sheet
         open={showPay}
