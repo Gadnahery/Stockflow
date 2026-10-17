@@ -34,6 +34,7 @@ export default function SuppliersPage() {
   const [docPo, setDocPo] = useState<PurchaseOrder | null>(null)
   const [receivePo, setReceivePo] = useState<PurchaseOrder | null>(null)
   const [receiveQty, setReceiveQty] = useState<Record<string, string>>({})
+  const [poStatusFilter, setPoStatusFilter] = useState<'all' | PurchaseOrder['status']>('all')
   const settings = useLiveQuery(() => db.settings.get('main'), [])
   const [showDetail, setShowDetail] = useState(false)
   const [payAmount, setPayAmount] = useState('')
@@ -129,6 +130,16 @@ export default function SuppliersPage() {
       next[idx] = { ...next[idx], [field]: value }
     }
     setPurchaseItems(next)
+  }
+
+  const cancelPo = async (po: PurchaseOrder) => {
+    if (po.status === 'received' || po.status === 'cancelled') return
+    try {
+      await db.purchases.update(po.id, { status: 'cancelled', synced: false })
+      toast('Purchase order cancelled', 'success')
+    } catch (e) {
+      toast((e as Error).message || 'Could not cancel', 'error')
+    }
   }
 
   const openReceive = (po: PurchaseOrder) => {
@@ -302,7 +313,10 @@ export default function SuppliersPage() {
     setPayAmount('')
   }
 
-  const purchaseList = purchases || []
+  const purchaseList = (purchases || []).filter(
+    (p) => poStatusFilter === 'all' || p.status === poStatusFilter,
+  )
+  const allPurchases = purchases || []
 
   return (
     <Screen
@@ -391,6 +405,27 @@ export default function SuppliersPage() {
 
         {tab === 'purchases' && (
           <>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+              {([
+                ['all', 'All'],
+                ['ordered', 'Ordered'],
+                ['partial', 'Partial'],
+                ['received', 'Received'],
+                ['cancelled', 'Cancelled'],
+              ] as const).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setPoStatusFilter(id)}
+                  className={`press shrink-0 h-8 px-3 rounded-full text-[12px] font-semibold ${
+                    poStatusFilter === id ? 'bg-primary text-white' : 'bg-black/[0.06] text-ink-secondary'
+                  }`}
+                >
+                  {label}
+                  {id !== 'all' ? ` (${allPurchases.filter((x) => x.status === id).length})` : ''}
+                </button>
+              ))}
+            </div>
             {purchaseList.length === 0 ? (
               <div className="rounded-[22px] bg-white shadow-card px-6 py-12 text-center">
                 <p className="text-[16px] font-semibold">No purchase orders yet</p>
@@ -415,6 +450,9 @@ export default function SuppliersPage() {
                     </div>
                     <div className="mt-2 flex gap-2">
                       <button type="button" onClick={() => setDocPo(p)} className="press h-9 px-3 rounded-full bg-black/[0.06] text-[13px] font-semibold flex items-center gap-1.5"><Printer size={14} /> Print</button>
+                      {(p.status === 'ordered' || p.status === 'partial') && (
+                        <button type="button" onClick={() => void cancelPo(p)} className="press h-9 px-3 rounded-full bg-black/[0.06] text-[13px] font-semibold">Cancel</button>
+                      )}
                       {(p.status === 'ordered' || p.status === 'partial') && (
                         <button type="button" onClick={() => openReceive(p)} className="press h-9 px-3 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center gap-1.5"><PackageCheck size={14} /> Receive</button>
                       )}

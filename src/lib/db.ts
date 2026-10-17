@@ -1,7 +1,7 @@
 import Dexie, { type Table } from 'dexie'
 import type {
   Product, Sale, OutboxEvent, User, AppSettings,
-  Customer, Supplier, StockMovement, CashSession, Expense, PurchaseOrder, Branch, AuditLog, BranchStock } from '../types'
+  Customer, Supplier, StockMovement, CashSession, Expense, PurchaseOrder, Branch, AuditLog, BranchStock, ProductBatch } from '../types'
 
 export class StockFlowDB extends Dexie {
   products!: Table<Product, string>
@@ -19,6 +19,7 @@ export class StockFlowDB extends Dexie {
   auditLogs!: Table<AuditLog, string>
   workspaceSnapshots!: Table<{ id: string; data: Record<string, unknown[]>; savedAt: string }, string>
   branchStock!: Table<BranchStock, string>
+  productBatches!: Table<ProductBatch, string>
 
   constructor() {
     super('StockFlowDB')
@@ -98,6 +99,24 @@ export class StockFlowDB extends Dexie {
       auditLogs: 'id, action, entityType, createdAt',
       workspaceSnapshots: 'id, savedAt',
       branchStock: 'id, productId, branchId, updatedAt',
+    })
+    this.version(7).stores({
+      products: 'id, sku, barcode, name, category, active',
+      sales: 'id, createdAt, synced, receiptNumber, status, cashierId, shiftId',
+      stockMovements: 'id, productId, type, createdAt, synced, referenceId',
+      customers: 'id, name, phone',
+      suppliers: 'id, name, phone',
+      purchases: 'id, supplierId, status, createdAt, synced',
+      cashSessions: 'id, userId, status, openedAt',
+      expenses: 'id, category, createdAt, synced',
+      outbox: 'id, type, createdAt',
+      users: 'id, pin, role, active',
+      branches: 'id, name, active',
+      settings: 'id',
+      auditLogs: 'id, action, entityType, createdAt',
+      workspaceSnapshots: 'id, savedAt',
+      branchStock: 'id, productId, branchId, updatedAt',
+      productBatches: 'id, productId, expiryDate, location, branchId',
     })
   }
 }
@@ -203,7 +222,7 @@ const WORKSPACE_KEY = 'sf_workspace_id'
 
 const WORKSPACE_TABLES = [
   'products', 'sales', 'stockMovements', 'customers', 'suppliers',
-  'purchases', 'cashSessions', 'expenses', 'outbox', 'users', 'branchStock',
+  'purchases', 'cashSessions', 'expenses', 'outbox', 'users', 'branchStock', 'productBatches',
   'branches', 'settings', 'auditLogs',
 ] as const
 

@@ -32,6 +32,8 @@ export default function SettingsPage() {
     vrnNumber: '',
     fiscalMode: 'off' as 'off' | 'prepare' | 'vfd',
     industryType: 'retail' as IndustryType,
+    trackExpiry: false,
+    dualLocationStock: false,
   })
   const [saving, setSaving] = useState(false)
   const [branches, setBranches] = useState<BranchRow[]>([])
@@ -56,6 +58,8 @@ export default function SettingsPage() {
       vrnNumber: settings.vrnNumber || '',
       fiscalMode: settings.fiscalMode || 'off',
       industryType: (settings.industryType as IndustryType) || 'retail',
+      trackExpiry: Boolean(settings.trackExpiry),
+      dualLocationStock: Boolean(settings.dualLocationStock),
     })
     if (settings.branchId && !localStorage.getItem('branchId')) {
       setActiveBranchId(settings.branchId)
@@ -130,6 +134,8 @@ export default function SettingsPage() {
         fiscalMode: form.fiscalMode,
         fiscalReceiptSeq: settings?.fiscalReceiptSeq ?? 0,
         industryType: form.industryType,
+        trackExpiry: form.trackExpiry,
+        dualLocationStock: form.dualLocationStock,
       })
       toast('Settings saved', 'success')
     } catch {
@@ -304,6 +310,34 @@ export default function SettingsPage() {
               <label className="block text-[13px] font-semibold text-ink-secondary mb-1">{t('fiscal.tin')}</label>
               <input className="field" value={form.tinNumber} onChange={(e) => set({ tinNumber: e.target.value })} placeholder="e.g. 123-456-789" />
             </div>
+          <div className="rounded-[18px] bg-white shadow-card p-4 space-y-3">
+            <p className="text-[15px] font-semibold">Inventory options</p>
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-[14px]">
+                <span className="font-medium block">Track expiry dates</span>
+                <span className="text-[12px] text-ink-secondary">Pharmacy / food — show expiry on products, block expired at POS</span>
+              </span>
+              <input
+                type="checkbox"
+                className="h-5 w-5"
+                checked={form.trackExpiry}
+                onChange={(e) => set({ trackExpiry: e.target.checked })}
+              />
+            </label>
+            <label className="flex items-center justify-between gap-3">
+              <span className="text-[14px]">
+                <span className="font-medium block">Shop + store stock</span>
+                <span className="text-[12px] text-ink-secondary">Separate back-room store from shop floor (transfer in Inventory)</span>
+              </span>
+              <input
+                type="checkbox"
+                className="h-5 w-5"
+                checked={form.dualLocationStock}
+                onChange={(e) => set({ dualLocationStock: e.target.checked })}
+              />
+            </label>
+          </div>
+
             <div>
               <label className="block text-[13px] font-semibold text-ink-secondary mb-1">{t('fiscal.vrn')}</label>
               <input className="field" value={form.vrnNumber} onChange={(e) => set({ vrnNumber: e.target.value })} placeholder="VRN (optional)" />

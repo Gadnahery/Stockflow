@@ -7,6 +7,9 @@ import type { Sale } from '../types'
 import ReceiptModal from '../components/ReceiptModal'
 import Screen from '../components/ui/Screen'
 import ManagerPinSheet from '../components/ManagerPinSheet'
+import { DocumentModal } from '../components/PrintDocument'
+import { saleToInvoiceDoc } from '../lib/invoice'
+import type { PrintDocumentProps } from '../components/PrintDocument'
 import { useI18n } from '../i18n/I18nContext'
 import { usePosStore } from '../store/posStore'
 import { usePermission } from '../hooks/usePermission'
@@ -67,7 +70,17 @@ export default function SalesPage() {
     return { count: completed.length, revenue }
   }, [filtered])
 
+  const [invoiceDoc, setInvoiceDoc] = useState<PrintDocumentProps | null>(null)
   const [approveAction, setApproveAction] = useState<null | { type: 'void' | 'refund'; sale: Sale }>(null)
+
+  const openInvoice = async (sale: Sale) => {
+    try {
+      const doc = await saleToInvoiceDoc(sale, { title: 'Invoice' })
+      setInvoiceDoc(doc)
+    } catch (e) {
+      toast((e as Error).message || 'Could not build invoice', 'error')
+    }
+  }
 
   const runVoid = async (
     sale: Sale,
@@ -309,6 +322,15 @@ export default function SalesPage() {
                     >
                       <Receipt size={15} />
                     </button>
+                    {true && (
+                      <button
+                        type="button"
+                        onClick={() => void openInvoice(s)}
+                        className="press text-[12px] font-semibold text-primary px-2 py-1"
+                      >
+                        A4 invoice
+                      </button>
+                    )}
                     {s.status === 'completed' && (
                       <button
                         type="button"
@@ -339,6 +361,12 @@ export default function SalesPage() {
 
       {selected && <ReceiptModal sale={selected} onClose={() => setSelected(null)} />}
     </Screen>
+      <DocumentModal
+        open={Boolean(invoiceDoc)}
+        onClose={() => setInvoiceDoc(null)}
+        title="Invoice"
+        doc={invoiceDoc}
+      />
       <ManagerPinSheet
         open={Boolean(approveAction)}
         onClose={() => setApproveAction(null)}

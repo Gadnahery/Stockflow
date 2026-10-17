@@ -21,7 +21,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog'
 const UNITS = ['piece', 'egg', 'kg', 'g', 'litre', 'ml', 'bottle', 'packet', 'bag', 'box', 'dozen', 'sachet']
 
 const emptyForm = {
-  name: '', sku: '', barcode: '', price: '', cost: '', stock: '', minStock: '', category: '', unit: 'piece', packQty: '', packName: '', packPrice: '', packCost: '', imageUrl: '',
+  name: '', sku: '', barcode: '', price: '', cost: '', stock: '', minStock: '', category: '', unit: 'piece', packQty: '', packName: '', packPrice: '', packCost: '', expiryDate: '', batchNumber: '', storeStock: '', imageUrl: '',
 }
 
 export default function ProductsPage() {
@@ -92,7 +92,7 @@ export default function ProductsPage() {
       name: p.name, sku: p.sku, barcode: p.barcode || '', price: String(p.price), cost: String(p.cost),
       stock: String(stockOf(p)), minStock: p.minStock != null ? String(p.minStock) : '', category: p.category || '',
       unit: p.unit || 'piece', packQty: p.packQty != null ? String(p.packQty) : '', packName: p.packName || '',
-      packPrice: p.packPrice != null ? String(p.packPrice) : '', packCost: p.packCost != null ? String(p.packCost) : '', imageUrl: p.imageUrl || '',
+      packPrice: p.packPrice != null ? String(p.packPrice) : '', packCost: p.packCost != null ? String(p.packCost) : '', expiryDate: p.expiryDate ? p.expiryDate.slice(0, 10) : '', batchNumber: p.batchNumber || '', storeStock: p.storeStock != null ? String(p.storeStock) : '', imageUrl: p.imageUrl || '',
     })
     setShowForm(true)
   }
@@ -153,6 +153,9 @@ export default function ProductsPage() {
       packName: form.packName.trim() || undefined,
       packPrice: form.packPrice ? parseFloat(form.packPrice) : undefined,
       packCost: form.packCost ? parseFloat(form.packCost) : undefined,
+      expiryDate: form.expiryDate?.trim() || undefined,
+      batchNumber: form.batchNumber?.trim() || undefined,
+      storeStock: form.storeStock !== '' && form.storeStock != null ? parseFloat(form.storeStock) || 0 : undefined,
       imageUrl: form.imageUrl || undefined,
       branchId: undefined as string | undefined,
       active: true,
@@ -385,9 +388,20 @@ export default function ProductsPage() {
           )}
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="In stock">
+            <Field label="In stock (shop floor)">
               <input value={form.stock} onChange={(e) => set({ stock: e.target.value })} type="number" inputMode="decimal" placeholder="0" className="field tabular-nums" />
             </Field>
+            <Field label="Store (back room)">
+              <input value={form.storeStock || ''} onChange={(e) => set({ storeStock: e.target.value })} type="number" inputMode="decimal" placeholder="0" className="field tabular-nums" />
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Expiry date">
+                <input value={form.expiryDate || ''} onChange={(e) => set({ expiryDate: e.target.value })} type="date" className="field" />
+              </Field>
+              <Field label="Batch / lot">
+                <input value={form.batchNumber || ''} onChange={(e) => set({ batchNumber: e.target.value })} placeholder="Optional" className="field" />
+              </Field>
+            </div>
             <Field label="Low-stock alert at">
               <input value={form.minStock} onChange={(e) => set({ minStock: e.target.value })} type="number" inputMode="decimal" placeholder="0" className="field tabular-nums" />
             </Field>

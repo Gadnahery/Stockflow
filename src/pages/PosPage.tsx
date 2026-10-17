@@ -16,6 +16,7 @@ import { useI18n } from '../i18n/I18nContext'
 import ActiveBranchChip from '../components/ActiveBranchChip'
 import { stockMapForProducts } from '../lib/stock'
 import { getCatalogMode, productVisibleOnBranch } from '../lib/catalogMode'
+import { isExpired, formatExpiryLabel } from '../lib/expiry'
 import { getBranchId } from '../lib/supabase'
 import { featuresFor } from '../lib/industry'
 import { format } from 'date-fns'
@@ -186,8 +187,17 @@ export default function PosPage() {
 
 
   const add = (p: Product, sellAs: 'unit' | 'pack' = 'unit') => {
+    if (isExpired(p)) {
+      toast(`${p.name} is expired (${p.expiryDate?.slice(0, 10) || ''}) — cannot sell`, 'error')
+      return
+    }
     if (stockOf(p) <= 0) {
-      toast(`${p.name} ${t('pos.outOfStock')}`, 'error')
+      const storeLeft = p.storeStock ?? 0
+      if (storeLeft > 0) {
+        toast(`${p.name}: shop is empty — transfer ${storeLeft} from store first`, 'error')
+      } else {
+        toast(`${p.name} ${t('pos.outOfStock')}`, 'error')
+      }
       return
     }
     const inCart = qtyById.get(p.id) ?? 0

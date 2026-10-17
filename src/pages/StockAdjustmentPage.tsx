@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
 import { Link } from 'react-router-dom'
 import { Plus, Package, AlertTriangle, TrendingDown, Search, Truck } from 'lucide-react'
@@ -10,6 +10,7 @@ import Screen from '../components/ui/Screen'
 import Sheet from '../components/ui/Sheet'
 import { useUi } from '../store/uiStore'
 import { fmt, fmtMoney } from '../lib/util'
+import { transferStock, locationLabel, dualLocationEnabled } from '../lib/locations'
 
 const REASONS = [
   { id: 'adjustment', label: 'Count / adjustment' },
@@ -26,6 +27,10 @@ export default function StockAdjustmentPage() {
   const toast = useUi((s) => s.toast)
   const [tab, setTab] = useState<Tab>('overview')
   const [showForm, setShowForm] = useState(false)
+  const [showTransfer, setShowTransfer] = useState(false)
+  const [xfer, setXfer] = useState({ productId: '', qty: '', direction: 'store_to_shop' as 'store_to_shop' | 'shop_to_store' })
+  const [dual, setDual] = useState(false)
+  useEffect(() => { void dualLocationEnabled().then(setDual) }, [])
   const [productQuery, setProductQuery] = useState('')
   const [movQuery, setMovQuery] = useState('')
   const [form, setForm] = useState({
@@ -164,18 +169,51 @@ export default function StockAdjustmentPage() {
     setProductQuery('')
   }
 
+
+  const runTransfer = async () => {
+    const qty = parseFloat(xfer.qty)
+    if (!xfer.productId || !qty || qty <= 0) {
+      toast('Select a product and quantity', 'error')
+      return
+    }
+    try {
+      await transferStock({
+        productId: xfer.productId,
+        quantity: qty,
+        direction: xfer.direction,
+      })
+      await audit('STOCK_TRANSFER', 'product', xfer.productId, {
+        after: { qty, direction: xfer.direction },
+      })
+      toast(xfer.direction === 'store_to_shop' ? 'Moved to shop floor' : 'Moved to store', 'success')
+      setShowTransfer(false)
+      setXfer({ productId: '', qty: '', direction: 'store_to_shop' })
+    } catch (e) {
+      toast((e as Error).message || 'Transfer failed', 'error')
+    }
+  }
+
   return (
     <Screen
       title="Inventory"
       subtitle={`${stats.skus} active SKUs · ${fmt(stats.units)} units`}
       action={
-        <button
-          type="button"
-          onClick={() => openAdjust()}
-          className="press h-9 px-3.5 rounded-full bg-primary text-white text-[14px] font-semibold flex items-center gap-1.5"
-        >
-          <Plus size={16} /> Adjust
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setShowTransfer(true)}
+            className="press h-9 px-3 rounded-full bg-black/[0.06] text-ink text-[13px] font-semibold"
+          >
+            Store ↔ Shop
+          </button>
+          <button
+            type="button"
+            onClick={() => openAdjust()}
+            className="press h-9 px-3.5 rounded-full bg-primary text-white text-[14px] font-semibold flex items-center gap-1.5"
+          >
+            <Plus size={16} /> Adjust
+          </button>
+        </div>
       }
     >
       <div className="space-y-4 md:max-w-3xl pb-6">
@@ -512,6 +550,62 @@ export default function StockAdjustmentPage() {
               placeholder="Optional details"
             />
           </div>
+        </div>
+      </Sheet>
+
+      <Sheet open={showTransfer} onClose={() => setShowTransfer(false)} title="Store ↔ Shop">
+        <div className="space-y-4 pb-6">
+          <p className="text-[13px] text-ink-secondary">
+            Move stock between back-room store and shop floor. POS only sells from the shop.
+          </p>
+          <div>
+            <label className="auth-label">Product</label>
+            <select
+              className="field w-full"
+              value={xfer.productId}
+              onChange={(e) => setXfer({ ...xfer, productId: e.target.value })}
+            >
+              <option value="">Select…</option>
+              {(products || []).map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name} · {locationLabel(p.stock, p.storeStock ?? 0)}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="auth-label">Direction</label>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                className={`press rounded-[12px] px-3 py-2.5 text-[13px] font-semibold border ${xfer.direction === 'store_to_shop' ? 'border-primary bg-primary/10' : 'border-border'}`}
+                onClick={() => setXfer({ ...xfer, direction: 'store_to_shop' })}
+              >
+                Store → Shop
+              </button>
+              <button
+                type="button"
+                className={`press rounded-[12px] px-3 py-2.5 text-[13px] font-semibold border ${xfer.direction === 'shop_to_store' ? 'border-primary bg-primary/10' : 'border-border'}`}
+                onClick={() => setXfer({ ...xfer, direction: 'shop_to_store' })}
+              >
+                Shop → Store
+              </button>
+            </div>
+          </div>
+          <div>
+            <label className="auth-label">Quantity</label>
+            <input
+              className="field w-full tabular-nums"
+              type="number"
+              inputMode="decimal"
+              value={xfer.qty}
+              onChange={(e) => setXfer({ ...xfer, qty: e.target.value })}
+              placeholder="0"
+            />
+          </div>
+          <button type="button" className="press w-full h-12 rounded-full bg-primary text-white font-semibold" onClick={() => void runTransfer()}>
+            Transfer
+          </button>
         </div>
       </Sheet>
     </Screen>

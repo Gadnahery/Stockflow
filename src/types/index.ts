@@ -44,6 +44,8 @@ export interface Product {
   price: number
   cost: number
   stock: number
+  /** Back-room / store quantity (dual-location mode). POS sells from stock (shop). */
+  storeStock?: number
   minStock?: number
   category?: string
   brand?: string
@@ -116,7 +118,23 @@ export interface Sale {
   synced: boolean
 }
 
+export interface ProductBatch {
+  id: UUID
+  productId: UUID
+  productName: string
+  batchNo?: string
+  expiryDate?: string // ISO date YYYY-MM-DD
+  quantity: number
+  /** shop = selling floor, store = back room */
+  location: 'shop' | 'store'
+  branchId?: UUID
+  createdAt: string
+  updatedAt: string
+  synced?: boolean
+}
+
 export interface StockMovement {
+
   id: UUID
   productId: UUID
   productName: string
@@ -258,6 +276,12 @@ export interface AppSettings {
    * isolated = each branch has its own products (empty until you add them); like a second shop under same owner
    */
   catalogMode?: 'shared' | 'isolated'
+  /** Show expiry fields (pharmacy / food) */
+  trackExpiry?: boolean
+  /** Shop floor vs back-room store quantities */
+  dualLocationStock?: boolean
+  /** Last sequential A4 invoice number */
+  invoiceSeq?: number
 }
 
 /** Per-branch quantity when stockMode is per_branch. Catalogue products stay shared. */
@@ -266,6 +290,8 @@ export interface BranchStock {
   productId: UUID
   branchId: UUID
   stock: number
+  /** Back-room / store quantity (dual-location mode). POS sells from stock (shop). */
+  storeStock?: number
   minStock?: number
   updatedAt: string
   synced?: boolean
