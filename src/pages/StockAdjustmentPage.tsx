@@ -581,7 +581,7 @@ export default function StockAdjustmentPage() {
               onChange={(e) => setXfer({ ...xfer, productId: e.target.value })}
             >
               <option value="">Select…</option>
-              {(products || []).map((p) => (
+              {(list || products || []).map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name} · {locationLabel(p.stock, p.storeStock ?? 0)}
                 </option>
