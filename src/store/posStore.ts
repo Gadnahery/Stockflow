@@ -236,7 +236,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     const user = getCurrentUser()
 
     const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
-    await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
+    await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, db.productBatches, db.settings], async () => {
       await db.sales.update(saleId, {
         status: 'voided',
         synced: false,
@@ -487,7 +487,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     }
 
     try {
-      await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
+      await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock, db.productBatches, db.settings], async () => {
       await db.sales.add(sale)
       if (creditAmt > 0 && selectedCustomerId) {
         const c = await db.customers.get(selectedCustomerId)
@@ -509,12 +509,14 @@ export const usePosStore = create<PosState>((set, get) => ({
           branchId: branchId || null,
           now,
         })
-        try {
+        {
           const settings = await db.settings.get('main')
           if (settings?.trackExpiry) {
+            // Must run inside this transaction (productBatches is listed above).
+            // Fail the sale loudly if FEFO cannot run — never leave batch ledger fiction.
             await deductFefo({ productId: item.productId, quantity: deduct, skipProductUpdate: true })
           }
-        } catch { /* batches optional */ }
+        }
 
         const movement: StockMovement = {
           id: uuidv4(),

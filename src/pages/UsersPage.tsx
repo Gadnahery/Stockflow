@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Plus, X, Shield, Mail, UserX, RefreshCw } from 'lucide-react'
 import Screen from '../components/ui/Screen'
 import { useAuth } from '../contexts/AuthContext'
+import { saveApprovalPin, listApprovalPins, removeApprovalPin } from '../lib/approvalPin'
 import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
@@ -333,7 +334,26 @@ export default function UsersPage() {
   }
 
   if (!allowed) {
-    return (
+  
+  const setMemberApprovalPin = async (m: MemberRow) => {
+    const pin = window.prompt(
+      `Approval PIN for ${m.display_name || m.email || 'member'} (4–6 digits). Used for void/refund override — not the device unlock PIN.`,
+    )
+    if (!pin) return
+    if (!/^\d{4,6}$/.test(pin.trim())) {
+      toast('PIN must be 4–6 digits', 'error')
+      return
+    }
+    saveApprovalPin({
+      memberId: m.id,
+      name: m.display_name || m.email || 'Manager',
+      pin: pin.trim(),
+      permissions: m.permissions,
+    })
+    toast(`Approval PIN saved for ${m.display_name || m.email}`, 'success')
+  }
+
+  return (
       <Screen title={t('users.title')} subtitle={t('users.sub')}>
         <div className="rounded-[22px] bg-white shadow-card p-8 text-center text-ink-secondary">
           You need <strong>Manage users</strong> permission to view this page.
@@ -419,6 +439,16 @@ export default function UsersPage() {
                       )}
                     </p>
                   </div>
+                  {m.status === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => void setMemberApprovalPin(m)}
+                      className="press h-9 px-3 rounded-full text-[12px] font-semibold text-primary bg-primary/10"
+                      title="Set approval PIN"
+                    >
+                      PIN
+                    </button>
+                  )}
                   {m.status === 'active' && m.role !== 'owner' && m.role !== 'business_owner' && m.user_id !== me?.user_id && (
                     <button
                       type="button"

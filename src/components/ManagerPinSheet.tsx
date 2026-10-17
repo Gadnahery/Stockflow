@@ -2,13 +2,7 @@ import { useState } from 'react'
 import Sheet from './ui/Sheet'
 import { haptic } from '../lib/util'
 import { useI18n } from '../i18n/I18nContext'
-
-/** Same hash as AuthContext device PIN (must stay in sync). */
-function simpleHash(pin: string): string {
-  let h = 0
-  for (let i = 0; i < pin.length; i++) h = (h * 31 + pin.charCodeAt(i)) | 0
-  return `local:${h}`
-}
+import { hasAnyApprovalPin, matchApprovalPin } from '../lib/approvalPin'
 
 interface Props {
   open: boolean
@@ -19,23 +13,17 @@ interface Props {
 }
 
 /**
- * Manager override: device PIN proves an authorised person is present.
- * Offline-safe — no network. Records approver as the device owner label.
+ * Manager override: requires a personal approval PIN set for owners/managers
+ * in Users — NOT the device unlock PIN cashiers use to open the app.
  */
 export default function ManagerPinSheet({ open, onClose, title, subtitle, onApproved }: Props) {
-  const { t, locale } = useI18n()
+  const { locale } = useI18n()
   const [pin, setPin] = useState('')
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
   const sw = locale === 'sw'
-  const expected = (() => {
-    try {
-      return localStorage.getItem('sf_device_pin')
-    } catch {
-      return null
-    }
-  })()
+  const configured = hasAnyApprovalPin()
 
   const reset = () => {
     setPin('')
@@ -49,42 +37,26 @@ export default function ManagerPinSheet({ open, onClose, title, subtitle, onAppr
   }
 
   const attempt = (value: string) => {
-    if (!expected) {
+    if (!configured) {
       setError(
         sw
-          ? 'Weka PIN ya kifaa kwanza kwenye Mipangilio (akaunti ya mmiliki).'
-          : 'Set a device PIN first in Settings (owner account).',
+          ? 'Hakuna PIN ya idhini. Mmiliki aweke PIN ya idhini kwenye Timu / Watumiaji.'
+          : 'No approval PIN set. Owner must set manager approval PINs under Team / Users.',
       )
       return
     }
     setBusy(true)
-    const ok = expected === simpleHash(value)
-    if (ok) {
+    const match = matchApprovalPin(value)
+    if (match) {
       haptic(25)
-      let name = 'Manager'
-      try {
-        const u = JSON.parse(sessionStorage.getItem('currentUser') || '{}') as { name?: string }
-        name = u.name || name
-      } catch {
-        /* ignore */
-      }
-      try {
-        const m = JSON.parse(localStorage.getItem('sf_member_cache') || 'null') as {
-          display_name?: string
-          user_id?: string
-        } | null
-        if (m?.display_name) name = m.display_name
-        onApproved({ id: m?.user_id || 'manager-pin', name })
-      } catch {
-        onApproved({ id: 'manager-pin', name })
-      }
-      reset()
-    } else {
-      haptic(60)
-      setError(sw ? 'PIN si sahihi' : 'Incorrect PIN')
-      setPin('')
-      setBusy(false)
+      onApproved({ id: match.memberId, name: match.name })
+      close()
+      return
     }
+    haptic(40)
+    setError(sw ? 'PIN si sahihi' : 'Wrong approval PIN')
+    setPin('')
+    setBusy(false)
   }
 
   const press = (digit: string) => {
@@ -101,14 +73,14 @@ export default function ManagerPinSheet({ open, onClose, title, subtitle, onAppr
       <p className="text-[14px] text-ink-secondary mb-4">
         {subtitle ||
           (sw
-            ? 'Mfanyakazi hana ruhusa. Meneja aingize PIN ya kifaa kuidhinisha.'
-            : 'This staff member is not allowed. A manager must enter the device PIN to approve.')}
+            ? 'Mfanyakazi hana ruhusa. Meneja aingize PIN yake ya idhini (si PIN ya kufungua programu).'
+            : 'This staff member is not allowed. A manager must enter their approval PIN (not the app unlock PIN).')}
       </p>
-      {!expected && (
+      {!configured && (
         <p className="text-[13px] text-danger mb-3" role="alert">
           {sw
-            ? 'Hakuna PIN ya kifaa. Mmiliki aweke PIN kwenye Akaunti / Mipangilio.'
-            : 'No device PIN set. Owner must set a PIN under Account / Settings.'}
+            ? 'Hakuna PIN ya idhini iliyowekwa. Mmiliki: Timu → chagua meneja → weka PIN ya idhini.'
+            : 'No approval PINs configured. Owner: Team → select a manager → set Approval PIN.'}
         </p>
       )}
       <div className="flex justify-center gap-2.5 mb-4">
@@ -134,14 +106,14 @@ export default function ManagerPinSheet({ open, onClose, title, subtitle, onAppr
             <button
               key={key}
               type="button"
-              disabled={busy}
+              disabled={busy || !configured}
               onClick={() => {
                 if (key === '⌫') {
                   setPin((p) => p.slice(0, -1))
                   setError('')
                 } else press(key)
               }}
-              className="press h-14 rounded-[16px] bg-black/[0.05] dark:bg-white/10 text-[22px] font-semibold text-ink"
+              className="press h-14 rounded-[16px] bg-black/[0.05] dark:bg-white/10 text-[22px] font-semibold text-ink disabled:opacity-40"
             >
               {key}
             </button>
@@ -149,15 +121,9 @@ export default function ManagerPinSheet({ open, onClose, title, subtitle, onAppr
         )}
       </div>
       <p className="text-center text-[12px] text-ink-muted mt-4">
-        {t('common.cancel') !== 'common.cancel' ? (
-          <button type="button" className="text-primary font-semibold" onClick={close}>
-            {sw ? 'Ghairi' : 'Cancel'}
-          </button>
-        ) : (
-          <button type="button" className="text-primary font-semibold" onClick={close}>
-            {sw ? 'Ghairi' : 'Cancel'}
-          </button>
-        )}
+        <button type="button" className="text-primary font-semibold" onClick={close}>
+          {sw ? 'Ghairi' : 'Cancel'}
+        </button>
       </p>
     </Sheet>
   )
