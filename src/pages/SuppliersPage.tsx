@@ -6,6 +6,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { db } from '../lib/db'
 import type { Supplier, PurchaseOrder } from '../types'
 import Screen from '../components/ui/Screen'
+import { useUi } from '../store/uiStore'
 import Sheet from '../components/ui/Sheet'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { fmtMoney } from '../lib/util'
@@ -16,6 +17,7 @@ import { addBatch } from '../lib/batches'
 const emptySupplier = { name: '', phone: '', email: '', address: '', notes: '' }
 
 export default function SuppliersPage() {
+  const toast = useUi((s) => s.toast)
   const confirm = useConfirm()
   const [tab, setTab] = useState<'suppliers' | 'purchases'>('suppliers')
   const [query, setQuery] = useState('')

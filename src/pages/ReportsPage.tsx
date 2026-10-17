@@ -240,6 +240,32 @@ export default function ReportsPage() {
   return (
     <Screen title={t('reports.title')} subtitle={t('reports.sub')}>
       <div className="space-y-5 md:max-w-3xl pb-8">
+        {expiring.length > 0 && (
+          <section className="bg-white rounded-[22px] shadow-card p-4 space-y-2">
+            <p className="text-[15px] font-semibold">Expiring / expired stock</p>
+            {expiring.slice(0, 15).map((row) => (
+              <div key={row.productId + row.expiryDate} className="flex items-center gap-2 text-[13px]">
+                <span className="flex-1 truncate font-medium">{row.productName}</span>
+                <span className={row.days < 0 ? 'text-danger' : 'text-warning'}>
+                  {row.days < 0 ? 'Expired' : `${row.days}d`} · {row.expiryDate} · qty {row.quantity}
+                </span>
+                {row.days < 0 && (
+                  <button
+                    type="button"
+                    className="text-danger font-semibold shrink-0"
+                    onClick={() => {
+                      void writeOffExpired({ productId: row.productId, quantity: row.quantity }).then(() =>
+                        expiringProducts(90).then(setExpiring),
+                      )
+                    }}
+                  >
+                    Write off
+                  </button>
+                )}
+              </div>
+            ))}
+          </section>
+        )}
         {/* Period */}
         <div className="grid grid-cols-3 p-1 rounded-[14px] bg-black/[0.06]">
           {PERIODS.map((p) => (

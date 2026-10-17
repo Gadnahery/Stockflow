@@ -229,7 +229,6 @@ export const usePosStore = create<PosState>((set, get) => ({
   voidSale: async (saleId, opts) => {
     const sale = await db.sales.get(saleId)
     if (!sale || sale.status !== 'completed') throw new Error('Cannot void this sale')
-    if (sale.status === 'voided' || sale.status === 'refunded') throw new Error('Sale already closed')
     const now = new Date().toISOString()
     const user = getCurrentUser()
 

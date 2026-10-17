@@ -30,8 +30,7 @@ export default function StockAdjustmentPage() {
   const [showForm, setShowForm] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
   const [xfer, setXfer] = useState({ productId: '', qty: '', direction: 'store_to_shop' as 'store_to_shop' | 'shop_to_store' })
-  const [dual, setDual] = useState(false)
-  useEffect(() => { void dualLocationEnabled().then(setDual) }, [])
+  useEffect(() => { void dualLocationEnabled() }, [])
   const [productQuery, setProductQuery] = useState('')
   const [movQuery, setMovQuery] = useState('')
   const [form, setForm] = useState({

@@ -15,7 +15,6 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { useI18n } from '../i18n/I18nContext'
 
-const FREE_SEATS = 4 // Starter default; plan limits override when known
 
 function teamLimitToast(memberCount: number) {
   let plan = DEFAULT_PLAN_LIMITS.starter
