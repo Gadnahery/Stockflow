@@ -192,6 +192,7 @@ export default function SalesPage() {
   }
 
   return (
+    <>
     <Screen
       title={t("sales.title")}
       subtitle={
@@ -384,6 +385,8 @@ export default function SalesPage() {
           else void runRefund(action.sale, { approvedById: approver.id, approvedByName: approver.name })
         }}
       />
+    </>
+
 
   )
 }
