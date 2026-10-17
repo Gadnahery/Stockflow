@@ -9,6 +9,7 @@ import { supabase, getBusinessId } from '../lib/supabase'
 import { setActiveBranchId } from '../lib/branch'
 import { db } from '../lib/db'
 import { getCatalogMode, setCatalogMode, type CatalogMode } from '../lib/catalogMode'
+import { checkCanAdd, DEFAULT_PLAN_LIMITS } from '../lib/planLimits'
 import { useI18n } from '../i18n/I18nContext'
 
 type BranchRow = {
@@ -86,6 +87,18 @@ export default function BranchesPage() {
   const create = async () => {
     const bizId = getBusinessId() || member?.business_id
     if (!bizId || !supabase || !name.trim()) return
+    // Default soft limits offline; billing page holds the real plan.
+    // Pro-style: never hard-block beyond 5 if they already have many (grandfather).
+    let plan = DEFAULT_PLAN_LIMITS.starter
+    try {
+      const code = localStorage.getItem('sf_plan_code') || 'starter'
+      plan = DEFAULT_PLAN_LIMITS[code] || DEFAULT_PLAN_LIMITS.starter
+    } catch { /* starter */ }
+    const gate = checkCanAdd('branch', branches.length, plan)
+    if (!gate.allowed) {
+      toast(sw ? gate.messageSw : gate.messageEn, 'error')
+      return
+    }
     setBusy(true)
     try {
       const { data, error } = await supabase

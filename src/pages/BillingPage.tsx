@@ -12,6 +12,9 @@ type BillingPlan = {
   amount_tzs: number
   interval: 'month' | 'year'
   features: string[]
+  max_branches?: number
+  max_accounts?: number
+  extra_branch_price_tzs?: number
 }
 type Invoice = {
   id: string
@@ -49,7 +52,7 @@ export default function BillingPage() {
     if (!supabase || !business?.id) { setLoading(false); return }
     setLoading(true)
     const [planRes, invoiceRes, subRes] = await Promise.all([
-      supabase.from('billing_plans').select('id, code, name, description, amount_tzs, interval, features').eq('is_active', true).order('amount_tzs'),
+      supabase.from('billing_plans').select('id, code, name, description, amount_tzs, interval, features, max_branches, max_accounts, extra_branch_price_tzs').eq('is_active', true).order('amount_tzs'),
       supabase.from('billing_invoices').select('id, invoice_number, amount_tzs, status, issued_at, paid_at').eq('business_id', business.id).order('issued_at', { ascending: false }).limit(10),
       supabase.from('business_subscriptions').select('status, current_period_end, trial_ends_at, plan:billing_plans(name)').eq('business_id', business.id).maybeSingle(),
     ])
@@ -174,6 +177,11 @@ export default function BillingPage() {
                   </span>
                   <span className="mt-4 block text-xl font-bold text-ink">{money(Number(plan.amount_tzs))}<span className="ml-1 text-sm font-medium text-ink-muted">/ {plan.interval}</span></span>
                   {Array.isArray(plan.features) && plan.features.length > 0 && <ul className="mt-4 space-y-2">{plan.features.map(feature => <li key={feature} className="flex gap-2 text-sm text-ink-secondary"><CheckCircle2 size={16} className="mt-0.5 shrink-0 text-primary" />{feature}</li>)}</ul>}
+                  <p className="mt-3 text-xs text-ink-muted">
+                    Up to {plan.max_branches ?? (plan.code === 'starter' ? 1 : plan.code === 'growth' ? 3 : 5)} branches ·{' '}
+                    {plan.max_accounts ?? (plan.code === 'starter' ? 4 : plan.code === 'growth' ? 12 : 15)} accounts
+                    {(plan.extra_branch_price_tzs || 0) > 0 ? ` · +${Number(plan.extra_branch_price_tzs).toLocaleString()} TZS / extra branch` : ''}
+                  </p>
                 </label>
               ))}
             </div>

@@ -6,6 +6,7 @@ import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import type { Permission } from '../types'
+import { checkCanAdd, DEFAULT_PLAN_LIMITS } from '../lib/planLimits'
 import {
   PERMISSION_CATALOGUE,
   ROLE_PRESETS as CATALOGUE_PRESETS,
@@ -14,7 +15,20 @@ import {
 import { v4 as uuidv4 } from 'uuid'
 import { useI18n } from '../i18n/I18nContext'
 
-const FREE_SEATS = 10
+const FREE_SEATS = 4 // Starter default; plan limits override when known
+
+function teamLimitToast(memberCount: number) {
+  let plan = DEFAULT_PLAN_LIMITS.starter
+  try {
+    const code = localStorage.getItem('sf_plan_code') || 'starter'
+    plan = DEFAULT_PLAN_LIMITS[code] || DEFAULT_PLAN_LIMITS.starter
+  } catch { /* starter */ }
+  const gate = checkCanAdd('account', memberCount, plan)
+  if (!gate.allowed) {
+    return gate.messageEn
+  }
+  return null
+}
 
 const ALL_PERMISSIONS: { key: Permission; label: string }[] = PERMISSION_CATALOGUE.map((p) => ({
   key: p.key,
@@ -171,9 +185,12 @@ export default function UsersPage() {
     }
     const bizId = getBusinessId() || me?.business_id
     if (!bizId || !supabase) return
-    if (members.length >= FREE_SEATS) {
-      toast(`Team limit (${FREE_SEATS}). Remove someone or upgrade.`, 'error')
-      return
+    {
+      const msg = teamLimitToast(members.length)
+      if (msg) {
+        toast(msg, 'error')
+        return
+      }
     }
     setBusy(true)
     try {
@@ -220,10 +237,13 @@ export default function UsersPage() {
     setBusy(true)
     try {
       const token = uuidv4().replace(/-/g, '') + uuidv4().replace(/-/g, '').slice(0, 8)
-      if (members.length >= FREE_SEATS) {
-        toast(`Team limit (${FREE_SEATS}). Remove someone or upgrade.`, 'error')
-        setBusy(false)
-        return
+      {
+        const msg = teamLimitToast(members.length)
+        if (msg) {
+          toast(msg, 'error')
+          setBusy(false)
+          return
+        }
       }
       const expires = new Date()
       expires.setDate(expires.getDate() + 14)

@@ -39,11 +39,35 @@ export default async function handler(req, res) {
     return res.status(403).json({ success: false, error: 'Only a business owner or administrator can manage billing' })
   }
 
-  const { data: plan } = await admin.from('billing_plans').select('id, code, name, amount_tzs, interval')
+  const { data: plan } = await admin.from('billing_plans').select('id, code, name, amount_tzs, interval, max_branches, extra_branch_price_tzs')
     .eq('code', planCode).eq('is_active', true).maybeSingle()
-  const amount = Number(plan?.amount_tzs)
-  if (!plan || !Number.isSafeInteger(amount) || amount < 100) {
+  const baseAmount = Number(plan?.amount_tzs)
+  if (!plan || !Number.isSafeInteger(baseAmount) || baseAmount < 100) {
     return res.status(400).json({ success: false, error: 'This billing plan is not available' })
+  }
+
+  // Count active branches for surcharge (Pro: each branch beyond max_branches)
+  let branchCount = 1
+  try {
+    const { count } = await admin.from('branches').select('id', { count: 'exact', head: true })
+      .eq('business_id', businessId).eq('active', true)
+    if (typeof count === 'number' && count >= 0) branchCount = count
+  } catch {
+    try {
+      const { count } = await admin.from('branches').select('id', { count: 'exact', head: true })
+        .eq('business_id', businessId)
+      if (typeof count === 'number' && count >= 0) branchCount = count
+    } catch { /* default 1 */ }
+  }
+  const maxBranches = Number(plan.max_branches) > 0 ? Number(plan.max_branches) : (
+    plan.code === 'starter' ? 1 : plan.code === 'growth' ? 3 : 5
+  )
+  const extraPrice = Number(plan.extra_branch_price_tzs) || 0
+  const extraBranches = extraPrice > 0 ? Math.max(0, branchCount - maxBranches) : 0
+  const surcharge = extraBranches * extraPrice
+  const amount = baseAmount + surcharge
+  if (!Number.isSafeInteger(amount) || amount < 100) {
+    return res.status(400).json({ success: false, error: 'Could not calculate invoice amount' })
   }
 
   const invoiceNumber = 'SF-' + Date.now().toString(36).toUpperCase() + '-' + Math.random().toString(36).slice(2, 6).toUpperCase()
@@ -82,7 +106,7 @@ export default async function handler(req, res) {
       provider_reference: String(provider.order_id), status: 'pending',
       metadata: { provider_message: provider.message || 'USSD push sent' },
     }).eq('id', attempt.id)
-    return res.status(200).json({ success: true, attempt_id: attempt.id, invoice_number: invoice.invoice_number, amount_tzs: amount, message: provider.message || 'Payment prompt sent to your phone' })
+    return res.status(200).json({ success: true, attempt_id: attempt.id, invoice_number: invoice.invoice_number, amount_tzs: amount, base_amount_tzs: baseAmount, surcharge_tzs: surcharge, extra_branches: extraBranches, branch_count: branchCount, message: provider.message || 'Payment prompt sent to your phone' })
   } catch {
     await admin.from('billing_payment_attempts').update({ status: 'failed' }).eq('id', attempt.id)
     await admin.from('billing_invoices').update({ status: 'failed' }).eq('id', invoice.id)
