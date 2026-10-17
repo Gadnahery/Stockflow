@@ -364,7 +364,7 @@ async function syncProductBatch(b: { id: string; productId: string; productName:
   if (error) throw error
 }
 
-async function processOutbox(): Promise<{ synced: number; failed: number }> {
+export async function processOutbox(): Promise<{ synced: number; failed: number }> {
   if (!supabaseConfigured || !isBrowserOnline()) return { synced: 0, failed: 0 }
   // Prevent overlapping runs (second sale / sync loop) from stacking and hanging
   if (outboxRunning) return { synced: 0, failed: 0 }
