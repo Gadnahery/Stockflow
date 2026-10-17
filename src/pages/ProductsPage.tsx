@@ -39,6 +39,10 @@ export default function ProductsPage() {
     return () => window.removeEventListener('sf-branch-change', onB)
   }, [])
   const [showForm, setShowForm] = useState(false)
+  const [showAddStock, setShowAddStock] = useState(false)
+  const [addStockTarget, setAddStockTarget] = useState<Product | null>(null)
+  const [addStockQty, setAddStockQty] = useState('')
+  const [addStockDest, setAddStockDest] = useState<'shop' | 'store'>('shop')
   const [editing, setEditing] = useState<Product | null>(null)
   const [form, setForm] = useState(emptyForm)
   const [scanFor, setScanFor] = useState<'search' | 'barcode' | null>(null)
@@ -85,6 +89,30 @@ export default function ProductsPage() {
   const set = (patch: Partial<typeof emptyForm>) => setForm((f) => ({ ...f, ...patch }))
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setShowForm(true) }
+
+  const openAddStock = (p: Product) => {
+    setAddStockTarget(p)
+    setAddStockQty('')
+    setAddStockDest('shop')
+    setShowAddStock(true)
+  }
+
+  const confirmAddStock = async () => {
+    if (!addStockTarget) return
+    const qty = parseFloat(addStockQty)
+    if (!qty || qty === 0) {
+      toast('Enter a quantity', 'error')
+      return
+    }
+    try {
+      await addStockOnly(addStockTarget.id, qty, addStockDest)
+      toast(qty > 0 ? 'Stock added' : 'Stock reduced', 'success')
+      setShowAddStock(false)
+      setAddStockTarget(null)
+    } catch (e) {
+      toast((e as Error).message || 'Failed', 'error')
+    }
+  }
 
   const addStockOnly = async (productId: string, qty: number, dest: 'shop' | 'store' = 'shop') => {
     if (!qty || qty === 0) return
@@ -326,31 +354,68 @@ export default function ProductsPage() {
                 const out = st <= 0
                 const low = !out && st <= (p.minStock ?? 0)
                 return (
-                  <button
+                  <div
                     key={p.id}
-                    onClick={() => openEdit(p)}
-                    className="w-full flex items-center gap-3.5 p-3.5 text-left active:bg-black/[0.04] transition-colors md:bg-white md:rounded-[22px] md:shadow-card"
+                    className="w-full flex items-center gap-2 p-3.5 text-left md:bg-white md:rounded-[22px] md:shadow-card"
                   >
-                    <ProductImage name={p.name} src={p.imageUrl} className="h-[54px] w-[54px] rounded-[15px] shrink-0" textClass="text-xl" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-semibold text-[16px] text-ink truncate">{p.name}</p>
-                      <p className="text-[13px] text-ink-muted truncate">{p.category ? `${p.category} • ` : ''}{p.sku}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="font-bold text-[16px] tabular-nums tracking-tight">{fmt(p.price)}</p>
-                      <span className={`inline-block mt-0.5 text-[12px] font-semibold px-2 py-0.5 rounded-full tabular-nums ${out ? 'bg-red-50 text-danger' : low ? 'bg-amber-50 text-warning' : 'bg-black/[0.05] text-ink-secondary'}`}>
-                        {out ? 'Out' : `${fmt(st)} shop`}
-                        {(p.storeStock ?? 0) > 0 ? ` · ${fmt(p.storeStock!)} store` : ''}
-                        {p.expiryDate ? ` · exp ${p.expiryDate.slice(0, 10)}` : ''}
-                      </span>
-                    </div>
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => openEdit(p)}
+                      className="flex-1 flex items-center gap-3.5 min-w-0 text-left active:bg-black/[0.04] rounded-[12px]"
+                    >
+                      <ProductImage name={p.name} src={p.imageUrl} className="h-[54px] w-[54px] rounded-[15px] shrink-0" textClass="text-xl" />
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[16px] text-ink truncate">{p.name}</p>
+                        <p className="text-[13px] text-ink-muted truncate">{p.category ? `${p.category} • ` : ''}{p.sku}</p>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <p className="font-bold text-[16px] tabular-nums tracking-tight">{fmt(p.price)}</p>
+                        <span className={`inline-block mt-0.5 text-[12px] font-semibold px-2 py-0.5 rounded-full tabular-nums ${out ? 'bg-red-50 text-danger' : low ? 'bg-amber-50 text-warning' : 'bg-black/[0.05] text-ink-secondary'}`}>
+                          {out ? 'Out' : `${fmt(st)} shop`}
+                          {(p.storeStock ?? 0) > 0 ? ` · ${fmt(p.storeStock!)} store` : ''}
+                          {p.expiryDate ? ` · exp ${p.expiryDate.slice(0, 10)}` : ''}
+                        </span>
+                      </div>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => openAddStock(p)}
+                      className="press shrink-0 h-9 px-2.5 rounded-full bg-black/[0.06] text-[11px] font-semibold"
+                      title="Add stock"
+                    >
+                      +Stock
+                    </button>
+                  </div>
                 )
               })}
             </div>
           )}
         </div>
-      </Screen>
+      
+      <Sheet open={showAddStock} onClose={() => setShowAddStock(false)} title={addStockTarget ? `Add stock · ${addStockTarget.name}` : 'Add stock'}>
+        <div className="space-y-4 pb-6">
+          <p className="text-[13px] text-ink-secondary">
+            {t('products.stockHint')}
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setAddStockDest('shop')} className={`press h-10 rounded-[12px] text-[13px] font-semibold border ${addStockDest === 'shop' ? 'border-primary bg-primary/10' : 'border-border'}`}>{t('products.shopFloor')}</button>
+            <button type="button" onClick={() => setAddStockDest('store')} className={`press h-10 rounded-[12px] text-[13px] font-semibold border ${addStockDest === 'store' ? 'border-primary bg-primary/10' : 'border-border'}`}>{t('products.storeRoom')}</button>
+          </div>
+          <div>
+            <label className="auth-label">Quantity (+ or −)</label>
+            <input className="field w-full tabular-nums" type="number" inputMode="decimal" value={addStockQty} onChange={(e) => setAddStockQty(e.target.value)} placeholder="e.g. 24" />
+          </div>
+          {addStockTarget && (
+            <p className="text-[12px] text-ink-muted">
+              Now: shop {addStockTarget.stock ?? 0} · store {addStockTarget.storeStock ?? 0}
+            </p>
+          )}
+          <button type="button" className="press w-full h-12 rounded-full bg-primary text-white font-semibold" onClick={() => void confirmAddStock()}>
+            Save stock
+          </button>
+        </div>
+      </Sheet>
+</Screen>
 
       <Sheet
         open={showForm}
@@ -385,7 +450,7 @@ export default function ProductsPage() {
         </div>
 
         <div className="mt-5 space-y-4">
-          <p className="text-[12px] text-ink-secondary px-0.5">Only name and sell price are required. Stock, cost, barcode optional.</p>
+          <p className="text-[12px] text-ink-secondary px-0.5">{t('products.minFields')}</p>
             <Field label="Name">
             <input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Coca Cola 500ml" className="field" autoComplete="off" />
           </Field>

@@ -14,6 +14,7 @@ import CommandPalette from '../CommandPalette'
 import TrialBanner from '../TrialBanner'
 import InstallBanner from '../InstallBanner'
 import UpdateBanner from '../UpdateBanner'
+import { useI18n } from '../../i18n/I18nContext'
 
 
 const NAV_LABELS: Record<string, string> = {
@@ -105,10 +106,17 @@ const SIDEBAR_W: Record<SidebarMode, string> = {
 
 export default function AppShell() {
   const location = useLocation()
-  const mobileNav = mobileNavKeys.map((n) => ({ ...n, label: NAV_LABELS[n.labelKey] || n.labelKey }))
-  const desktopNav = desktopNavKeys.map((n) => ({ ...n, label: NAV_LABELS[n.labelKey] || n.labelKey }))
+  const { t } = useI18n()
+  const mobileNav = mobileNavKeys.map((n) => ({ ...n, label: t(n.labelKey) || NAV_LABELS[n.labelKey] || n.labelKey }))
+  const desktopNav = desktopNavKeys.map((n) => ({
+    ...n,
+    label: t(n.labelKey) || NAV_LABELS[n.labelKey] || n.labelKey,
+    section: n.section
+      ? (t(`nav.section.${n.section.toLowerCase()}`) || n.section)
+      : undefined,
+  }))
   const titleKey = pageTitleKey(location.pathname)
-  const pageHeading = titleKey ? (NAV_LABELS[titleKey] || titleKey) : 'StockFlow'
+  const pageHeading = titleKey ? (t(titleKey) || NAV_LABELS[titleKey] || titleKey) : 'StockFlow'
 
   const navigate = useNavigate()
   const { isOnline, pendingSyncCount, cart } = usePosStore()
