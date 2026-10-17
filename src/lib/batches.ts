@@ -38,6 +38,15 @@ export async function addBatch(input: {
     synced: false,
   }
   await db.productBatches.put(batch)
+  try {
+    await db.outbox.add({
+      id: uuidv4(),
+      type: 'product_batch',
+      payload: batch,
+      createdAt: now,
+      retries: 0,
+    })
+  } catch { /* offline ok */ }
   return batch
 }
 

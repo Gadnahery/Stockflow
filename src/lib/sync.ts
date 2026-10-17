@@ -101,6 +101,8 @@ async function syncSale(sale: Sale, businessId: string) {
         discount_amount: item.discount,
         tax_amount: 0,
         line_total: item.lineTotal,
+        sell_as: item.sellAs || 'unit',
+        stock_units: item.stockUnits ?? item.quantity,
       }))
     )
     if (ins.error) throw ins.error
@@ -152,9 +154,19 @@ async function syncProduct(product: Product, businessId: string) {
     unit_price: product.price,
     cost: product.cost,
     stock_quantity: product.stock,
+    store_stock: product.storeStock ?? 0,
     min_stock: product.minStock ?? 0,
     unit: product.unit || 'piece',
     category: product.category || null,
+    brand: product.brand || null,
+    pack_qty: product.packQty ?? null,
+    pack_name: product.packName || null,
+    pack_price: product.packPrice ?? null,
+    pack_cost: product.packCost ?? null,
+    expiry_date: product.expiryDate ? product.expiryDate.slice(0, 10) : null,
+    batch_number: product.batchNumber || null,
+    is_service: product.isService ?? false,
+    restricted: product.restricted ?? false,
     is_active: product.active,
     tax_rate: 0,
     updated_at: product.updatedAt,
@@ -216,6 +228,7 @@ async function syncPurchase(po: PurchaseOrder, businessId: string) {
     delivery_address: po.deliveryAddress || null,
     payment_terms: po.paymentTerms || null,
     authorized_by: po.authorizedBy || null,
+    receive_history: po.receiveHistory || [],
   }, { onConflict: 'id' })
   if (error) throw error
 }
@@ -291,6 +304,7 @@ async function processEvent(event: OutboxEvent, businessId: string) {
       await db.sales.update((payload as Sale).id, { synced: true })
       break
     case 'product_upsert': await syncProduct(payload, businessId); break
+    case 'product_batch': await syncProductBatch(payload as never, businessId); break
     case 'customer_upsert': await syncCustomer(payload, businessId); break
     case 'supplier_upsert': await syncSupplier(payload, businessId); break
     case 'purchase': await syncPurchase(payload, businessId); break
@@ -331,7 +345,26 @@ function isNetworkError(err: unknown): boolean {
   return e?.name === 'AbortError' || err instanceof TypeError || m.includes('failed to fetch') || m.includes('network') || m.includes('load failed') || m.includes('timed out')
 }
 
-export async function processOutbox(): Promise<{ synced: number; failed: number }> {
+export 
+async function syncProductBatch(b: { id: string; productId: string; productName: string; batchNo?: string; expiryDate?: string; quantity: number; location: string; branchId?: string; createdAt: string; updatedAt: string }, businessId: string) {
+  if (!isUuid(b.id) || !isUuid(b.productId)) return
+  const { error } = await supabase.from('product_batches').upsert({
+    id: b.id,
+    business_id: businessId,
+    branch_id: isUuid(b.branchId) ? b.branchId : getBranchId(),
+    product_id: b.productId,
+    product_name: b.productName,
+    batch_no: b.batchNo || null,
+    expiry_date: b.expiryDate ? b.expiryDate.slice(0, 10) : null,
+    quantity: b.quantity,
+    location: b.location === 'store' ? 'store' : 'shop',
+    created_at: b.createdAt,
+    updated_at: b.updatedAt,
+  }, { onConflict: 'id' })
+  if (error) throw error
+}
+
+async function processOutbox(): Promise<{ synced: number; failed: number }> {
   if (!supabaseConfigured || !isBrowserOnline()) return { synced: 0, failed: 0 }
   // Prevent overlapping runs (second sale / sync loop) from stacking and hanging
   if (outboxRunning) return { synced: 0, failed: 0 }
@@ -409,8 +442,16 @@ export async function pullMissing(): Promise<number> {
       supabase.from('products').select('*').eq('business_id', businessId),
       supabase.from('customers').select('*').eq('business_id', businessId).gte('updated_at', since),
       supabase.from('suppliers').select('*').eq('business_id', businessId).gte('updated_at', since),
-      supabase.from('sales').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).order('created_at', { ascending: false }).limit(500),
-      supabase.from('expenses').select('*').eq('business_id', businessId).eq('branch_id', getBranchId()).order('created_at', { ascending: false }).limit(300),
+      (() => {
+        let q = supabase.from('sales').select('*').eq('business_id', businessId).order('created_at', { ascending: false }).limit(500)
+        const bid = getBranchId()
+        return bid ? q.eq('branch_id', bid) : q
+      })(),
+      (() => {
+        let q = supabase.from('expenses').select('*').eq('business_id', businessId).order('created_at', { ascending: false }).limit(300)
+        const bid = getBranchId()
+        return bid ? q.eq('branch_id', bid) : q
+      })(),
       supabase.from('stock_movements').select('*').eq('business_id', businessId).gte('created_at', since).limit(500),
     ])
 
@@ -435,9 +476,20 @@ export async function pullMissing(): Promise<number> {
             price: Number(row.unit_price) || 0,
             cost: Number(row.cost) || 0,
             stock: Number(row.stock_quantity) ?? local.stock,
+            storeStock: row.store_stock != null ? Number(row.store_stock) : local.storeStock,
             minStock: Number(row.min_stock) || undefined,
             category: row.category || undefined,
+            brand: row.brand || local.brand,
             unit: row.unit || local.unit,
+            packQty: row.pack_qty != null ? Number(row.pack_qty) : local.packQty,
+            packName: row.pack_name || local.packName,
+            packPrice: row.pack_price != null ? Number(row.pack_price) : local.packPrice,
+            packCost: row.pack_cost != null ? Number(row.pack_cost) : local.packCost,
+            expiryDate: row.expiry_date || local.expiryDate,
+            batchNumber: row.batch_number || local.batchNumber,
+            isService: row.is_service ?? local.isService,
+            restricted: row.restricted ?? local.restricted,
+            branchId: row.branch_id || local.branchId,
             imageUrl: row.image_url || local.imageUrl,
             active: row.is_active !== false,
             updatedAt: row.updated_at || now,
@@ -455,9 +507,19 @@ export async function pullMissing(): Promise<number> {
         price: Number(row.unit_price) || 0,
         cost: Number(row.cost) || 0,
         stock: Number(row.stock_quantity) || 0,
+        storeStock: Number(row.store_stock) || 0,
         minStock: Number(row.min_stock) || undefined,
         category: row.category || undefined,
+        brand: row.brand || undefined,
         unit: row.unit || 'piece',
+        packQty: row.pack_qty != null ? Number(row.pack_qty) : undefined,
+        packName: row.pack_name || undefined,
+        packPrice: row.pack_price != null ? Number(row.pack_price) : undefined,
+        packCost: row.pack_cost != null ? Number(row.pack_cost) : undefined,
+        expiryDate: row.expiry_date || undefined,
+        batchNumber: row.batch_number || undefined,
+        isService: Boolean(row.is_service),
+        restricted: Boolean(row.restricted),
         imageUrl: row.image_url || undefined,
         active: row.is_active !== false,
         createdAt: row.created_at || now,
@@ -518,6 +580,8 @@ export async function pullMissing(): Promise<number> {
               quantity: Number(it.quantity) || 0,
               discount: Number(it.discount_amount) || 0,
               lineTotal: Number(it.line_total) || 0,
+              sellAs: (it.sell_as as 'unit' | 'pack') || 'unit',
+              stockUnits: Number(it.stock_units) || Number(it.quantity) || 0,
             })),
           })
           added++

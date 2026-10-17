@@ -168,6 +168,8 @@ track(db.suppliers, 'supplier_upsert')
 track(db.cashSessions, 'shift')
 track(db.stockMovements, 'stock_movement')
 track(db.expenses, 'expense')
+track(db.productBatches, 'product_batch')
+track(db.purchases, 'purchase')
 
 /** Append-only audit trail: who / what / when / where, with before → after values. */
 export async function audit(
