@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Plus, X, Shield, Mail, UserX, RefreshCw } from 'lucide-react'
 import Screen from '../components/ui/Screen'
 import { useAuth } from '../contexts/AuthContext'
-import { saveApprovalPin, listApprovalPins, removeApprovalPin } from '../lib/approvalPin'
+import { saveApprovalPin } from '../lib/approvalPin'
 import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
@@ -333,8 +333,6 @@ export default function UsersPage() {
     }
   }
 
-  if (!allowed) {
-  
   const setMemberApprovalPin = async (m: MemberRow) => {
     const pin = window.prompt(
       `Approval PIN for ${m.display_name || m.email || 'member'} (4–6 digits). Used for void/refund override — not the device unlock PIN.`,
@@ -353,7 +351,8 @@ export default function UsersPage() {
     toast(`Approval PIN saved for ${m.display_name || m.email}`, 'success')
   }
 
-  return (
+  if (!allowed) {
+    return (
       <Screen title={t('users.title')} subtitle={t('users.sub')}>
         <div className="rounded-[22px] bg-white shadow-card p-8 text-center text-ink-secondary">
           You need <strong>Manage users</strong> permission to view this page.
