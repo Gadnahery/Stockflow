@@ -21,7 +21,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog'
 const UNITS = ['piece', 'egg', 'kg', 'g', 'litre', 'ml', 'bottle', 'packet', 'bag', 'box', 'dozen', 'sachet']
 
 const emptyForm = {
-  name: '', sku: '', barcode: '', price: '', cost: '', stock: '', minStock: '', category: '', unit: 'piece', packQty: '', packName: '', packPrice: '', imageUrl: '',
+  name: '', sku: '', barcode: '', price: '', cost: '', stock: '', minStock: '', category: '', unit: 'piece', packQty: '', packName: '', packPrice: '', packCost: '', imageUrl: '',
 }
 
 export default function ProductsPage() {
@@ -92,7 +92,7 @@ export default function ProductsPage() {
       name: p.name, sku: p.sku, barcode: p.barcode || '', price: String(p.price), cost: String(p.cost),
       stock: String(stockOf(p)), minStock: p.minStock != null ? String(p.minStock) : '', category: p.category || '',
       unit: p.unit || 'piece', packQty: p.packQty != null ? String(p.packQty) : '', packName: p.packName || '',
-      packPrice: p.packPrice != null ? String(p.packPrice) : '', imageUrl: p.imageUrl || '',
+      packPrice: p.packPrice != null ? String(p.packPrice) : '', packCost: p.packCost != null ? String(p.packCost) : '', imageUrl: p.imageUrl || '',
     })
     setShowForm(true)
   }
@@ -152,6 +152,7 @@ export default function ProductsPage() {
       packQty: form.packQty ? parseFloat(form.packQty) : undefined,
       packName: form.packName.trim() || undefined,
       packPrice: form.packPrice ? parseFloat(form.packPrice) : undefined,
+      packCost: form.packCost ? parseFloat(form.packCost) : undefined,
       imageUrl: form.imageUrl || undefined,
       branchId: undefined as string | undefined,
       active: true,
@@ -422,13 +423,34 @@ export default function ProductsPage() {
                 <input value={form.packQty} onChange={(e) => set({ packQty: e.target.value })} type="number" inputMode="decimal" min="2" placeholder="e.g. 30" className="field tabular-nums" />
               </Field>
             </div>
-            <Field label="Pack sell price (jumla)">
-              <input value={form.packPrice} onChange={(e) => set({ packPrice: e.target.value })} type="number" inputMode="decimal" placeholder="e.g. 9500" className="field tabular-nums" />
-            </Field>
-            {form.packQty && form.packPrice && !isNaN(parseFloat(form.packQty)) && !isNaN(parseFloat(form.packPrice)) && (
-              <p className="text-[12px] text-ink-secondary">
-                1 {form.packName || 'pack'} = {form.packQty} {form.unit || 'pc'} · reja {form.price || '—'} · jumla {form.packPrice}
-              </p>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Pack sell price (jumla)">
+                <input value={form.packPrice} onChange={(e) => set({ packPrice: e.target.value })} type="number" inputMode="decimal" placeholder="e.g. 9500" className="field tabular-nums" />
+              </Field>
+              <Field label="Pack cost (buy)">
+                <input value={form.packCost} onChange={(e) => set({ packCost: e.target.value })} type="number" inputMode="decimal" placeholder="e.g. 8000" className="field tabular-nums" />
+              </Field>
+            </div>
+            {form.packQty && !isNaN(parseFloat(form.packQty)) && parseFloat(form.packQty) > 0 && (
+              <div className="text-[12px] text-ink-secondary space-y-1 rounded-[12px] bg-black/[0.03] dark:bg-white/5 px-3 py-2">
+                <p>
+                  1 {form.packName || 'pack'} = {form.packQty} {form.unit || 'pc'}
+                  {form.packPrice ? ` · sell ${form.packPrice}` : ''}
+                  {form.price ? ` · reja ${form.price}` : ''}
+                </p>
+                {form.packCost && !isNaN(parseFloat(form.packCost)) && (
+                  <p>
+                    Cost per {form.unit || 'pc'} ≈{' '}
+                    {Math.round((parseFloat(form.packCost) / parseFloat(form.packQty)) * 100) / 100} TZS
+                    {form.packPrice && form.price && parseFloat(form.packQty) * parseFloat(form.price) > parseFloat(form.packPrice) && (
+                      <span className="text-primary font-medium">
+                        {' '}· Tray saves{' '}
+                        {Math.round(parseFloat(form.packQty) * parseFloat(form.price) - parseFloat(form.packPrice))} TZS vs singles
+                      </span>
+                    )}
+                  </p>
+                )}
+              </div>
             )}
           </div>
 

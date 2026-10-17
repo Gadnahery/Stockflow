@@ -54,6 +54,8 @@ export interface Product {
   packName?: string
   /** Sell price for one pack (if set). Base price stays on price. */
   packPrice?: number
+  /** Buy cost for one pack (e.g. tray). Per-unit cost = packCost / packQty when set. */
+  packCost?: number
   /** Compressed JPEG data URL (stored locally) */
   imageUrl?: string
   active: boolean

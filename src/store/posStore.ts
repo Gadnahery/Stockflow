@@ -17,8 +17,8 @@ interface PosState {
 
   setSearchQuery: (q: string) => void
   addToCart: (product: Product, qty?: number, sellAs?: 'unit' | 'pack') => void
-  updateQuantity: (productId: string, quantity: number) => void
-  removeFromCart: (productId: string) => void
+  updateQuantity: (productId: string, quantity: number, sellAs?: 'unit' | 'pack') => void
+  removeFromCart: (productId: string, sellAs?: 'unit' | 'pack') => void
   clearCart: () => void
   setOnline: (online: boolean) => void
   refreshPendingSync: () => Promise<void>
@@ -155,23 +155,38 @@ export const usePosStore = create<PosState>((set, get) => ({
       }
     })
   },
-  updateQuantity: (productId, quantity) => {
+  updateQuantity: (productId, quantity, sellAs) => {
     if (quantity <= 0) {
-      get().removeFromCart(productId)
+      get().removeFromCart(productId, sellAs)
       return
     }
     set((state) => ({
-      cart: state.cart.map((i) =>
-        i.productId === productId
-          ? { ...i, quantity, lineTotal: quantity * i.price - i.discount }
-          : i
-      ),
+      cart: state.cart.map((i) => {
+        const same =
+          i.productId === productId &&
+          (sellAs == null || (i.sellAs || 'unit') === sellAs)
+        if (!same) return i
+        const per = i.sellAs === 'pack' && (i.stockUnits || 0) > 0 && i.quantity > 0
+          ? Math.round((i.stockUnits || i.quantity) / i.quantity)
+          : (i.stockUnits && i.quantity ? Math.round(i.stockUnits / i.quantity) : 1)
+        const stockPer = Math.max(1, per)
+        return {
+          ...i,
+          quantity,
+          stockUnits: quantity * stockPer,
+          lineTotal: quantity * i.price - i.discount,
+        }
+      }),
     }))
   },
 
-  removeFromCart: (productId) =>
+  removeFromCart: (productId, sellAs) =>
     set((state) => ({
-      cart: state.cart.filter((i) => i.productId !== productId),
+      cart: state.cart.filter((i) => {
+        if (i.productId !== productId) return true
+        if (sellAs == null) return false
+        return (i.sellAs || 'unit') !== sellAs
+      }),
     })),
 
   clearCart: () =>

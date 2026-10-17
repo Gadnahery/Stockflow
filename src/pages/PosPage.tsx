@@ -475,18 +475,18 @@ export default function PosPage() {
                     <p className="font-semibold text-[15px] text-ink truncate">{item.name}</p>
                     <p className="text-[13px] text-ink-secondary tabular-nums">{fmt(item.price)} each</p>
                     <div className="mt-1.5 inline-flex items-center rounded-full bg-black/[0.06]">
-                      <button onClick={() => updateQuantity(item.productId, item.quantity - 1)} aria-label="Decrease" className="press h-8 w-8 flex items-center justify-center rounded-full">
+                      <button onClick={() => updateQuantity(item.productId, item.quantity - 1, item.sellAs || 'unit')} aria-label="Decrease" className="press h-8 w-8 flex items-center justify-center rounded-full">
                         {item.quantity === 1 ? <Trash2 size={14} className="text-danger" /> : <Minus size={15} />}
                       </button>
                       <span key={item.quantity} className="bump w-8 text-center text-[15px] font-semibold tabular-nums">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.productId, item.quantity + 1)} aria-label="Increase" className="press h-8 w-8 flex items-center justify-center rounded-full">
+                      <button onClick={() => updateQuantity(item.productId, item.quantity + 1, item.sellAs || 'unit')} aria-label="Increase" className="press h-8 w-8 flex items-center justify-center rounded-full">
                         <Plus size={15} />
                       </button>
                     </div>
                   </div>
                   <div className="text-right self-start pt-1">
                     <p className="font-bold text-[15px] tabular-nums">{fmt(item.lineTotal)}</p>
-                    <button onClick={() => removeFromCart(item.productId)} className="mt-1 text-[12px] text-ink-muted hover:text-danger">Remove</button>
+                    <button onClick={() => removeFromCart(item.productId, item.sellAs || 'unit')} className="mt-1 text-[12px] text-ink-muted hover:text-danger">Remove</button>
                   </div>
                 </li>
               ))}
@@ -727,7 +727,7 @@ function CartPanel({
 }: {
   cart: ReturnType<typeof usePosStore.getState>['cart']
   total: number
-  onUpdateQty: (id: string, qty: number) => void
+  onUpdateQty: (id: string, qty: number, sellAs?: 'unit' | 'pack') => void
   onClear: () => void
   onPay: () => void
   onHold?: () => void
@@ -773,9 +773,9 @@ function CartPanel({
               <p className="text-[12px] text-ink-secondary tabular-nums">{fmt(item.price)} × {item.quantity}</p>
             </div>
             <div className="inline-flex items-center rounded-full bg-black/[0.06]">
-              <button onClick={() => onUpdateQty(item.productId, item.quantity - 1)} aria-label="Decrease" className="press h-7 w-7 flex items-center justify-center"><Minus size={13} /></button>
+              <button onClick={() => onUpdateQty(item.productId, item.quantity - 1, item.sellAs || 'unit')} aria-label="Decrease" className="press h-7 w-7 flex items-center justify-center"><Minus size={13} /></button>
               <span className="w-6 text-center text-[14px] font-semibold tabular-nums">{item.quantity}</span>
-              <button onClick={() => onUpdateQty(item.productId, item.quantity + 1)} aria-label="Increase" className="press h-7 w-7 flex items-center justify-center"><Plus size={13} /></button>
+              <button onClick={() => onUpdateQty(item.productId, item.quantity + 1, item.sellAs || 'unit')} aria-label="Increase" className="press h-7 w-7 flex items-center justify-center"><Plus size={13} /></button>
             </div>
             <p className="w-16 text-right text-[14px] font-bold tabular-nums">{fmt(item.lineTotal)}</p>
           </div>
