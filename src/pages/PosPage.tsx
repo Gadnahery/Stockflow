@@ -6,11 +6,14 @@ import { usePosStore } from '../store/posStore'
 import { useUi } from '../store/uiStore'
 import type { Product, Payment, Sale } from '../types'
 import ReceiptModal from '../components/ReceiptModal'
+import { DocumentModal } from '../components/PrintDocument'
+import type { PrintDocumentProps } from '../components/PrintDocument'
 import Sheet from '../components/ui/Sheet'
 import BarcodeScanner from '../components/ui/BarcodeScanner'
 import ProductImage from '../components/ui/ProductImage'
 import { useTabCompact } from '../hooks/useTabCompact'
 import { fmt, haptic } from '../lib/util'
+import { cartToQuoteDoc } from '../lib/invoice'
 import { usePermission } from '../hooks/usePermission'
 import { useI18n } from '../i18n/I18nContext'
 import ActiveBranchChip from '../components/ActiveBranchChip'
@@ -56,6 +59,7 @@ export default function PosPage() {
   const [lines, setLines] = useState<Payment[]>([])
   const [discMode, setDiscMode] = useState<'amount' | 'percent'>('amount')
   const [showHeld, setShowHeld] = useState(false)
+  const [quoteDoc, setQuoteDoc] = useState<PrintDocumentProps | null>(null)
 
   // Catalog is shared across branches so existing products never disappear.
   // Sales still store branchId for reports; stock is business-wide unless we add per-branch stock later.
@@ -419,6 +423,14 @@ export default function PosPage() {
           onHold={doHold}
           heldCount={held.length}
           onShowHeld={() => setShowHeld(true)}
+          onQuote={async () => {
+            try {
+              const doc = await cartToQuoteDoc(cart, selectedCustomerName)
+              setQuoteDoc(doc)
+            } catch (e) {
+              toast((e as Error).message || 'Could not create quote', 'error')
+            }
+          }}
         />
       </aside>
 
@@ -439,7 +451,13 @@ export default function PosPage() {
         </div>
       )}
 
-      {lastSale && <ReceiptModal sale={lastSale} onClose={() => setLastSale(null)} />}
+      {lastSale && <DocumentModal
+        open={Boolean(quoteDoc)}
+        onClose={() => setQuoteDoc(null)}
+        title="Quote"
+        doc={quoteDoc}
+      />
+      <ReceiptModal sale={lastSale} onClose={() => setLastSale(null)} />}
 
       <Sheet
         open={showPay}
@@ -733,7 +751,7 @@ function ProductCard({ product, qty, stock, onAdd }: { product: Product; qty: nu
 }
 
 function CartPanel({
-  cart, total, onUpdateQty, onClear, onPay, onHold, heldCount, onShowHeld,
+  cart, total, onUpdateQty, onClear, onPay, onHold, heldCount, onShowHeld, onQuote,
 }: {
   cart: ReturnType<typeof usePosStore.getState>['cart']
   total: number
@@ -743,6 +761,7 @@ function CartPanel({
   onHold?: () => void
   heldCount?: number
   onShowHeld?: () => void
+  onQuote?: () => void
 }) {
   const { t } = useI18n()
   return (
@@ -803,6 +822,15 @@ function CartPanel({
         >
           {t('pos.charge')}
         </button>
+        {onQuote && cart.length > 0 && (
+          <button
+            type="button"
+            onClick={onQuote}
+            className="press w-full h-11 rounded-[14px] border border-border text-[14px] font-semibold text-ink-secondary"
+          >
+            {t('pos.quote') || 'Print quote'}
+          </button>
+        )}
       </div>
     </>
   )

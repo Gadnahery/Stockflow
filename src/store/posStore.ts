@@ -289,70 +289,113 @@ export const usePosStore = create<PosState>((set, get) => ({
     }
   },
 
-  refundSale: async (saleId, opts) => {
-      assertCanWrite()
-
+    refundSale: async (saleId, opts) => {
+    assertCanWrite()
     const sale = await db.sales.get(saleId)
     if (!sale || sale.status !== 'completed') throw new Error('Cannot refund this sale')
     const now = new Date().toISOString()
     const user = getCurrentUser()
-    const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
+    const lineQty = opts?.lineQty
+    const isPartial = Boolean(lineQty && Object.keys(lineQty).length > 0)
 
-    await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
-      await db.sales.update(saleId, {
-        status: 'refunded',
-        synced: false,
-        refundReason: opts?.reason,
-        refundAmount: opts?.refundAmount ?? sale.total,
-        approvedById: opts?.approvedById,
-        approvedByName: opts?.approvedByName,
-      } as Partial<Sale>)
-      if (creditAmt > 0 && sale.customerId) {
-        const c = await db.customers.get(sale.customerId)
-        if (c) await db.customers.update(c.id, { balance: Math.max(0, c.balance - creditAmt), updatedAt: now })
-      }
-      if (opts?.restock !== false) {
-      for (const item of sale.items) {
-        const product = await db.products.get(item.productId)
-        if (!product || product.isService) continue
-        const restock = (item as { stockUnits?: number }).stockUnits ?? item.quantity
-        const previousStock = product.stock
-        const newStock = previousStock + restock
-        await db.products.update(item.productId, { stock: newStock, updatedAt: now })
-        await db.stockMovements.add({
-          id: uuidv4(),
-          productId: item.productId,
-          productName: item.name,
-          type: 'return',
-          quantity: restock,
-          previousStock,
-          newStock,
-          referenceId: saleId,
-          reason: opts?.reason || 'Sale refunded',
-          userId: user.id,
-          createdAt: now,
-          synced: false,
-        })
-      }
-      }
-      await db.outbox.add({
-        id: uuidv4(),
-        type: 'sale',
-        payload: {
-          ...sale,
+    // Resolve lines to refund (full sale if no lineQty)
+    const lines = sale.items
+      .map((item) => {
+        const maxQ = item.quantity
+        const q = isPartial ? Math.min(maxQ, Math.max(0, Number(lineQty![item.productId] ?? 0))) : maxQ
+        if (q <= 0) return null
+        const ratio = maxQ > 0 ? q / maxQ : 0
+        const stockUnits =
+          ((item as { stockUnits?: number }).stockUnits ?? item.quantity) * ratio
+        const lineTotal = (item.lineTotal ?? item.price * item.quantity) * ratio
+        return { item, q, stockUnits, lineTotal }
+      })
+      .filter(Boolean) as {
+        item: (typeof sale.items)[0]
+        q: number
+        stockUnits: number
+        lineTotal: number
+      }[]
+    if (!lines.length) throw new Error('Select at least one line to refund')
+
+    const refundAmount =
+      opts?.refundAmount != null
+        ? opts.refundAmount
+        : Math.round(lines.reduce((s, l) => s + l.lineTotal, 0))
+    const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
+    const creditRelief = isPartial
+      ? Math.min(creditAmt, refundAmount)
+      : creditAmt
+
+    await db.transaction(
+      'rw',
+      [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock],
+      async () => {
+        await db.sales.update(saleId, {
           status: 'refunded',
+          synced: false,
           refundReason: opts?.reason,
-          refundAmount: opts?.refundAmount ?? sale.total,
+          refundAmount,
           approvedById: opts?.approvedById,
           approvedByName: opts?.approvedByName,
-        },
-        createdAt: now,
-        retries: 0,
-      })
-    })
+        } as Partial<Sale>)
+        if (creditRelief > 0 && sale.customerId) {
+          const c = await db.customers.get(sale.customerId)
+          if (c) {
+            await db.customers.update(c.id, {
+              balance: Math.max(0, c.balance - creditRelief),
+              updatedAt: now,
+            })
+          }
+        }
+        if (opts?.restock !== false) {
+          for (const { item, stockUnits } of lines) {
+            const product = await db.products.get(item.productId)
+            if (!product || product.isService) continue
+            const previousStock = product.stock
+            const newStock = previousStock + stockUnits
+            await db.products.update(item.productId, { stock: newStock, updatedAt: now })
+            await db.stockMovements.add({
+              id: uuidv4(),
+              productId: item.productId,
+              productName: item.name,
+              type: 'return',
+              quantity: stockUnits,
+              previousStock,
+              newStock,
+              referenceId: saleId,
+              reason: opts?.reason || (isPartial ? 'Partial refund' : 'Sale refunded'),
+              userId: user.id,
+              createdAt: now,
+              synced: false,
+            })
+          }
+        }
+        await db.outbox.add({
+          id: uuidv4(),
+          type: 'sale',
+          payload: {
+            ...sale,
+            status: 'refunded',
+            refundReason: opts?.reason,
+            refundAmount,
+            approvedById: opts?.approvedById,
+            approvedByName: opts?.approvedByName,
+          },
+          createdAt: now,
+          retries: 0,
+        })
+      },
+    )
     await audit('SALE_REFUND', 'sale', saleId, {
       before: { status: 'completed', total: sale.total },
-      after: { status: 'refunded', approvedBy: opts?.approvedByName, amount: opts?.refundAmount ?? sale.total },
+      after: {
+        status: 'refunded',
+        approvedBy: opts?.approvedByName,
+        amount: refundAmount,
+        partial: isPartial,
+        lines: lines.map((l) => ({ productId: l.item.productId, qty: l.q })),
+      },
       reason: opts?.reason || `Receipt ${sale.receiptNumber}`,
     })
     set({ catalogTick: get().catalogTick + 1 })

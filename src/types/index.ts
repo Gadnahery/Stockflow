@@ -296,6 +296,7 @@ export interface AppSettings {
   dualLocationStock?: boolean
   /** Last sequential A4 invoice number */
   invoiceSeq?: number
+  quoteSeq?: number
 }
 
 /** Per-branch quantity when stockMode is per_branch. Catalogue products stay shared. */

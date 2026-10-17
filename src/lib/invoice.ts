@@ -47,3 +47,39 @@ export async function saleToInvoiceDoc(
     copies: 'Original: Customer / Copy: Accounts',
   }
 }
+
+
+/** Build a quote document from the current cart (no sale created). */
+export async function cartToQuoteDoc(
+  cart: { name: string; quantity: number; price: number; sellAs?: string; lineTotal: number }[],
+  customerName?: string | null,
+): Promise<PrintDocumentProps> {
+  const settings = await db.settings.get('main')
+  const total = cart.reduce((s, i) => s + i.lineTotal, 0)
+  const year = new Date().getFullYear()
+  const seq = (settings?.quoteSeq ?? 0) + 1
+  await db.settings.update('main', { quoteSeq: seq } as never)
+  return {
+    title: 'Quote',
+    business: {
+      name: settings?.businessName || 'StockFlow',
+      address: settings?.businessAddress,
+      phone: settings?.businessPhone,
+      tin: settings?.tinNumber,
+    },
+    partyLabel: 'Customer',
+    party: { name: customerName || 'Walk-in customer' },
+    numberLabel: 'Quote no.',
+    number: `Q-${year}-${String(seq).padStart(4, '0')}`,
+    dateLabel: 'Date',
+    date: new Date().toISOString(),
+    lines: cart.map((i) => ({
+      description: i.name + (i.sellAs === 'pack' ? ' (jumla)' : ''),
+      quantity: i.quantity,
+      unitPrice: i.price,
+    })),
+    total,
+    paymentTerms: 'Quote only — not a sale',
+    copies: 'Customer copy',
+  }
+}

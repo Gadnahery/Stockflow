@@ -6,6 +6,7 @@ import { db } from '../lib/db'
 import type { Sale } from '../types'
 import ReceiptModal from '../components/ReceiptModal'
 import Screen from '../components/ui/Screen'
+import Sheet from '../components/ui/Sheet'
 import ManagerPinSheet from '../components/ManagerPinSheet'
 import { DocumentModal } from '../components/PrintDocument'
 import { saleToInvoiceDoc } from '../lib/invoice'
@@ -29,6 +30,13 @@ export default function SalesPage() {
   const [period, setPeriod] = useState<Period>('7d')
   const [status, setStatus] = useState<StatusFilter>('all')
   const [branchFilter, setBranchFilter] = useState<string>('all')
+  const [refundDraft, setRefundDraft] = useState<{
+    sale: Sale
+    lineQty: Record<string, number>
+    restock: boolean
+    approvedById?: string
+    approvedByName?: string
+  } | null>(null)
   const voidSale = usePosStore((s) => s.voidSale)
   const refundSale = usePosStore((s) => s.refundSale)
   const { can } = usePermission()
@@ -104,24 +112,39 @@ export default function SalesPage() {
     }
   }
 
-  const runRefund = async (
+  const openRefundSheet = (
     sale: Sale,
     opts?: { approvedById?: string; approvedByName?: string },
   ) => {
+    const lineQty: Record<string, number> = {}
+    for (const it of sale.items) lineQty[it.productId] = it.quantity
+    setRefundDraft({
+      sale,
+      lineQty,
+      restock: true,
+      approvedById: opts?.approvedById,
+      approvedByName: opts?.approvedByName,
+    })
+  }
+
+  const runRefund = async () => {
+    if (!refundDraft) return
+    const { sale, lineQty, restock, approvedById, approvedByName } = refundDraft
     try {
       await refundSale(sale.id, {
         reason: `Receipt ${sale.receiptNumber}`,
-        restock: true,
-        refundAmount: sale.total,
-        approvedById: opts?.approvedById,
-        approvedByName: opts?.approvedByName,
+        restock,
+        lineQty,
+        approvedById,
+        approvedByName,
       })
       toast(
-        opts?.approvedByName
-          ? `Sale refunded (approved by ${opts.approvedByName})`
-          : 'Sale refunded — stock restored',
+        approvedByName
+          ? `Refunded (approved by ${approvedByName})`
+          : 'Sale refunded',
         'success',
       )
+      setRefundDraft(null)
       if (selected?.id === sale.id) setSelected(null)
     } catch (e) {
       toast((e as Error).message || 'Could not refund sale', 'error')
@@ -153,10 +176,10 @@ export default function SalesPage() {
 
   const handleRefund = async (sale: Sale) => {
     if (sale.status !== 'completed') return
-    if (!can('REFUND_SALE') && !can('VOID_SALE')) {
+    if (!can('REFUND_SALE')) {
       const ok = await confirm({
         title: 'Manager approval required',
-        message: `You cannot refund sales alone. A manager must enter the device PIN to refund receipt ${sale.receiptNumber}.`,
+        message: `A manager must approve refund for receipt ${sale.receiptNumber}.`,
         confirmLabel: 'Request approval',
         tone: 'danger',
       })
@@ -164,14 +187,7 @@ export default function SalesPage() {
       setApproveAction({ type: 'refund', sale })
       return
     }
-    const ok = await confirm({
-      title: 'Refund this sale?',
-      message: `Restock items and mark receipt ${sale.receiptNumber} as refunded. Total ${sale.total.toLocaleString()} TZS.`,
-      confirmLabel: 'Refund',
-      tone: 'danger',
-    })
-    if (!ok) return
-    await runRefund(sale)
+    openRefundSheet(sale)
   }
 
   const dateLabel = (iso: string) => {
@@ -368,6 +384,50 @@ export default function SalesPage() {
         title="Invoice"
         doc={invoiceDoc}
       />
+
+      {refundDraft && (
+        <Sheet open onClose={() => setRefundDraft(null)} title={`Refund · ${refundDraft.sale.receiptNumber}`}>
+          <div className="space-y-3 p-1">
+            <p className="text-[13px] text-ink-secondary">{t('sales.selectLines')}</p>
+            {refundDraft.sale.items.map((it) => (
+              <div key={it.productId} className="flex items-center gap-3 rounded-xl border border-border p-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[14px] font-semibold truncate">{it.name}</p>
+                  <p className="text-[12px] text-ink-muted">Sold {it.quantity} · {fmtMoney(it.lineTotal ?? it.price * it.quantity)}</p>
+                </div>
+                <input
+                  type="number"
+                  min={0}
+                  max={it.quantity}
+                  step="any"
+                  className="w-20 h-10 rounded-lg border border-border px-2 text-center tabular-nums"
+                  value={refundDraft.lineQty[it.productId] ?? 0}
+                  onChange={(e) => {
+                    const v = Math.max(0, Math.min(it.quantity, Number(e.target.value) || 0))
+                    setRefundDraft((d) => d ? { ...d, lineQty: { ...d.lineQty, [it.productId]: v } } : d)
+                  }}
+                />
+              </div>
+            ))}
+            <label className="flex items-center gap-2 text-[13px] font-medium">
+              <input
+                type="checkbox"
+                checked={refundDraft.restock}
+                onChange={(e) => setRefundDraft((d) => d ? { ...d, restock: e.target.checked } : d)}
+              />
+              Restock inventory
+            </label>
+            <button
+              type="button"
+              onClick={() => void runRefund()}
+              className="press w-full h-12 rounded-xl bg-primary text-white font-semibold"
+            >
+              {t('sales.confirmRefund')}
+            </button>
+          </div>
+        </Sheet>
+      )}
+
       <ManagerPinSheet
         open={Boolean(approveAction)}
         onClose={() => setApproveAction(null)}
@@ -382,7 +442,7 @@ export default function SalesPage() {
           setApproveAction(null)
           if (!action) return
           if (action.type === 'void') void runVoid(action.sale, { approvedById: approver.id, approvedByName: approver.name })
-          else void runRefund(action.sale, { approvedById: approver.id, approvedByName: approver.name })
+          else openRefundSheet(action.sale, { approvedById: approver.id, approvedByName: approver.name })
         }}
       />
     </>
