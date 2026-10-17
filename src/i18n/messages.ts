@@ -205,6 +205,9 @@ export const messages = {
     'products.out': 'Out of stock',
 
     // Reports
+    'reports.byBranch': 'Sales by branch',
+    'reports.byBranchSub': 'One account · each branch has its numbers. Tap to filter.',
+    'reports.branchTotal': 'Total (all branches)',
     'reports.title': 'Reports',
     'reports.sub': 'Your business at a glance',
     'reports.today': 'Today',
@@ -551,6 +554,9 @@ export const messages = {
     'products.saved': 'Bidhaa imehifadhiwa',
     'products.low': 'Stoo chini',
     'products.out': 'Stoo imeisha',
+    'reports.byBranch': 'Mauzo kwa matawi',
+    'reports.byBranchSub': 'Akaunti moja · kila tawi lina hesabu yake. Gusa kuchuja.',
+    'reports.branchTotal': 'Jumla (matawi yote)',
     'reports.title': 'Ripoti',
     'reports.sub': 'Biashara yako kwa muhtasari',
     'reports.today': 'Leo',

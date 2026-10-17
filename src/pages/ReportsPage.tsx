@@ -34,7 +34,7 @@ export default function ReportsPage() {
     void expiringProducts(90).then(setExpiring).catch(() => setExpiring([]))
   }, [])
 
-  const { t } = useI18n()
+  const { t, locale } = useI18n()
   const { can } = usePermission()
   const [period, setPeriod] = useState<Period>('7d')
   const [selected, setSelected] = useState<number | null>(null)
@@ -287,34 +287,48 @@ export default function ReportsPage() {
           <BranchFilter value={branchFilter} onChange={setBranchFilter} className="mt-2" />
 
         {branchRows.length > 0 && (
-          <section className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
-            <h2 className="text-[15px] font-bold text-ink">By branch</h2>
-            <p className="text-[12px] text-ink-muted -mt-1">Compare revenue and expenses across locations</p>
-            {branchRows.map((row) => (
-              <button
-                key={row.id}
-                type="button"
-                onClick={() => setBranchFilter(row.id)}
-                className="press w-full flex items-center justify-between gap-3 py-2 border-b border-border last:border-0 text-left"
-              >
-                <div className="min-w-0">
-                  <p className="text-[14px] font-semibold truncate">{row.name}</p>
-                  <p className="text-[12px] text-ink-muted">
-                    {row.orders} sales · exp {fmtMoney(row.expenses)}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-[15px] font-bold tabular-nums">{fmtMoney(row.revenue)}</p>
-                  <p
-                    className={`text-[12px] font-semibold tabular-nums ${
-                      row.net >= 0 ? 'text-success' : 'text-danger'
-                    }`}
-                  >
-                    Net {fmtMoney(row.net)}
-                  </p>
-                </div>
-              </button>
-            ))}
+          <section className="bg-white rounded-[22px] shadow-card p-4 space-y-4">
+            <div>
+              <h2 className="text-[15px] font-bold text-ink">{t('reports.byBranch')}</h2>
+              <p className="text-[12px] text-ink-muted">{t('reports.byBranchSub')}</p>
+            </div>
+            {(() => {
+              const maxRev = Math.max(...branchRows.map((r) => r.revenue), 1)
+              const totalRev = branchRows.reduce((s, r) => s + r.revenue, 0)
+              const colors = ['bg-primary', 'bg-amber-500', 'bg-emerald-500', 'bg-sky-500', 'bg-violet-500', 'bg-rose-500']
+              return (
+                <>
+                  <ul className="space-y-3">
+                    {branchRows.map((row, idx) => (
+                      <button
+                        key={row.id}
+                        type="button"
+                        onClick={() => setBranchFilter(row.id)}
+                        className="press w-full text-left space-y-1"
+                      >
+                        <div className="flex justify-between gap-2 text-[13px]">
+                          <span className="font-semibold truncate">{row.name}</span>
+                          <span className="tabular-nums font-bold shrink-0">{fmtMoney(row.revenue)}</span>
+                        </div>
+                        <div className="h-2.5 rounded-full bg-black/[0.06] overflow-hidden">
+                          <div
+                            className={`h-full rounded-full ${colors[idx % colors.length]}`}
+                            style={{ width: `${Math.max(4, (row.revenue / maxRev) * 100)}%` }}
+                          />
+                        </div>
+                        <p className="text-[11px] text-ink-muted">
+                          {row.orders} {locale === 'sw' ? 'mauzo' : 'sales'} · {locale === 'sw' ? 'faida' : 'net'} {fmtMoney(row.net)}
+                        </p>
+                      </button>
+                    ))}
+                  </ul>
+                  <div className="flex justify-between items-center pt-2 border-t border-border">
+                    <span className="text-[13px] font-semibold text-ink-secondary">{t('reports.branchTotal')}</span>
+                    <span className="text-[16px] font-bold tabular-nums">{fmtMoney(totalRev)}</span>
+                  </div>
+                </>
+              )
+            })()}
           </section>
         )}
 

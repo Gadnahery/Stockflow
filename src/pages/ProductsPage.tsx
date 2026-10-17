@@ -85,6 +85,33 @@ export default function ProductsPage() {
   const set = (patch: Partial<typeof emptyForm>) => setForm((f) => ({ ...f, ...patch }))
 
   const openCreate = () => { setEditing(null); setForm(emptyForm); setShowForm(true) }
+
+  const addStockOnly = async (productId: string, qty: number, dest: 'shop' | 'store' = 'shop') => {
+    if (!qty || qty === 0) return
+    const product = await db.products.get(productId)
+    if (!product) return
+    const now = new Date().toISOString()
+    const prev = dest === 'shop' ? product.stock : (product.storeStock ?? 0)
+    const next = Math.max(0, prev + qty)
+    if (dest === 'shop') {
+      await db.products.update(productId, { stock: next, updatedAt: now })
+    } else {
+      await db.products.update(productId, { storeStock: next, updatedAt: now })
+    }
+    await db.stockMovements.add({
+      id: uuidv4(),
+      productId,
+      productName: product.name,
+      type: qty > 0 ? 'purchase' : 'adjustment',
+      quantity: qty,
+      previousStock: prev,
+      newStock: next,
+      reason: dest === 'shop' ? 'Add stock (shop)' : 'Add stock (store)',
+      createdAt: now,
+      synced: false,
+    })
+  }
+
   const openEdit = (p: Product) => {
     if (!canManage) return
     setEditing(p)
@@ -358,7 +385,8 @@ export default function ProductsPage() {
         </div>
 
         <div className="mt-5 space-y-4">
-          <Field label="Name">
+          <p className="text-[12px] text-ink-secondary px-0.5">Only name and sell price are required. Stock, cost, barcode optional.</p>
+            <Field label="Name">
             <input value={form.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Coca Cola 500ml" className="field" autoComplete="off" />
           </Field>
 
