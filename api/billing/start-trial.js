@@ -47,5 +47,16 @@ export default async function handler(req, res) {
   if (error || !subscription) {
     return res.status(409).json({ success: false, error: 'Could not start trial. A trial or subscription may already exist.' })
   }
-  return res.status(200).json({ success: true, status: subscription.status, trial_ends_at: subscription.trial_ends_at, message: 'Your 7-day StockFlow trial has started. Business operations remain available after the trial while you decide on a plan.' })
+  await admin.from('businesses').update({
+    trial_ends_at: end.toISOString(),
+    subscription_status: 'trial',
+    paid_until: null,
+    updated_at: start.toISOString(),
+  }).eq('id', businessId)
+  return res.status(200).json({
+    success: true,
+    status: subscription.status,
+    trial_ends_at: subscription.trial_ends_at,
+    message: 'Your 7-day StockFlow trial has started. After it ends you can still view data, but selling and editing stay locked until you pay.',
+  })
 }

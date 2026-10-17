@@ -12,6 +12,7 @@ import ProductImage from '../components/ui/ProductImage'
 import { useUi } from '../store/uiStore'
 import { fileToDataUrl } from '../lib/image'
 import { useI18n } from '../i18n/I18nContext'
+import { assertCanWrite } from '../lib/entitlement'
 import { stockMapForProducts, applyStockChange, getStockMode } from '../lib/stock'
 import { getCatalogMode } from '../lib/catalogMode'
 import { getBranchId } from '../lib/supabase'
@@ -184,6 +185,7 @@ export default function ProductsPage() {
   }
 
   const save = async () => {
+    assertCanWrite()
     // Workspace access is role-based; never block product edits on a stale billing flag.
     const name = form.name.trim()
     if (!name) return toast('Enter a product name', 'error')

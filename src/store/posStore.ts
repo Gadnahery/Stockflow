@@ -3,6 +3,7 @@ import { v4 as uuidv4 } from 'uuid'
 import type { CartItem, Product, Payment, Sale, StockMovement, HeldCart } from '../types'
 import { db, audit } from '../lib/db'
 import { processOutbox } from '../lib/sync'
+import { assertCanWrite } from '../lib/entitlement'
 import { applyStockChange } from '../lib/stock'
 import { deductFefo } from '../lib/batches'
 
@@ -227,6 +228,8 @@ export const usePosStore = create<PosState>((set, get) => ({
   },
 
   voidSale: async (saleId, opts) => {
+      assertCanWrite()
+
     const sale = await db.sales.get(saleId)
     if (!sale || sale.status !== 'completed') throw new Error('Cannot void this sale')
     const now = new Date().toISOString()
@@ -287,6 +290,8 @@ export const usePosStore = create<PosState>((set, get) => ({
   },
 
   refundSale: async (saleId, opts) => {
+      assertCanWrite()
+
     const sale = await db.sales.get(saleId)
     if (!sale || sale.status !== 'completed') throw new Error('Cannot refund this sale')
     const now = new Date().toISOString()
@@ -358,6 +363,8 @@ export const usePosStore = create<PosState>((set, get) => ({
   },
 
   completeSale: async (payments, note) => {
+      assertCanWrite()
+
     const { cart, selectedCustomerId, selectedCustomerName } = get()
     if (cart.length === 0) throw new Error('Cart is empty')
     // Beta access is unrestricted: selling must not depend on a stale cached billing flag.

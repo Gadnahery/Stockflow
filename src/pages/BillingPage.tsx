@@ -151,7 +151,7 @@ export default function BillingPage() {
           <section className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
               <h3 className="font-bold text-ink">Try StockFlow free for 7 days</h3>
-              <p className="mt-1 text-sm text-ink-secondary">No payment is requested to start. Your sales and business tools will not be locked when the trial ends.</p>
+              <p className="mt-1 text-sm text-ink-secondary">Seven days free. After the trial you can still sign in and view data, but selling and editing stay locked until you pay.</p>
             </div>
             <button type="button" disabled={busy} onClick={() => void startTrial()} className="press inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Please wait…' : 'Start free trial'}</button>
           </section>

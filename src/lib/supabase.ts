@@ -50,6 +50,10 @@ export interface Business {
   id: string
   name: string
   slug?: string | null
+  trial_ends_at?: string | null
+  paid_until?: string | null
+  /** trial | active | expired | … */
+  subscription_status?: string | null
 }
 
 const BUSINESS_ID_KEY = 'businessId'
@@ -150,7 +154,7 @@ export async function fetchMembership(userId: string): Promise<{
 
   const { data: biz } = await supabase
     .from('businesses')
-    .select('id, name, slug')
+    .select('id, name, slug, trial_ends_at, paid_until, subscription_status')
     .eq('id', member.business_id)
     .maybeSingle()
 

@@ -12,6 +12,7 @@ import { useAuth } from '../../contexts/AuthContext'
 import Toasts from '../ui/Toasts'
 import CommandPalette from '../CommandPalette'
 import TrialBanner from '../TrialBanner'
+import ReadOnlyBanner from '../ReadOnlyBanner'
 import InstallBanner from '../InstallBanner'
 import UpdateBanner from '../UpdateBanner'
 import { useI18n } from '../../i18n/I18nContext'
@@ -419,6 +420,7 @@ export default function AppShell() {
             key={location.pathname}
             className="page-enter h-full flex flex-col md:bg-white dark:md:bg-[var(--card)] md:rounded-[18px] md:shadow-[0_1px_3px_rgba(0,0,0,0.06)] md:border md:border-black/[0.04] overflow-hidden"
           >
+            <ReadOnlyBanner />
             <TrialBanner />
             <InstallBanner />
             <Outlet />

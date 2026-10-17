@@ -11,6 +11,7 @@ import Sheet from '../components/ui/Sheet'
 import { useUi } from '../store/uiStore'
 import { fmt, fmtMoney } from '../lib/util'
 import { transferStock, locationLabel, dualLocationEnabled } from '../lib/locations'
+import { assertCanWrite } from '../lib/entitlement'
 
 const REASONS = [
   { id: 'adjustment', label: 'Count / adjustment' },
@@ -97,6 +98,7 @@ export default function StockAdjustmentPage() {
   }
 
   const save = async () => {
+    assertCanWrite()
     const qty = parseInt(form.quantity, 10)
     if (!form.productId || !qty) {
       toast('Select a product and quantity', 'error')
@@ -171,6 +173,7 @@ export default function StockAdjustmentPage() {
 
 
   const runTransfer = async () => {
+    assertCanWrite()
     const qty = parseFloat(xfer.qty)
     if (!xfer.productId || !qty || qty <= 0) {
       toast('Select a product and quantity', 'error')
