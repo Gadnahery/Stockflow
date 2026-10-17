@@ -12,6 +12,7 @@ import { useUi } from '../store/uiStore'
 import { fmt, fmtMoney } from '../lib/util'
 import { transferStock, locationLabel, dualLocationEnabled } from '../lib/locations'
 import { assertCanWrite } from '../lib/entitlement'
+import { useI18n } from '../i18n/I18nContext'
 
 const REASONS = [
   { id: 'adjustment', label: 'Count / adjustment' },
@@ -25,6 +26,8 @@ type ReasonId = (typeof REASONS)[number]['id']
 type Tab = 'overview' | 'low' | 'movements'
 
 export default function StockAdjustmentPage() {
+  const { t } = useI18n()
+
   const toast = useUi((s) => s.toast)
   const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('overview')

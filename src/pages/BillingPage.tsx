@@ -3,6 +3,7 @@ import { CheckCircle2, Clock3, CreditCard, RefreshCw, ShieldCheck } from 'lucide
 import Screen from '../components/ui/Screen'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
+import { useI18n } from '../i18n/I18nContext'
 
 type BillingPlan = {
   id: string
@@ -35,6 +36,8 @@ const money = (value: number) => new Intl.NumberFormat('en-TZ', { style: 'curren
 const date = (value: string | null) => value ? new Date(value).toLocaleDateString() : '—'
 
 export default function BillingPage() {
+  const { t } = useI18n()
+
   const { business, session, member } = useAuth()
   const [plans, setPlans] = useState<BillingPlan[]>([])
   const [invoices, setInvoices] = useState<Invoice[]>([])
