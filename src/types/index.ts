@@ -186,12 +186,26 @@ export interface PurchaseOrder {
   deliveryAddress?: string
   paymentTerms?: string
   authorizedBy?: string
-  items: { productId: UUID; name: string; quantity: number; cost: number; /** quantity received so far */ received?: number }[]
+  items: {
+    productId: UUID
+    name: string
+    quantity: number
+    cost: number
+    /** quantity received so far */
+    received?: number
+  }[]
   status: 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled'
   total: number
   note?: string
   createdAt: string
   receivedAt?: string
+  /** Who received what and when */
+  receiveHistory?: {
+    at: string
+    userId?: string
+    userName?: string
+    lines: { productId: string; name: string; qty: number }[]
+  }[]
   synced: boolean
 }
 

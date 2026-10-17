@@ -11,6 +11,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog'
 import { fmtMoney } from '../lib/util'
 import { DocumentModal, type PrintDocumentProps } from '../components/PrintDocument'
 import { applyReceipt, nextPoNumber, remainingQty, PO_STATUS_LABEL } from '../lib/purchaseOrders'
+import { addBatch } from '../lib/batches'
 
 const emptySupplier = { name: '', phone: '', email: '', address: '', notes: '' }
 
@@ -34,6 +35,8 @@ export default function SuppliersPage() {
   const [docPo, setDocPo] = useState<PurchaseOrder | null>(null)
   const [receivePo, setReceivePo] = useState<PurchaseOrder | null>(null)
   const [receiveQty, setReceiveQty] = useState<Record<string, string>>({})
+  const [receiveDest, setReceiveDest] = useState<'shop' | 'store'>('store')
+  const [receiveBatch, setReceiveBatch] = useState<Record<string, { batchNo: string; expiry: string }>>({})
   const [poStatusFilter, setPoStatusFilter] = useState<'all' | PurchaseOrder['status']>('all')
   const settings = useLiveQuery(() => db.settings.get('main'), [])
   const [showDetail, setShowDetail] = useState(false)
@@ -145,6 +148,8 @@ export default function SuppliersPage() {
   const openReceive = (po: PurchaseOrder) => {
     setReceivePo(po)
     setReceiveQty(Object.fromEntries(po.items.map((i) => [i.productId, String(remainingQty(i))])))
+    setReceiveBatch({})
+    setReceiveDest('store')
   }
 
   const confirmReceive = async () => {
@@ -155,24 +160,72 @@ export default function SuppliersPage() {
     )
     if (received.length === 0) { setReceivePo(null); return }
     const user = (() => { try { return JSON.parse(sessionStorage.getItem('currentUser') || '{}') as { id?: string } } catch { return {} } })()
-    await db.transaction('rw', [db.purchases, db.products, db.stockMovements, db.suppliers, db.outbox], async () => {
-      await db.purchases.put(updated)
+    const historyEntry = {
+      at: now,
+      userId: user.id,
+      userName: (user as { name?: string }).name,
+      lines: received.map((r) => ({ productId: r.productId, name: r.name, qty: r.qty })),
+    }
+    const withHistory = {
+      ...updated,
+      receiveHistory: [...(receivePo.receiveHistory || []), historyEntry],
+    }
+    await db.transaction('rw', [db.purchases, db.products, db.stockMovements, db.suppliers, db.outbox, db.productBatches], async () => {
+      await db.purchases.put(withHistory)
       for (const r of received) {
         const product = await db.products.get(r.productId)
         if (!product) continue
-        const newStock = product.stock + r.qty
-        await db.products.update(r.productId, { stock: newStock, cost: r.cost, updatedAt: now })
+        const dest = receiveDest
+        const prevShop = product.stock || 0
+        const prevStore = product.storeStock || 0
+        let nextShop = prevShop
+        let nextStore = prevStore
+        if (dest === 'store') {
+          nextStore = prevStore + r.qty
+        } else {
+          nextShop = prevShop + r.qty
+        }
+        await db.products.update(r.productId, {
+          stock: nextShop,
+          storeStock: nextStore,
+          cost: r.cost,
+          updatedAt: now,
+        })
+        const meta = receiveBatch[r.productId]
+        if (meta?.expiry || meta?.batchNo) {
+          await addBatch({
+            productId: r.productId,
+            productName: r.name,
+            quantity: r.qty,
+            batchNo: meta.batchNo,
+            expiryDate: meta.expiry,
+            location: dest,
+          })
+        } else if (product.expiryDate || meta) {
+          await addBatch({
+            productId: r.productId,
+            productName: r.name,
+            quantity: r.qty,
+            expiryDate: product.expiryDate,
+            location: dest,
+          })
+        }
         await db.stockMovements.add({
           id: uuidv4(), productId: r.productId, productName: r.name, type: 'purchase', quantity: r.qty,
-          previousStock: product.stock, newStock, referenceId: updated.id, reason: `Received on ${updated.poNumber ?? 'order'}`,
+          previousStock: dest === 'shop' ? prevShop : prevStore,
+          newStock: dest === 'shop' ? nextShop : nextStore,
+          referenceId: updated.id,
+          reason: `Received on ${updated.poNumber ?? 'order'} → ${dest}`,
           userId: user.id, createdAt: now, synced: false,
         })
       }
       const supplier = await db.suppliers.get(updated.supplierId)
       if (supplier) await db.suppliers.update(supplier.id, { balance: (supplier.balance || 0) + value, updatedAt: now })
-      await db.outbox.add({ id: uuidv4(), type: 'purchase', payload: updated, createdAt: now, retries: 0 })
+      await db.outbox.add({ id: uuidv4(), type: 'purchase', payload: withHistory, createdAt: now, retries: 0 })
     })
     setReceivePo(null)
+    setReceiveBatch({})
+    toast(`Received ${received.length} line(s) into ${receiveDest}`, 'success')
   }
 
   const poDoc = (po: PurchaseOrder): PrintDocumentProps => {
@@ -570,21 +623,51 @@ export default function SuppliersPage() {
         }
       >
         <div className="space-y-3">
-          <p className="text-[14px] text-ink-secondary">Enter what actually arrived. You can receive the rest later.</p>
+          <p className="text-[14px] text-ink-secondary">Enter what arrived. Stock can go to shop floor or back-room store.</p>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setReceiveDest('store')} className={`press h-10 rounded-[12px] text-[13px] font-semibold border ${receiveDest === 'store' ? 'border-primary bg-primary/10' : 'border-border'}`}>Into store</button>
+            <button type="button" onClick={() => setReceiveDest('shop')} className={`press h-10 rounded-[12px] text-[13px] font-semibold border ${receiveDest === 'shop' ? 'border-primary bg-primary/10' : 'border-border'}`}>Into shop</button>
+          </div>
           {receivePo?.items.map((i) => (
-            <div key={i.productId} className="rounded-[16px] bg-surface-secondary p-3 flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-[15px] font-semibold truncate">{i.name}</p>
-                <p className="text-[12px] text-ink-secondary">Ordered {i.quantity} · received {i.received ?? 0} · waiting {remainingQty(i)}</p>
+            <div key={i.productId} className="rounded-[16px] bg-surface-secondary p-3 space-y-2">
+              <div className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[15px] font-semibold truncate">{i.name}</p>
+                  <p className="text-[12px] text-ink-secondary">Ordered {i.quantity} · got {i.received ?? 0} · left {remainingQty(i)}</p>
+                </div>
+                <input
+                  type="number" inputMode="decimal" min={0} max={remainingQty(i)} disabled={remainingQty(i) === 0}
+                  className="field !w-24 text-right tabular-nums !bg-white"
+                  value={receiveQty[i.productId] ?? ''}
+                  onChange={(e) => setReceiveQty((q) => ({ ...q, [i.productId]: e.target.value }))}
+                />
               </div>
-              <input
-                type="number" inputMode="decimal" min={0} max={remainingQty(i)} disabled={remainingQty(i) === 0}
-                className="field !w-24 text-right tabular-nums !bg-white"
-                value={receiveQty[i.productId] ?? ''}
-                onChange={(e) => setReceiveQty((q) => ({ ...q, [i.productId]: e.target.value }))}
-              />
+              <div className="grid grid-cols-2 gap-2">
+                <input
+                  className="field !bg-white text-[13px]"
+                  placeholder="Batch / lot"
+                  value={receiveBatch[i.productId]?.batchNo ?? ''}
+                  onChange={(e) => setReceiveBatch((b) => ({ ...b, [i.productId]: { batchNo: e.target.value, expiry: b[i.productId]?.expiry || '' } }))}
+                />
+                <input
+                  type="date"
+                  className="field !bg-white text-[13px]"
+                  value={receiveBatch[i.productId]?.expiry ?? ''}
+                  onChange={(e) => setReceiveBatch((b) => ({ ...b, [i.productId]: { batchNo: b[i.productId]?.batchNo || '', expiry: e.target.value } }))}
+                />
+              </div>
             </div>
           ))}
+          {(receivePo?.receiveHistory?.length || 0) > 0 && (
+            <div className="pt-2">
+              <p className="text-[13px] font-semibold text-ink-secondary mb-1">Receive history</p>
+              {receivePo!.receiveHistory!.slice().reverse().map((h, idx) => (
+                <p key={idx} className="text-[12px] text-ink-muted">
+                  {new Date(h.at).toLocaleString()} · {h.userName || 'Staff'} · {h.lines.map((l) => `${l.name}×${l.qty}`).join(', ')}
+                </p>
+              ))}
+            </div>
+          )}
         </div>
       </Sheet>
 

@@ -4,6 +4,7 @@ import type { CartItem, Product, Payment, Sale, StockMovement, HeldCart } from '
 import { db, audit } from '../lib/db'
 import { processOutbox } from '../lib/sync'
 import { applyStockChange } from '../lib/stock'
+import { deductFefo } from '../lib/batches'
 
 interface PosState {
   cart: CartItem[]
@@ -459,6 +460,12 @@ export const usePosStore = create<PosState>((set, get) => ({
           branchId: branchId || null,
           now,
         })
+        try {
+          const settings = await db.settings.get('main')
+          if (settings?.trackExpiry) {
+            await deductFefo({ productId: item.productId, quantity: deduct, skipProductUpdate: true })
+          }
+        } catch { /* batches optional */ }
 
         const movement: StockMovement = {
           id: uuidv4(),

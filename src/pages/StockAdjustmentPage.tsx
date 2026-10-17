@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, Package, AlertTriangle, TrendingDown, Search, Truck } from 'lucide-react'
 import { format } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
@@ -25,6 +25,7 @@ type Tab = 'overview' | 'low' | 'movements'
 
 export default function StockAdjustmentPage() {
   const toast = useUi((s) => s.toast)
+  const navigate = useNavigate()
   const [tab, setTab] = useState<Tab>('overview')
   const [showForm, setShowForm] = useState(false)
   const [showTransfer, setShowTransfer] = useState(false)
@@ -346,6 +347,20 @@ export default function StockAdjustmentPage() {
         {/* Alerts */}
         {!loading && tab === 'low' && (
           <div className="space-y-3">
+            {(stats.out.length > 0 || stats.low.length > 0) && (
+              <button
+                type="button"
+                className="press w-full h-11 rounded-[14px] bg-primary text-white font-semibold text-[14px]"
+                onClick={() => {
+                  const ids = [...stats.out, ...stats.low].map((p) => p.id).join(',')
+                  try { sessionStorage.setItem('sf_po_low_stock', ids) } catch { /* ignore */ }
+                  navigate('/suppliers?tab=purchases&from=lowstock')
+                  toast('Open New PO — low-stock products are ready to add', 'success')
+                }}
+              >
+                Create purchase order from low stock
+              </button>
+            )}
             {stats.out.length === 0 && stats.low.length === 0 && (
               <p className="text-[14px] text-ink-muted text-center py-8">Nothing below minimum stock.</p>
             )}

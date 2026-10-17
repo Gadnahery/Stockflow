@@ -312,7 +312,9 @@ export default function ProductsPage() {
                     <div className="text-right shrink-0">
                       <p className="font-bold text-[16px] tabular-nums tracking-tight">{fmt(p.price)}</p>
                       <span className={`inline-block mt-0.5 text-[12px] font-semibold px-2 py-0.5 rounded-full tabular-nums ${out ? 'bg-red-50 text-danger' : low ? 'bg-amber-50 text-warning' : 'bg-black/[0.05] text-ink-secondary'}`}>
-                        {out ? 'Out' : `${fmt(st)} in stock`}
+                        {out ? 'Out' : `${fmt(st)} shop`}
+                        {(p.storeStock ?? 0) > 0 ? ` · ${fmt(p.storeStock!)} store` : ''}
+                        {p.expiryDate ? ` · exp ${p.expiryDate.slice(0, 10)}` : ''}
                       </span>
                     </div>
                   </button>

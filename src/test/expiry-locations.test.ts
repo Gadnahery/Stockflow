@@ -8,6 +8,8 @@ import {
 } from '../lib/expiry'
 import { locationLabel, shopQty, storeQty } from '../lib/locations'
 import { nextInvoiceNumber } from '../lib/invoice'
+import { addBatch, listBatches, deductFefo } from '../lib/batches'
+import { v4 as uuidv4 } from 'uuid'
 import { db } from '../lib/db'
 
 describe('expiry', () => {
@@ -67,5 +69,33 @@ describe('invoice numbers', () => {
     expect(n).toMatch(/^INV-\d{4}-0004$/)
     const s = await db.settings.get('main')
     expect(s?.invoiceSeq).toBe(4)
+  })
+})
+
+
+describe('batches FEFO', () => {
+  it('deducts earliest expiry first', async () => {
+    const productId = uuidv4()
+    await db.productBatches.clear()
+    await db.products.put({
+      id: productId,
+      name: 'Meds',
+      sku: 'M1',
+      price: 1000,
+      cost: 500,
+      stock: 15,
+      active: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    })
+    await addBatch({ productId, productName: 'Meds', quantity: 10, expiryDate: '2026-12-01', location: 'shop' })
+    await addBatch({ productId, productName: 'Meds', quantity: 5, expiryDate: '2026-06-01', location: 'shop' })
+    const used = await deductFefo({ productId, quantity: 6, skipProductUpdate: true })
+    expect(used[0].expiryDate).toBe('2026-06-01')
+    expect(used[0].qty).toBe(5)
+    expect(used[1].qty).toBe(1)
+    const left = await listBatches(productId, 'shop')
+    const june = left.find((b) => b.expiryDate === '2026-06-01')
+    expect(june?.quantity ?? 0).toBe(0)
   })
 })

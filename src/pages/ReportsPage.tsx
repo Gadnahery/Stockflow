@@ -14,6 +14,7 @@ import Screen from '../components/ui/Screen'
 import ProductImage from '../components/ui/ProductImage'
 import { useI18n } from '../i18n/I18nContext'
 import { fmt, fmtMoney } from '../lib/util'
+import { expiringProducts, writeOffExpired } from '../lib/batches'
 import BranchFilter from '../components/BranchFilter'
 import { matchBranch, useBranches } from '../hooks/useBranches'
 
@@ -28,6 +29,11 @@ const METHOD_COLORS: Record<string, string> = {
 }
 
 export default function ReportsPage() {
+  const [expiring, setExpiring] = useState<{ productId: string; productName: string; expiryDate: string; quantity: number; days: number }[]>([])
+  useEffect(() => {
+    void expiringProducts(90).then(setExpiring).catch(() => setExpiring([]))
+  }, [])
+
   const { t } = useI18n()
   const { can } = usePermission()
   const [period, setPeriod] = useState<Period>('7d')
