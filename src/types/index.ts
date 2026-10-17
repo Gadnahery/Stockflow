@@ -145,8 +145,14 @@ export interface PurchaseOrder {
   id: UUID
   supplierId: UUID
   supplierName: string
-  items: { productId: UUID; name: string; quantity: number; cost: number }[]
-  status: 'draft' | 'ordered' | 'received' | 'cancelled'
+  /** Printed order number, e.g. PO-2026-0007 */
+  poNumber?: string
+  expectedDate?: string
+  deliveryAddress?: string
+  paymentTerms?: string
+  authorizedBy?: string
+  items: { productId: UUID; name: string; quantity: number; cost: number; /** quantity received so far */ received?: number }[]
+  status: 'draft' | 'ordered' | 'partial' | 'received' | 'cancelled'
   total: number
   note?: string
   createdAt: string

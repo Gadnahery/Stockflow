@@ -532,3 +532,12 @@ html.dark .auth-label { color: #636366 !important; }
 html.dark .auth-link { color: #007AFF !important; }
 html.dark .auth-canvas h1 { color: #1C1C1E !important; }
 html.dark .auth-canvas p { color: #636366 !important; }
+
+/* A4 documents (purchase order / invoice): print only the cloned document */
+#print-root { display: none; }
+@media print {
+  body.printing-doc > *:not(#print-root) { display: none !important; }
+  body.printing-doc #print-root { display: block !important; }
+  body.printing-doc #print-document { border: 0; max-width: none; padding: 0; }
+  @page { size: A4; margin: 12mm; }
+}

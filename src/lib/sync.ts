@@ -211,6 +211,11 @@ async function syncPurchase(po: PurchaseOrder, businessId: string) {
     note: po.note || null,
     created_at: po.createdAt,
     received_at: po.receivedAt || null,
+    po_number: po.poNumber || null,
+    expected_date: po.expectedDate || null,
+    delivery_address: po.deliveryAddress || null,
+    payment_terms: po.paymentTerms || null,
+    authorized_by: po.authorizedBy || null,
   }, { onConflict: 'id' })
   if (error) throw error
 }

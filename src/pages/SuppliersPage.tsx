@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useLiveQuery } from 'dexie-react-hooks'
-import { Search, Plus, Truck, PackagePlus, Trash2 } from 'lucide-react'
+import { Search, Plus, Truck, PackagePlus, Trash2, Printer, PackageCheck } from 'lucide-react'
 import { format } from 'date-fns'
 import { v4 as uuidv4 } from 'uuid'
 import { db } from '../lib/db'
@@ -9,6 +9,8 @@ import Screen from '../components/ui/Screen'
 import Sheet from '../components/ui/Sheet'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { fmtMoney } from '../lib/util'
+import { DocumentModal, type PrintDocumentProps } from '../components/PrintDocument'
+import { applyReceipt, nextPoNumber, remainingQty, PO_STATUS_LABEL } from '../lib/purchaseOrders'
 
 const emptySupplier = { name: '', phone: '', email: '', address: '', notes: '' }
 
@@ -25,6 +27,14 @@ export default function SuppliersPage() {
     { productId: '', name: '', quantity: '1', cost: '' },
   ])
   const [purchaseNote, setPurchaseNote] = useState('')
+  const [purchaseMode, setPurchaseMode] = useState<'order' | 'grn'>('order')
+  const [expectedDate, setExpectedDate] = useState('')
+  const [paymentTerms, setPaymentTerms] = useState('')
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [docPo, setDocPo] = useState<PurchaseOrder | null>(null)
+  const [receivePo, setReceivePo] = useState<PurchaseOrder | null>(null)
+  const [receiveQty, setReceiveQty] = useState<Record<string, string>>({})
+  const settings = useLiveQuery(() => db.settings.get('main'), [])
   const [showDetail, setShowDetail] = useState(false)
   const [payAmount, setPayAmount] = useState('')
   const [detailSupplier, setDetailSupplier] = useState<Supplier | null>(null)
@@ -92,7 +102,11 @@ export default function SuppliersPage() {
     setShowSupplierForm(false)
   }
 
-  const openPurchase = () => {
+  const openPurchase = (mode: 'order' | 'grn' = 'order') => {
+    setPurchaseMode(mode)
+    setExpectedDate('')
+    setPaymentTerms('')
+    setDeliveryAddress(settings?.businessAddress || '')
     const list = suppliers || []
     setPurchaseSupplierId(list[0]?.id || '')
     setPurchaseItems([{ productId: '', name: '', quantity: '1', cost: '' }])
@@ -117,6 +131,55 @@ export default function SuppliersPage() {
     setPurchaseItems(next)
   }
 
+  const openReceive = (po: PurchaseOrder) => {
+    setReceivePo(po)
+    setReceiveQty(Object.fromEntries(po.items.map((i) => [i.productId, String(remainingQty(i))])))
+  }
+
+  const confirmReceive = async () => {
+    if (!receivePo) return
+    const now = new Date().toISOString()
+    const { po: updated, received, value } = applyReceipt(
+      receivePo, Object.fromEntries(Object.entries(receiveQty).map(([k, v]) => [k, parseFloat(v) || 0])), now,
+    )
+    if (received.length === 0) { setReceivePo(null); return }
+    const user = (() => { try { return JSON.parse(sessionStorage.getItem('currentUser') || '{}') as { id?: string } } catch { return {} } })()
+    await db.transaction('rw', [db.purchases, db.products, db.stockMovements, db.suppliers, db.outbox], async () => {
+      await db.purchases.put(updated)
+      for (const r of received) {
+        const product = await db.products.get(r.productId)
+        if (!product) continue
+        const newStock = product.stock + r.qty
+        await db.products.update(r.productId, { stock: newStock, cost: r.cost, updatedAt: now })
+        await db.stockMovements.add({
+          id: uuidv4(), productId: r.productId, productName: r.name, type: 'purchase', quantity: r.qty,
+          previousStock: product.stock, newStock, referenceId: updated.id, reason: `Received on ${updated.poNumber ?? 'order'}`,
+          userId: user.id, createdAt: now, synced: false,
+        })
+      }
+      const supplier = await db.suppliers.get(updated.supplierId)
+      if (supplier) await db.suppliers.update(supplier.id, { balance: (supplier.balance || 0) + value, updatedAt: now })
+      await db.outbox.add({ id: uuidv4(), type: 'purchase', payload: updated, createdAt: now, retries: 0 })
+    })
+    setReceivePo(null)
+  }
+
+  const poDoc = (po: PurchaseOrder): PrintDocumentProps => {
+    const sup = (suppliers || []).find((x) => x.id === po.supplierId)
+    return {
+      title: 'Purchase Order',
+      business: { name: settings?.businessName || 'StockFlow', address: settings?.businessAddress, phone: settings?.businessPhone, tin: settings?.tinNumber },
+      partyLabel: 'Supplier',
+      party: { name: po.supplierName, phone: sup?.phone, email: sup?.email, address: sup?.address },
+      numberLabel: 'PO no.', number: po.poNumber || po.id.slice(0, 8).toUpperCase(),
+      dateLabel: 'PO date', date: po.createdAt,
+      lines: po.items.map((i) => ({ description: i.name, quantity: i.quantity, unitPrice: i.cost })),
+      total: po.total, deliveryAddress: po.deliveryAddress, deliveryDate: po.expectedDate,
+      paymentTerms: po.paymentTerms, authorizedBy: po.authorizedBy, note: po.note,
+      copies: 'Original: Supplier / Copy 1: Warehouse / Copy 2: Accounts',
+    }
+  }
+
   const savePurchase = async () => {
     const list = suppliers || []
     const supplier = list.find((s) => s.id === purchaseSupplierId)
@@ -135,17 +198,38 @@ export default function SuppliersPage() {
     const now = new Date().toISOString()
     const user = (() => {
       try {
-        return JSON.parse(sessionStorage.getItem('currentUser') || '{}') as { id?: string }
+        return JSON.parse(sessionStorage.getItem('currentUser') || '{}') as { id?: string; name?: string }
       } catch {
         return {}
       }
     })()
 
+    const poNumber = nextPoNumber(await db.purchases.toArray())
+    if (purchaseMode === 'order') {
+      // A purchase ORDER: nothing is received yet, so stock and supplier balance do not change.
+      const order: PurchaseOrder = {
+        id: uuidv4(), poNumber, supplierId: supplier.id, supplierName: supplier.name,
+        items: items.map((i) => ({ ...i, received: 0 })), status: 'ordered', total,
+        note: purchaseNote.trim() || undefined, expectedDate: expectedDate || undefined,
+        deliveryAddress: deliveryAddress.trim() || undefined, paymentTerms: paymentTerms.trim() || undefined,
+        authorizedBy: user.name, createdAt: now, synced: false,
+      }
+      await db.transaction('rw', db.purchases, db.outbox, async () => {
+        await db.purchases.add(order)
+        await db.outbox.add({ id: uuidv4(), type: 'purchase', payload: order, createdAt: now, retries: 0 })
+      })
+      setShowPurchaseForm(false)
+      setDocPo(order) // show the printable order straight away
+      return
+    }
+
     const po: PurchaseOrder = {
       id: uuidv4(),
+      poNumber,
+      authorizedBy: user.name,
       supplierId: supplier.id,
       supplierName: supplier.name,
-      items,
+      items: items.map((i) => ({ ...i, received: i.quantity })),
       status: 'received',
       total,
       note: purchaseNote.trim() || undefined,
@@ -226,8 +310,8 @@ export default function SuppliersPage() {
       subtitle={`${fmtMoney(totalPayable)} payable`}
       action={
         <div className="flex gap-2">
-          <button type="button" onClick={openPurchase} className="press h-9 px-3 rounded-full bg-ink text-white text-[13px] font-semibold flex items-center gap-1">
-            <PackagePlus size={15} /> GRN
+          <button type="button" onClick={() => openPurchase('order')} className="press h-9 px-3 rounded-full bg-ink text-white text-[13px] font-semibold flex items-center gap-1">
+            <PackagePlus size={15} /> PO
           </button>
           <button type="button" onClick={openCreateSupplier} className="press h-9 px-3 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center gap-1">
             <Plus size={15} /> Add
@@ -309,10 +393,10 @@ export default function SuppliersPage() {
           <>
             {purchaseList.length === 0 ? (
               <div className="rounded-[22px] bg-white shadow-card px-6 py-12 text-center">
-                <p className="text-[16px] font-semibold">No purchases yet</p>
-                <p className="text-[14px] text-ink-secondary mt-1 mb-4">Receive stock with a goods received note.</p>
-                <button type="button" onClick={openPurchase} className="press h-11 px-5 rounded-[14px] bg-primary text-white font-semibold">
-                  New GRN
+                <p className="text-[16px] font-semibold">No purchase orders yet</p>
+                <p className="text-[14px] text-ink-secondary mt-1 mb-4">Create an order for your supplier, then receive the goods when they arrive.</p>
+                <button type="button" onClick={() => openPurchase('order')} className="press h-11 px-5 rounded-[14px] bg-primary text-white font-semibold">
+                  New purchase order
                 </button>
               </div>
             ) : (
@@ -322,11 +406,18 @@ export default function SuppliersPage() {
                     <div className="flex justify-between gap-3">
                       <div className="min-w-0">
                         <p className="text-[15px] font-semibold truncate">{p.supplierName}</p>
+                        {p.poNumber && <p className="text-[12px] font-semibold text-primary">{p.poNumber} · {PO_STATUS_LABEL[p.status]}</p>}
                         <p className="text-[13px] text-ink-secondary">
                           {format(new Date(p.createdAt), 'dd MMM yyyy')} · {p.items.length} item{p.items.length === 1 ? '' : 's'}
                         </p>
                       </div>
                       <p className="text-[15px] font-semibold tabular-nums shrink-0">{fmtMoney(p.total)}</p>
+                    </div>
+                    <div className="mt-2 flex gap-2">
+                      <button type="button" onClick={() => setDocPo(p)} className="press h-9 px-3 rounded-full bg-black/[0.06] text-[13px] font-semibold flex items-center gap-1.5"><Printer size={14} /> Print</button>
+                      {(p.status === 'ordered' || p.status === 'partial') && (
+                        <button type="button" onClick={() => openReceive(p)} className="press h-9 px-3 rounded-full bg-primary text-white text-[13px] font-semibold flex items-center gap-1.5"><PackageCheck size={14} /> Receive</button>
+                      )}
                     </div>
                   </div>
                 ))}
@@ -366,10 +457,10 @@ export default function SuppliersPage() {
       <Sheet
         open={showPurchaseForm}
         onClose={() => setShowPurchaseForm(false)}
-        title="Receive stock (GRN)"
+        title={purchaseMode === 'order' ? 'New purchase order' : 'Receive stock (GRN)'}
         footer={
           <button type="button" onClick={() => void savePurchase()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">
-            Receive & update stock
+            {purchaseMode === 'order' ? 'Create order' : 'Receive & update stock'}
           </button>
         }
       >
@@ -404,12 +495,61 @@ export default function SuppliersPage() {
           >
             + Add line
           </button>
+          {purchaseMode === 'order' && (
+            <>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="auth-label">Delivery date</label>
+                  <input type="date" className="field w-full" value={expectedDate} onChange={(e) => setExpectedDate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="auth-label">Payment terms</label>
+                  <input className="field w-full" placeholder="e.g. 30 days" value={paymentTerms} onChange={(e) => setPaymentTerms(e.target.value)} />
+                </div>
+              </div>
+              <div>
+                <label className="auth-label">Delivery address</label>
+                <input className="field w-full" value={deliveryAddress} onChange={(e) => setDeliveryAddress(e.target.value)} />
+              </div>
+            </>
+          )}
           <div>
             <label className="auth-label">Note</label>
             <input className="field w-full" value={purchaseNote} onChange={(e) => setPurchaseNote(e.target.value)} />
           </div>
         </div>
       </Sheet>
+      <DocumentModal open={!!docPo} onClose={() => setDocPo(null)} title={docPo?.poNumber || 'Purchase order'} doc={docPo ? poDoc(docPo) : null} />
+
+      <Sheet
+        open={!!receivePo}
+        onClose={() => setReceivePo(null)}
+        title={`Receive ${receivePo?.poNumber ?? 'order'}`}
+        footer={
+          <button type="button" onClick={() => void confirmReceive()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">
+            Confirm received & update stock
+          </button>
+        }
+      >
+        <div className="space-y-3">
+          <p className="text-[14px] text-ink-secondary">Enter what actually arrived. You can receive the rest later.</p>
+          {receivePo?.items.map((i) => (
+            <div key={i.productId} className="rounded-[16px] bg-surface-secondary p-3 flex items-center gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-[15px] font-semibold truncate">{i.name}</p>
+                <p className="text-[12px] text-ink-secondary">Ordered {i.quantity} · received {i.received ?? 0} · waiting {remainingQty(i)}</p>
+              </div>
+              <input
+                type="number" inputMode="decimal" min={0} max={remainingQty(i)} disabled={remainingQty(i) === 0}
+                className="field !w-24 text-right tabular-nums !bg-white"
+                value={receiveQty[i.productId] ?? ''}
+                onChange={(e) => setReceiveQty((q) => ({ ...q, [i.productId]: e.target.value }))}
+              />
+            </div>
+          ))}
+        </div>
+      </Sheet>
+
       <Sheet
         open={showDetail && !!detailSupplier}
         onClose={() => setShowDetail(false)}
