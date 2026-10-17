@@ -7,9 +7,9 @@ export default function HelpPage() {
     <Screen title={t('help.title')} subtitle={t('help.sub')}>
       <div className="space-y-4 md:max-w-lg pb-8">
         <div className="bg-white rounded-[22px] shadow-card p-5 space-y-3">
-          <h2 className="text-[16px] font-semibold">Getting started</h2>
+          <h2 className="text-[16px] font-semibold">{t('help.gettingStarted')}</h2>
           <ol className="list-decimal pl-5 text-[15px] text-ink-secondary space-y-2">
-            <li>Sign up with email and verify your inbox.</li>
+            <li>{t('help.signupVerify')}</li>
             <li>Create your business on the onboarding screen.</li>
             <li>Add products (or import CSV), then start selling on POS.</li>
             <li>Invite staff from Users when you are ready.</li>

@@ -147,13 +147,13 @@ export default function ShiftsPage() {
                 <Clock size={20} />
               </span>
               <div>
-                <p className="text-[16px] font-semibold">Till open</p>
+                <p className="text-[16px] font-semibold">{t('shifts.tillOpen')}</p>
                 <p className="text-[13px] text-ink-secondary">{openSession.userName}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="rounded-[16px] bg-surface-secondary p-3">
-                <p className="text-[12px] text-ink-muted font-medium">Opening float</p>
+                <p className="text-[12px] text-ink-muted font-medium">{t('shifts.openingFloat')}</p>
                 <p className="text-[18px] font-bold tabular-nums mt-0.5">{fmtMoney(openSession.openingFloat)}</p>
               </div>
               <div className="rounded-[16px] bg-surface-secondary p-3">
@@ -167,7 +167,7 @@ export default function ShiftsPage() {
           </div>
         ) : (
           <div className="rounded-[22px] bg-white shadow-card px-6 py-10 text-center">
-            <p className="text-[16px] font-semibold">No open shift</p>
+            <p className="text-[16px] font-semibold">{t('shifts.noOpen')}</p>
             <p className="text-[14px] text-ink-secondary mt-1 mb-4">Open a till with an opening float before taking cash sales.</p>
             <button type="button" onClick={() => setShowOpen(true)} className="press h-11 px-5 rounded-[14px] bg-primary text-white font-semibold inline-flex items-center gap-2">
               <Play size={16} /> Open shift
@@ -185,7 +185,7 @@ export default function ShiftsPage() {
             </div>
           )}
           {!loading && history.length === 0 && (
-            <p className="text-[14px] text-ink-muted px-1 py-4">Closed shifts will appear here.</p>
+            <p className="text-[14px] text-ink-muted px-1 py-4">{t('shifts.closedHint')}</p>
           )}
           {!loading && history.length > 0 && (
             <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
@@ -218,23 +218,23 @@ export default function ShiftsPage() {
       </div>
 
       <Sheet open={showOpen} onClose={() => setShowOpen(false)} title="Open shift" footer={
-        <button type="button" onClick={() => void openShift()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">Open till</button>
+        <button type="button" onClick={() => void openShift()} className="press w-full h-12 rounded-[14px] bg-primary text-white font-semibold">{t('shifts.openTill')}</button>
       }>
         <div>
-          <label className="auth-label">Opening float (TZS)</label>
+          <label className="auth-label">{t('shifts.openingFloatTzs')}</label>
           <input className="field w-full text-lg tabular-nums" inputMode="decimal" value={float} onChange={(e) => setFloat(e.target.value)} autoFocus />
         </div>
       </Sheet>
 
       <Sheet open={showClose && !!openSession} onClose={() => setShowClose(false)} title="Close shift" footer={
-        <button type="button" onClick={() => void closeShift()} className="press w-full h-12 rounded-[14px] bg-danger text-white font-semibold">Close shift</button>
+        <button type="button" onClick={() => void closeShift()} className="press w-full h-12 rounded-[14px] bg-danger text-white font-semibold">{t('shifts.closeShift')}</button>
       }>
         {openSession && (
           <div className="space-y-4">
             <div className="rounded-[16px] bg-surface-secondary p-4 space-y-2 text-[14px]">
-              <div className="flex justify-between"><span className="text-ink-secondary">Opening float</span><span className="tabular-nums font-medium">{fmtMoney(openSession.openingFloat)}</span></div>
-              <div className="flex justify-between"><span className="text-ink-secondary">Cash sales</span><span className="tabular-nums font-medium">{fmtMoney(cashSales)}</span></div>
-              <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold">Expected</span><span className="tabular-nums font-bold">{fmtMoney(expected)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-secondary">{t('shifts.openingFloat')}</span><span className="tabular-nums font-medium">{fmtMoney(openSession.openingFloat)}</span></div>
+              <div className="flex justify-between"><span className="text-ink-secondary">{t('shifts.cashSales')}</span><span className="tabular-nums font-medium">{fmtMoney(cashSales)}</span></div>
+              <div className="flex justify-between border-t border-border pt-2"><span className="font-semibold">{t('shifts.expected')}</span><span className="tabular-nums font-bold">{fmtMoney(expected)}</span></div>
             </div>
             <div>
               <label className="auth-label">Cash counted</label>

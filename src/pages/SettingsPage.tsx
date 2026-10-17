@@ -214,7 +214,7 @@ export default function SettingsPage() {
           </div>
           <div className="bg-white rounded-[22px] shadow-card overflow-hidden">
             {loadingBranches && (
-              <div className="px-4 py-5 text-[14px] text-ink-muted">Loading branches…</div>
+              <div className="px-4 py-5 text-[14px] text-ink-muted">{t('settings.loadingBranches')}</div>
             )}
             {!loadingBranches && branches.length === 0 && (
               <div className="px-4 py-5">
@@ -311,10 +311,10 @@ export default function SettingsPage() {
               <input className="field" value={form.tinNumber} onChange={(e) => set({ tinNumber: e.target.value })} placeholder="e.g. 123-456-789" />
             </div>
           <div className="rounded-[18px] bg-white shadow-card p-4 space-y-3">
-            <p className="text-[15px] font-semibold">Inventory options</p>
+            <p className="text-[15px] font-semibold">{t('settings.inventoryOpts')}</p>
             <label className="flex items-center justify-between gap-3">
               <span className="text-[14px]">
-                <span className="font-medium block">Track expiry dates</span>
+                <span className="font-medium block">{t('settings.trackExpiry')}</span>
                 <span className="text-[12px] text-ink-secondary">Pharmacy / food — show expiry on products, block expired at POS</span>
               </span>
               <input
@@ -326,7 +326,7 @@ export default function SettingsPage() {
             </label>
             <label className="flex items-center justify-between gap-3">
               <span className="text-[14px]">
-                <span className="font-medium block">Shop + store stock</span>
+                <span className="font-medium block">{t('settings.shopStore')}</span>
                 <span className="text-[12px] text-ink-secondary">Separate back-room store from shop floor (transfer in Inventory)</span>
               </span>
               <input
@@ -370,7 +370,7 @@ export default function SettingsPage() {
           <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">Business</h2>
           <div className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
             <div>
-              <label className="auth-label">Store name</label>
+              <label className="auth-label">{t('settings.storeName')}</label>
               <input
                 className="field w-full"
                 value={form.businessName}
@@ -398,10 +398,10 @@ export default function SettingsPage() {
         </section>
 
         <section>
-          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">Tax & currency</h2>
+          <h2 className="text-[13px] font-semibold text-ink-secondary mb-2 px-1">{t('settings.taxCurrency')}</h2>
           <div className="bg-white rounded-[22px] shadow-card p-4 space-y-3">
             <div>
-              <label className="auth-label">Tax rate (%)</label>
+              <label className="auth-label">{t('settings.taxRate')}</label>
               <input
                 className="field w-full"
                 inputMode="decimal"
@@ -410,7 +410,7 @@ export default function SettingsPage() {
               />
             </div>
             <label className="flex items-center justify-between gap-3 py-1">
-              <span className="text-[15px] font-medium">Prices include tax</span>
+              <span className="text-[15px] font-medium">{t('settings.pricesIncludeTax')}</span>
               <input
                 type="checkbox"
                 checked={form.taxInclusive}

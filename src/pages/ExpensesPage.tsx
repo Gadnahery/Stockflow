@@ -178,7 +178,7 @@ export default function ExpensesPage() {
 
         {byCategory.length > 0 && (
           <div className="bg-white rounded-[22px] shadow-card p-4">
-            <p className="text-[13px] font-semibold text-ink-secondary mb-2">By category</p>
+            <p className="text-[13px] font-semibold text-ink-secondary mb-2">{t('expenses.byCategory')}</p>
             <div className="space-y-1.5">
               {byCategory.slice(0, 5).map(([cat, amt]) => (
                 <div key={cat} className="flex justify-between text-[14px]">
@@ -204,7 +204,7 @@ export default function ExpensesPage() {
               <Wallet size={26} />
             </div>
             <p className="text-[16px] font-semibold">{t('expenses.empty')}</p>
-            <p className="text-[14px] text-ink-secondary mt-1 mb-4">Record rent, utilities, and other costs.</p>
+            <p className="text-[14px] text-ink-secondary mt-1 mb-4">{t('expenses.hint')}</p>
             <button type="button" onClick={openCreate} className="press h-11 px-5 rounded-[14px] bg-primary text-white font-semibold">
               {t("expenses.add")}
             </button>

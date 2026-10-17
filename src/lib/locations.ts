@@ -2,6 +2,11 @@
  * Shop (selling floor) vs Store (back room).
  * product.stock = shop quantity (POS sells from here)
  * product.storeStock = back-room quantity
+ *
+ * Design decision (audit §6): dual location is a flat pair of fields on each product,
+ * not a separate warehouse table per branch. With multi-branch + isolated catalogues,
+ * each branch already has its own product rows (and thus its own shop/store stock).
+ * Growth/Pro "stores follow branches" is satisfied by branch count, not extra warehouse entities.
  */
 import { db } from './db'
 import { v4 as uuidv4 } from 'uuid'

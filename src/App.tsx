@@ -1,53 +1,60 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { ensureSeedData } from './lib/db'
 import { startSyncLoop, processOutbox, startRealtime, pullMissing } from './lib/sync'
 import { usePosStore } from './store/posStore'
 import { RequireAuth } from './components/RequireAuth'
 import AppShell from './components/layout/AppShell'
-import ImportPage from './pages/ImportPage'
-import SyncStatusPage from './pages/SyncStatusPage'
-import AuditPage from './pages/AuditPage'
 import LoginPage from './pages/auth/LoginPage'
 import SignupPage from './pages/auth/SignupPage'
-import ForgotPasswordPage from './pages/auth/ForgotPasswordPage'
-import ResetPasswordPage from './pages/auth/ResetPasswordPage'
-import OnboardingPage from './pages/auth/OnboardingPage'
-import AcceptInvitePage from './pages/auth/AcceptInvitePage'
-import AccountPage from './pages/auth/AccountPage'
-import HelpPage from './pages/HelpPage'
-import BillingPage from './pages/BillingPage'
-import BranchesPage from './pages/BranchesPage'
 import PosPage from './pages/PosPage'
-import DashboardPage from './pages/DashboardPage'
-import NotificationsPage from './pages/NotificationsPage'
-import ProductsPage from './pages/ProductsPage'
-import CustomersPage from './pages/CustomersPage'
-import ReportsPage from './pages/ReportsPage'
-import MorePage from './pages/MorePage'
-import SettingsPage from './pages/SettingsPage'
-import ShiftsPage from './pages/ShiftsPage'
-import ExpensesPage from './pages/ExpensesPage'
-import SuppliersPage from './pages/SuppliersPage'
-import StockAdjustmentPage from './pages/StockAdjustmentPage'
-import RestaurantTablesPage from './pages/RestaurantTablesPage'
-import UsersPage from './pages/UsersPage'
-import SalesPage from './pages/SalesPage'
-import ExportPage from './pages/ExportPage'
 import LandingPage from './pages/LandingPage'
-
-
 import MarketingLayout from './marketing/MarketingLayout'
-import FeaturesPage from './pages/marketing/FeaturesPage'
-import PricingPage from './pages/marketing/PricingPage'
-import AboutPage from './pages/marketing/AboutPage'
-import ContactPage from './pages/marketing/ContactPage'
-import PrivacyPage from './pages/marketing/PrivacyPage'
-import TermsPage from './pages/marketing/TermsPage'
-import ResourcesPage from './pages/marketing/ResourcesPage'
-import ArticlePage from './pages/marketing/ArticlePage'
-import IndustryPage from './pages/marketing/IndustryPage'
-import NotFoundPage from './pages/marketing/NotFoundPage'
+
+const ForgotPasswordPage = lazy(() => import('./pages/auth/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/auth/ResetPasswordPage'))
+const OnboardingPage = lazy(() => import('./pages/auth/OnboardingPage'))
+const AcceptInvitePage = lazy(() => import('./pages/auth/AcceptInvitePage'))
+const AccountPage = lazy(() => import('./pages/auth/AccountPage'))
+const HelpPage = lazy(() => import('./pages/HelpPage'))
+const BillingPage = lazy(() => import('./pages/BillingPage'))
+const BranchesPage = lazy(() => import('./pages/BranchesPage'))
+const DashboardPage = lazy(() => import('./pages/DashboardPage'))
+const NotificationsPage = lazy(() => import('./pages/NotificationsPage'))
+const ProductsPage = lazy(() => import('./pages/ProductsPage'))
+const CustomersPage = lazy(() => import('./pages/CustomersPage'))
+const ReportsPage = lazy(() => import('./pages/ReportsPage'))
+const MorePage = lazy(() => import('./pages/MorePage'))
+const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const ShiftsPage = lazy(() => import('./pages/ShiftsPage'))
+const ExpensesPage = lazy(() => import('./pages/ExpensesPage'))
+const SuppliersPage = lazy(() => import('./pages/SuppliersPage'))
+const StockAdjustmentPage = lazy(() => import('./pages/StockAdjustmentPage'))
+const RestaurantTablesPage = lazy(() => import('./pages/RestaurantTablesPage'))
+const UsersPage = lazy(() => import('./pages/UsersPage'))
+const SalesPage = lazy(() => import('./pages/SalesPage'))
+const ExportPage = lazy(() => import('./pages/ExportPage'))
+const ImportPage = lazy(() => import('./pages/ImportPage'))
+const SyncStatusPage = lazy(() => import('./pages/SyncStatusPage'))
+const AuditPage = lazy(() => import('./pages/AuditPage'))
+const FeaturesPage = lazy(() => import('./pages/marketing/FeaturesPage'))
+const PricingPage = lazy(() => import('./pages/marketing/PricingPage'))
+const AboutPage = lazy(() => import('./pages/marketing/AboutPage'))
+const ContactPage = lazy(() => import('./pages/marketing/ContactPage'))
+const PrivacyPage = lazy(() => import('./pages/marketing/PrivacyPage'))
+const TermsPage = lazy(() => import('./pages/marketing/TermsPage'))
+const ResourcesPage = lazy(() => import('./pages/marketing/ResourcesPage'))
+const ArticlePage = lazy(() => import('./pages/marketing/ArticlePage'))
+const IndustryPage = lazy(() => import('./pages/marketing/IndustryPage'))
+const NotFoundPage = lazy(() => import('./pages/marketing/NotFoundPage'))
+
+function RouteFallback() {
+  return (
+    <div className="min-h-[40vh] flex items-center justify-center text-[14px] text-ink-secondary">
+      Loading…
+    </div>
+  )
+}
 
 function App() {
   const location = useLocation()
@@ -88,6 +95,7 @@ function App() {
   }, [location.pathname, setOnline, refreshPendingSync])
 
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public marketing — SEO entry points */}
       <Route path="/" element={<LandingPage />} />
@@ -149,6 +157,7 @@ function App() {
       </Route>
       <Route path="*" element={<NotFoundPage />} />
     </Routes>
+    </Suspense>
   )
 }
 

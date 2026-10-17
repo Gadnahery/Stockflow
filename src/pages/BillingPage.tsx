@@ -150,7 +150,7 @@ export default function BillingPage() {
         {!loading && !subscription && canManage && (
           <section className="flex flex-col gap-3 rounded-2xl border border-primary/20 bg-primary/5 p-5 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <h3 className="font-bold text-ink">Try StockFlow free for 7 days</h3>
+              <h3 className="font-bold text-ink">{t('billing.tryFree')}</h3>
               <p className="mt-1 text-sm text-ink-secondary">Seven days free. After the trial you can still sign in and view data, but selling and editing stay locked until you pay.</p>
             </div>
             <button type="button" disabled={busy} onClick={() => void startTrial()} className="press inline-flex h-10 shrink-0 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white disabled:opacity-50">{busy ? 'Please wait…' : 'Start free trial'}</button>
@@ -160,11 +160,11 @@ export default function BillingPage() {
         {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</div>}
 
         <section className="rounded-[24px] border border-border bg-white p-6 shadow-card sm:p-8">
-          <h3 className="text-base font-bold text-ink">Available plans</h3>
+          <h3 className="text-base font-bold text-ink">{t('billing.plans')}</h3>
           <p className="mt-1 text-sm text-ink-secondary">Prices and features are managed centrally. No price is hard-coded into the app.</p>
-          {loading ? <p className="mt-5 text-sm text-ink-secondary">Loading plans…</p> : plans.length === 0 ? (
+          {loading ? <p className="mt-5 text-sm text-ink-secondary">{t('billing.loadingPlans')}</p> : plans.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-border p-5">
-              <p className="font-semibold text-ink">Plans are being configured</p>
+              <p className="font-semibold text-ink">{t('billing.plansConfiguring')}</p>
               <p className="mt-1 text-sm leading-6 text-ink-secondary">No plan is available to purchase yet. You can keep using StockFlow; billing will not block business operations.</p>
             </div>
           ) : (
@@ -192,13 +192,13 @@ export default function BillingPage() {
               <button type="button" disabled={busy || !selectedPlan || !phone.trim()} onClick={() => void startPayment()} className="press inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-primary px-5 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-50"><CreditCard size={17} />{busy ? 'Please wait…' : 'Request payment'}</button>
             </div>
           )}
-          {attemptId && <button type="button" disabled={busy} onClick={() => void checkStatus()} className="press mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold text-ink disabled:opacity-50"><Clock3 size={16} />Check payment status</button>}
+          {attemptId && <button type="button" disabled={busy} onClick={() => void checkStatus()} className="press mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-border px-4 text-sm font-semibold text-ink disabled:opacity-50"><Clock3 size={16} />{t('billing.checkPay')}</button>}
           {!canManage && <p className="mt-4 text-xs text-ink-muted">Only the business owner or an administrator can initiate billing payments.</p>}
         </section>
 
         <section className="rounded-[24px] border border-border bg-white p-6 shadow-card sm:p-8">
-          <h3 className="text-base font-bold text-ink">Recent invoices</h3>
-          {invoices.length === 0 ? <p className="mt-3 text-sm text-ink-secondary">No invoices yet.</p> : (
+          <h3 className="text-base font-bold text-ink">{t('billing.invoices')}</h3>
+          {invoices.length === 0 ? <p className="mt-3 text-sm text-ink-secondary">{t('billing.noInvoices')}</p> : (
             <div className="mt-4 overflow-x-auto"><table className="w-full min-w-[520px] text-left text-sm"><thead><tr className="border-b border-border text-xs text-ink-muted"><th className="pb-3 font-semibold">Invoice</th><th className="pb-3 font-semibold">Date</th><th className="pb-3 font-semibold">Amount</th><th className="pb-3 font-semibold">Status</th></tr></thead><tbody>{invoices.map(invoice => <tr key={invoice.id} className="border-b border-border last:border-0"><td className="py-3 font-medium text-ink">{invoice.invoice_number}</td><td className="py-3 text-ink-secondary">{date(invoice.issued_at)}</td><td className="py-3 text-ink">{money(Number(invoice.amount_tzs))}</td><td className="py-3 capitalize text-ink-secondary">{invoice.status}</td></tr>)}</tbody></table></div>
           )}
         </section>
