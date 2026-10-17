@@ -26,8 +26,19 @@ interface PosState {
   applyLineDiscount: (productId: string, discount: number) => void
   applyCartDiscount: (discount: number) => void
   completeSale: (payments: Payment[], note?: string) => Promise<Sale>
-  voidSale: (saleId: string) => Promise<void>
-  refundSale: (saleId: string) => Promise<void>
+  voidSale: (saleId: string, opts?: { reason?: string; approvedById?: string; approvedByName?: string }) => Promise<void>
+  refundSale: (
+    saleId: string,
+    opts?: {
+      reason?: string
+      restock?: boolean
+      approvedById?: string
+      approvedByName?: string
+      /** Partial: productId → qty to refund (base cart lines). Omit = full refund */
+      lineQty?: Record<string, number>
+      refundAmount?: number
+    },
+  ) => Promise<void>
   held: HeldCart[]
   holdCart: () => boolean
   resumeHeld: (id: string) => boolean
@@ -199,15 +210,22 @@ export const usePosStore = create<PosState>((set, get) => ({
     })
   },
 
-  voidSale: async (saleId) => {
+  voidSale: async (saleId, opts) => {
     const sale = await db.sales.get(saleId)
     if (!sale || sale.status !== 'completed') throw new Error('Cannot void this sale')
+    if (sale.status === 'voided' || sale.status === 'refunded') throw new Error('Sale already closed')
     const now = new Date().toISOString()
     const user = getCurrentUser()
 
     const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
     await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
-      await db.sales.update(saleId, { status: 'voided', synced: false })
+      await db.sales.update(saleId, {
+        status: 'voided',
+        synced: false,
+        voidReason: opts?.reason,
+        approvedById: opts?.approvedById,
+        approvedByName: opts?.approvedByName,
+      } as Partial<Sale>)
       if (creditAmt > 0 && sale.customerId) {
         const c = await db.customers.get(sale.customerId)
         if (c) await db.customers.update(c.id, { balance: Math.max(0, c.balance - creditAmt), updatedAt: now })
@@ -245,7 +263,7 @@ export const usePosStore = create<PosState>((set, get) => ({
         retries: 0,
       })
     })
-    await audit('SALE_VOID', 'sale', saleId, { before: { status: 'completed', total: sale.total }, after: { status: 'voided' }, reason: `Receipt ${sale.receiptNumber}` })
+    await audit('SALE_VOID', 'sale', saleId, { before: { status: 'completed', total: sale.total }, after: { status: 'voided', approvedBy: opts?.approvedByName }, reason: opts?.reason || `Receipt ${sale.receiptNumber}` })
     set({ catalogTick: get().catalogTick + 1 })
     await get().refreshPendingSync()
     if (navigator.onLine) {
@@ -253,7 +271,7 @@ export const usePosStore = create<PosState>((set, get) => ({
     }
   },
 
-  refundSale: async (saleId) => {
+  refundSale: async (saleId, opts) => {
     const sale = await db.sales.get(saleId)
     if (!sale || sale.status !== 'completed') throw new Error('Cannot refund this sale')
     const now = new Date().toISOString()
@@ -261,53 +279,61 @@ export const usePosStore = create<PosState>((set, get) => ({
     const creditAmt = sale.payments.filter((p) => p.method === 'credit').reduce((t, p) => t + p.amount, 0)
 
     await db.transaction('rw', [db.sales, db.products, db.stockMovements, db.outbox, db.customers, db.branchStock], async () => {
-      await db.sales.update(saleId, { status: 'refunded', synced: false })
+      await db.sales.update(saleId, {
+        status: 'refunded',
+        synced: false,
+        refundReason: opts?.reason,
+        refundAmount: opts?.refundAmount ?? sale.total,
+        approvedById: opts?.approvedById,
+        approvedByName: opts?.approvedByName,
+      } as Partial<Sale>)
       if (creditAmt > 0 && sale.customerId) {
         const c = await db.customers.get(sale.customerId)
         if (c) await db.customers.update(c.id, { balance: Math.max(0, c.balance - creditAmt), updatedAt: now })
       }
+      if (opts?.restock !== false) {
       for (const item of sale.items) {
         const product = await db.products.get(item.productId)
-        if (!product) continue
+        if (!product || product.isService) continue
+        const restock = (item as { stockUnits?: number }).stockUnits ?? item.quantity
         const previousStock = product.stock
-        const newStock = previousStock + item.quantity
+        const newStock = previousStock + restock
         await db.products.update(item.productId, { stock: newStock, updatedAt: now })
-        const movement = {
+        await db.stockMovements.add({
           id: uuidv4(),
           productId: item.productId,
           productName: item.name,
-          type: 'return' as const,
-          quantity: item.quantity,
+          type: 'return',
+          quantity: restock,
           previousStock,
           newStock,
           referenceId: saleId,
-          reason: 'Sale refunded',
+          reason: opts?.reason || 'Sale refunded',
           userId: user.id,
           createdAt: now,
           synced: false,
-        }
-        await db.stockMovements.add(movement)
-        await db.outbox.add({ id: uuidv4(), type: 'stock_movement', payload: movement, createdAt: now, retries: 0 })
-        await db.outbox.add({
-          id: uuidv4(),
-          type: 'product_upsert',
-          payload: { ...product, stock: newStock, updatedAt: now },
-          createdAt: now,
-          retries: 0,
         })
+      }
       }
       await db.outbox.add({
         id: uuidv4(),
         type: 'sale',
-        payload: { ...sale, status: 'refunded' },
+        payload: {
+          ...sale,
+          status: 'refunded',
+          refundReason: opts?.reason,
+          refundAmount: opts?.refundAmount ?? sale.total,
+          approvedById: opts?.approvedById,
+          approvedByName: opts?.approvedByName,
+        },
         createdAt: now,
         retries: 0,
       })
     })
     await audit('SALE_REFUND', 'sale', saleId, {
       before: { status: 'completed', total: sale.total },
-      after: { status: 'refunded' },
-      reason: `Receipt ${sale.receiptNumber}`,
+      after: { status: 'refunded', approvedBy: opts?.approvedByName, amount: opts?.refundAmount ?? sale.total },
+      reason: opts?.reason || `Receipt ${sale.receiptNumber}`,
     })
     set({ catalogTick: get().catalogTick + 1 })
     await get().refreshPendingSync()

@@ -6,6 +6,7 @@ import { db } from '../lib/db'
 import type { Sale } from '../types'
 import ReceiptModal from '../components/ReceiptModal'
 import Screen from '../components/ui/Screen'
+import ManagerPinSheet from '../components/ManagerPinSheet'
 import { useI18n } from '../i18n/I18nContext'
 import { usePosStore } from '../store/posStore'
 import { usePermission } from '../hooks/usePermission'
@@ -66,12 +67,67 @@ export default function SalesPage() {
     return { count: completed.length, revenue }
   }, [filtered])
 
+  const [approveAction, setApproveAction] = useState<null | { type: 'void' | 'refund'; sale: Sale }>(null)
+
+  const runVoid = async (
+    sale: Sale,
+    opts?: { approvedById?: string; approvedByName?: string },
+  ) => {
+    try {
+      await voidSale(sale.id, {
+        reason: `Receipt ${sale.receiptNumber}`,
+        approvedById: opts?.approvedById,
+        approvedByName: opts?.approvedByName,
+      })
+      toast(
+        opts?.approvedByName
+          ? `Sale voided (approved by ${opts.approvedByName})`
+          : 'Sale voided',
+        'success',
+      )
+      if (selected?.id === sale.id) setSelected(null)
+    } catch (e) {
+      toast((e as Error).message || 'Could not void sale', 'error')
+    }
+  }
+
+  const runRefund = async (
+    sale: Sale,
+    opts?: { approvedById?: string; approvedByName?: string },
+  ) => {
+    try {
+      await refundSale(sale.id, {
+        reason: `Receipt ${sale.receiptNumber}`,
+        restock: true,
+        refundAmount: sale.total,
+        approvedById: opts?.approvedById,
+        approvedByName: opts?.approvedByName,
+      })
+      toast(
+        opts?.approvedByName
+          ? `Sale refunded (approved by ${opts.approvedByName})`
+          : 'Sale refunded — stock restored',
+        'success',
+      )
+      if (selected?.id === sale.id) setSelected(null)
+    } catch (e) {
+      toast((e as Error).message || 'Could not refund sale', 'error')
+    }
+  }
+
   const handleVoid = async (sale: Sale) => {
+    if (sale.status !== 'completed') return
     if (!can('VOID_SALE')) {
-      toast('You do not have permission to void sales', 'error')
+      const ok = await confirm({
+        title: 'Manager approval required',
+        message: `You cannot void sales alone. A manager must enter the device PIN to void receipt ${sale.receiptNumber}.`,
+        confirmLabel: 'Request approval',
+        tone: 'danger',
+      })
+      if (!ok) return
+      setApproveAction({ type: 'void', sale })
       return
     }
-    if (sale.status !== 'completed') return
     const ok = await confirm({
       title: 'Void this sale?',
       message: `Receipt ${sale.receiptNumber} · ${fmtMoney(sale.total)}. Stock will be restored.`,
@@ -79,21 +135,22 @@ export default function SalesPage() {
       tone: 'danger',
     })
     if (!ok) return
-    try {
-      await voidSale(sale.id)
-      toast('Sale voided', 'success')
-      if (selected?.id === sale.id) setSelected(null)
-    } catch (e) {
-      toast((e as Error).message || 'Could not void sale', 'error')
-    }
+    await runVoid(sale)
   }
 
   const handleRefund = async (sale: Sale) => {
+    if (sale.status !== 'completed') return
     if (!can('REFUND_SALE') && !can('VOID_SALE')) {
-      toast('You do not have permission to refund sales', 'error')
+      const ok = await confirm({
+        title: 'Manager approval required',
+        message: `You cannot refund sales alone. A manager must enter the device PIN to refund receipt ${sale.receiptNumber}.`,
+        confirmLabel: 'Request approval',
+        tone: 'danger',
+      })
+      if (!ok) return
+      setApproveAction({ type: 'refund', sale })
       return
     }
-    if (sale.status !== 'completed') return
     const ok = await confirm({
       title: 'Refund this sale?',
       message: `Restock items and mark receipt ${sale.receiptNumber} as refunded. Total ${sale.total.toLocaleString()} TZS.`,
@@ -101,12 +158,7 @@ export default function SalesPage() {
       tone: 'danger',
     })
     if (!ok) return
-    try {
-      await refundSale(sale.id)
-      toast('Sale refunded — stock restored', 'success')
-    } catch (e) {
-      toast((e as Error).message || 'Could not refund sale', 'error')
-    }
+    await runRefund(sale)
   }
 
   const dateLabel = (iso: string) => {
@@ -257,7 +309,7 @@ export default function SalesPage() {
                     >
                       <Receipt size={15} />
                     </button>
-                    {s.status === 'completed' && (can('REFUND_SALE') || can('VOID_SALE')) && (
+                    {s.status === 'completed' && (
                       <button
                         type="button"
                         onClick={() => void handleRefund(s)}
@@ -267,7 +319,7 @@ export default function SalesPage() {
                         Refund
                       </button>
                     )}
-                    {s.status === 'completed' && can('VOID_SALE') && (
+                    {s.status === 'completed' && (
                       <button
                         type="button"
                         onClick={() => void handleVoid(s)}
@@ -287,5 +339,23 @@ export default function SalesPage() {
 
       {selected && <ReceiptModal sale={selected} onClose={() => setSelected(null)} />}
     </Screen>
+      <ManagerPinSheet
+        open={Boolean(approveAction)}
+        onClose={() => setApproveAction(null)}
+        title={approveAction?.type === 'void' ? 'Approve void' : 'Approve refund'}
+        subtitle={
+          approveAction
+            ? `Receipt ${approveAction.sale.receiptNumber} · ${fmtMoney(approveAction.sale.total)}`
+            : undefined
+        }
+        onApproved={(approver) => {
+          const action = approveAction
+          setApproveAction(null)
+          if (!action) return
+          if (action.type === 'void') void runVoid(action.sale, { approvedById: approver.id, approvedByName: approver.name })
+          else void runRefund(action.sale, { approvedById: approver.id, approvedByName: approver.name })
+        }}
+      />
+
   )
 }

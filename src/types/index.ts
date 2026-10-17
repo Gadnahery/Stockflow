@@ -6,16 +6,24 @@ export type Permission =
   | 'REFUND_SALE'
   | 'CHANGE_PRICE'
   | 'APPLY_DISCOUNT'
+  | 'APPROVE_OVERRIDE'
   | 'ADJUST_STOCK'
+  | 'TRANSFER_STOCK'
+  | 'CREATE_PO'
+  | 'RECEIVE_PO'
   | 'VIEW_PROFIT'
   | 'EXPORT_DATA'
+  | 'VIEW_AUDIT'
   | 'MANAGE_USERS'
   | 'MANAGE_PRODUCTS'
   | 'MANAGE_CUSTOMERS'
   | 'MANAGE_SUPPLIERS'
+  | 'MANAGE_EXPENSES'
   | 'VIEW_REPORTS'
   | 'MANAGE_SHIFTS'
   | 'MANAGE_SETTINGS'
+  | 'MANAGE_BRANCHES'
+  | 'MANAGE_BILLING'
 
 export interface Product {
   /** Pharmacy: lot / batch */
@@ -95,6 +103,13 @@ export interface Sale {
   /** Sequential fiscal-style number when fiscalMode is prepare/vfd */
   fiscalReceiptNumber?: string
   note?: string
+  /** Manager who approved void/refund when cashier lacked permission */
+  approvedById?: string
+  approvedByName?: string
+  voidReason?: string
+  refundReason?: string
+  /** Partial refund: money returned (full total if whole sale) */
+  refundAmount?: number
   createdAt: string
   synced: boolean
 }

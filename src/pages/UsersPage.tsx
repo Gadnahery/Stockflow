@@ -6,55 +6,26 @@ import { usePermission } from '../hooks/usePermission'
 import { useUi } from '../store/uiStore'
 import { supabase, getBusinessId } from '../lib/supabase'
 import type { Permission } from '../types'
+import {
+  PERMISSION_CATALOGUE,
+  ROLE_PRESETS as CATALOGUE_PRESETS,
+  ROLE_LABELS as CATALOGUE_ROLE_LABELS,
+} from '../lib/permissions'
 import { v4 as uuidv4 } from 'uuid'
 import { useI18n } from '../i18n/I18nContext'
 
 const FREE_SEATS = 10
 
-const ALL_PERMISSIONS: { key: Permission; label: string }[] = [
-  { key: 'CREATE_SALE', label: 'Create sales' },
-  { key: 'VOID_SALE', label: 'Void sales' },
-  { key: 'REFUND_SALE', label: 'Refund sales' },
-  { key: 'CHANGE_PRICE', label: 'Change prices' },
-  { key: 'APPLY_DISCOUNT', label: 'Apply discounts' },
-  { key: 'ADJUST_STOCK', label: 'Adjust stock' },
-  { key: 'VIEW_PROFIT', label: 'View profit' },
-  { key: 'EXPORT_DATA', label: 'Export data' },
-  { key: 'MANAGE_USERS', label: 'Manage users' },
-  { key: 'MANAGE_PRODUCTS', label: 'Manage products' },
-  { key: 'MANAGE_CUSTOMERS', label: 'Manage customers' },
-  { key: 'MANAGE_SUPPLIERS', label: 'Manage suppliers' },
-  { key: 'VIEW_REPORTS', label: 'View reports' },
-  { key: 'MANAGE_SHIFTS', label: 'Manage shifts' },
-  { key: 'MANAGE_SETTINGS', label: 'Manage settings' },
-]
+const ALL_PERMISSIONS: { key: Permission; label: string }[] = PERMISSION_CATALOGUE.map((p) => ({
+  key: p.key,
+  label: p.labelEn,
+}))
 
-const ROLE_PRESETS: Record<string, Permission[]> = {
-  business_owner: ALL_PERMISSIONS.map((p) => p.key),
-  business_manager: [
-    'CREATE_SALE', 'VOID_SALE', 'REFUND_SALE', 'APPLY_DISCOUNT', 'ADJUST_STOCK',
-    'VIEW_PROFIT', 'MANAGE_PRODUCTS', 'MANAGE_CUSTOMERS', 'MANAGE_SUPPLIERS',
-    'VIEW_REPORTS', 'MANAGE_SHIFTS', 'MANAGE_USERS', 'CHANGE_PRICE', 'MANAGE_SETTINGS',
-  ],
-  cashier: ['CREATE_SALE', 'APPLY_DISCOUNT'],
-  storekeeper: ['ADJUST_STOCK', 'MANAGE_PRODUCTS', 'MANAGE_SUPPLIERS'],
-  accountant: ['VIEW_REPORTS', 'VIEW_PROFIT', 'EXPORT_DATA'],
-  waiter: ['CREATE_SALE'],
-  auditor: ['VIEW_REPORTS', 'VIEW_PROFIT', 'EXPORT_DATA'],
-}
+const ROLE_PRESETS: Record<string, Permission[]> = CATALOGUE_PRESETS as Record<string, Permission[]>
 
-const ROLE_LABELS: Record<string, string> = {
-  business_owner: 'Owner',
-  owner: 'Owner',
-  business_manager: 'Manager',
-  manager: 'Manager',
-  cashier: 'Cashier',
-  storekeeper: 'Storekeeper',
-  accountant: 'Accountant',
-  waiter: 'Waiter',
-  auditor: 'Auditor',
-  platform_admin: 'Platform admin',
-}
+const ROLE_LABELS: Record<string, string> = Object.fromEntries(
+  Object.entries(CATALOGUE_ROLE_LABELS).map(([k, v]) => [k, v.en]),
+)
 
 type MemberRow = {
   id: string
