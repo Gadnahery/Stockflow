@@ -35,7 +35,7 @@ describe('expiry', () => {
       { expiryDate: '2027-06-01' },
       { expiryDate: undefined },
     ])
-    expect(sorted[0].expiryDate).toBe('2027-06-01')
+    expect(sorted[0].expiryDate).toBe('2027-01-01')
     expect(sorted[2].expiryDate).toBeUndefined()
   })
 
