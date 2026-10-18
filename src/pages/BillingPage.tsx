@@ -55,7 +55,7 @@ export default function BillingPage() {
     if (!supabase || !business?.id) { setLoading(false); return }
     setLoading(true)
     const [planRes, invoiceRes, subRes] = await Promise.all([
-      supabase.from('billing_plans').select('id, code, name, description, amount_tzs, interval, features, max_branches, max_accounts, extra_branch_price_tzs').eq('is_active', true).order('amount_tzs'),
+      supabase.from('billing_plans').select('id, code, name, description, amount_tzs, interval, features, max_branches, max_accounts:max_members, extra_branch_price_tzs').eq('is_active', true).order('amount_tzs'),
       supabase.from('billing_invoices').select('id, invoice_number, amount_tzs, status, issued_at, paid_at').eq('business_id', business.id).order('issued_at', { ascending: false }).limit(10),
       supabase.from('business_subscriptions').select('status, current_period_end, trial_ends_at, plan:billing_plans(name)').eq('business_id', business.id).maybeSingle(),
     ])

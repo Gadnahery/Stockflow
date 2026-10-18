@@ -57,7 +57,7 @@ export function resolvePlanLimits(
   row?: Partial<{
     amount_tzs: number
     max_branches: number
-    max_accounts: number
+    max_members: number
     max_stores: number
     extra_branch_price_tzs: number
   }> | null,
@@ -68,7 +68,7 @@ export function resolvePlanLimits(
     code: key,
     amountTzs: Number(row?.amount_tzs) > 0 ? Number(row?.amount_tzs) : base.amountTzs,
     maxBranches: Number(row?.max_branches) > 0 ? Number(row?.max_branches) : base.maxBranches,
-    maxAccounts: Number(row?.max_accounts) > 0 ? Number(row?.max_accounts) : base.maxAccounts,
+    maxAccounts: Number(row?.max_members) > 0 ? Number(row?.max_members) : base.maxAccounts,
     maxStores: Number(row?.max_stores) > 0 ? Number(row?.max_stores) : base.maxStores,
     extraBranchPriceTzs:
       row?.extra_branch_price_tzs != null && Number(row.extra_branch_price_tzs) >= 0
