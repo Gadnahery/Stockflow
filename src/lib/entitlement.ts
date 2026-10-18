@@ -5,7 +5,8 @@ import { readSubscriptionCache, type SubscriptionSummary } from './subscription'
  * Access rules:
  * - Paid (active subscription or paid_until in the future) → full write
  * - Trial still running → full write
- * - Trial ended / no pay → read-only (view only; cannot sell or edit)
+ * - Trial ended / no pay → read-only (view only; cannot sell, edit products/stock,
+ *   or create customers/suppliers/expenses/purchases — assertCanWrite on those paths too)
  * - Unknown offline with no cache → allow write so POS is not bricked
  */
 

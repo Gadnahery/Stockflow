@@ -12,6 +12,7 @@ import { useConfirm } from '../components/ui/ConfirmDialog'
 import { useUi } from '../store/uiStore'
 import { fmtMoney } from '../lib/util'
 import ReceiptModal from '../components/ReceiptModal'
+import { assertCanWrite } from '../lib/entitlement'
 
 const emptyForm = { name: '', phone: '', email: '', address: '', creditLimit: '0', notes: '' }
 
@@ -141,6 +142,7 @@ export default function CustomersPage() {
   }
 
   const save = async () => {
+    assertCanWrite()
     if (!form.name.trim()) return
     const now = new Date().toISOString()
     const data = {

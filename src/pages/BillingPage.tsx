@@ -4,6 +4,7 @@ import Screen from '../components/ui/Screen'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase } from '../lib/supabase'
 import { useI18n } from '../i18n/I18nContext'
+import { computeAccess } from '../lib/entitlement'
 
 type BillingPlan = {
   id: string
@@ -128,6 +129,27 @@ export default function BillingPage() {
     } finally { setBusy(false) }
   }
 
+  const access = computeAccess(
+    business,
+    subscription
+      ? {
+          business_id: business?.id || '',
+          status: subscription.status,
+          trial_ends_at: subscription.trial_ends_at,
+          current_period_end: subscription.current_period_end,
+          checked_at: new Date().toISOString(),
+        }
+      : null,
+  )
+  const statusCopy =
+    access.level === 'full' && access.status === 'active'
+      ? 'Active plan · current period ends ' + date(subscription?.current_period_end || access.paidUntil)
+      : access.level === 'full' && access.status === 'trial'
+        ? '7-day trial · ends ' + date(subscription?.trial_ends_at || null) + (access.trialDaysLeft != null ? ` · ${access.trialDaysLeft} day${access.trialDaysLeft === 1 ? '' : 's'} left` : '')
+        : access.level === 'readonly'
+          ? 'Trial ended. You can still sign in and view data, but selling and editing stay locked until you pay.'
+          : access.message || 'Start a free trial or choose a plan when you are ready.'
+
   return (
     <Screen title="Billing" subtitle={business?.name || 'Manage invoices and plan'}>
       <div className="mx-auto w-full max-w-4xl space-y-5 pb-10">
@@ -136,15 +158,16 @@ export default function BillingPage() {
             <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary"><ShieldCheck size={22} /></div>
             <div className="min-w-0 flex-1">
               <h2 className="text-lg font-bold text-ink">{subscription?.plan?.name || 'Billing account'}</h2>
-              <p className="mt-1 text-sm text-ink-secondary">
-                {subscription?.status === 'active'
-                  ? 'Active plan · current period ends ' + date(subscription.current_period_end)
-                  : subscription?.status === 'trialing'
-                    ? (subscription.trial_ends_at && new Date(subscription.trial_ends_at).getTime() > Date.now()
-                      ? '7-day trial · ends ' + date(subscription.trial_ends_at)
-                      : 'Trial period ended · choose a plan when ready')
-                    : 'Your workspace remains available. Billing status does not lock sales, stock, reports, or other business operations.'}
-              </p>
+              <p className="mt-1 text-sm text-ink-secondary">{statusCopy}</p>
+              {access.level === 'readonly' && canManage && (
+                <button
+                  type="button"
+                  className="press mt-3 inline-flex h-9 items-center justify-center rounded-xl bg-primary px-4 text-sm font-semibold text-white"
+                  onClick={() => document.getElementById('billing-plans')?.scrollIntoView({ behavior: 'smooth' })}
+                >
+                  Pay now
+                </button>
+              )}
             </div>
             <button type="button" onClick={() => void load()} className="press inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border text-ink-secondary" aria-label="Refresh billing"><RefreshCw size={16} /></button>
           </div>
@@ -163,7 +186,7 @@ export default function BillingPage() {
         {notice && <div role="status" className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{notice}</div>}
 
         <section className="rounded-[24px] border border-border bg-white p-6 shadow-card sm:p-8">
-          <h3 className="text-base font-bold text-ink">{t('billing.plans')}</h3>
+          <h3 id="billing-plans" className="text-base font-bold text-ink">{t('billing.plans')}</h3>
           <p className="mt-1 text-sm text-ink-secondary">Prices and features are managed centrally. No price is hard-coded into the app.</p>
           {loading ? <p className="mt-5 text-sm text-ink-secondary">{t('billing.loadingPlans')}</p> : plans.length === 0 ? (
             <div className="mt-5 rounded-2xl border border-dashed border-border p-5">

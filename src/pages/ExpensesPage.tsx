@@ -13,6 +13,7 @@ import Sheet from '../components/ui/Sheet'
 import { useConfirm } from '../components/ui/ConfirmDialog'
 import { fmtMoney } from '../lib/util'
 import { useI18n } from '../i18n/I18nContext'
+import { assertCanWrite } from '../lib/entitlement'
 
 const CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Transport', 'Supplies', 'Marketing', 'Maintenance', 'Other']
 const METHODS = ['cash', 'mobile', 'card', 'bank']
@@ -82,6 +83,7 @@ export default function ExpensesPage() {
   }
 
   const save = async () => {
+    assertCanWrite()
     const amount = parseFloat(form.amount)
     if (!amount || amount <= 0) return
     const user = (() => {

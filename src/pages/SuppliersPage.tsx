@@ -13,6 +13,7 @@ import { fmtMoney } from '../lib/util'
 import { DocumentModal, type PrintDocumentProps } from '../components/PrintDocument'
 import { applyReceipt, nextPoNumber, remainingQty, PO_STATUS_LABEL } from '../lib/purchaseOrders'
 import { addBatch } from '../lib/batches'
+import { assertCanWrite } from '../lib/entitlement'
 
 const emptySupplier = { name: '', phone: '', email: '', address: '', notes: '' }
 
@@ -90,6 +91,7 @@ export default function SuppliersPage() {
   }
 
   const saveSupplier = async () => {
+    assertCanWrite()
     if (!form.name.trim()) return
     const now = new Date().toISOString()
     const data = {
@@ -247,6 +249,7 @@ export default function SuppliersPage() {
   }
 
   const savePurchase = async () => {
+    assertCanWrite()
     const list = suppliers || []
     const supplier = list.find((s) => s.id === purchaseSupplierId)
     if (!supplier) return
